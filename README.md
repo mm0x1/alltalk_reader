@@ -1,6 +1,6 @@
 # AllTalk Reader
 
-An audiobook reader application that uses the AllTalk API to convert text into speech. This was created for my personal use so that I didn't have to pay for software that does this.
+An audiobook reader application that uses the AllTalk API to convert text into speech. This was created for my personal use so that I didn't have to pay for software that does this. The app was vibe coded in an hour by the goose ai agent.
 
 ![reader thumbnail](public/thumbnails/reader.png)
 

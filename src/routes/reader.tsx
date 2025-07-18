@@ -151,30 +151,37 @@ function BookReader() {
       }
 
       // Create and play audio
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      if (audioUrl !== null) {
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
 
-      // Set up event handlers
-      audio.oncanplaythrough = () => {
-        setIsLoadingAudio(false)
-        setIsPlaying(true)
-        audio.play().catch(err => {
-          console.error('Failed to play audio:', err)
+        // Set up event handlers
+        audio.oncanplaythrough = () => {
+          setIsLoadingAudio(false)
+          setIsPlaying(true)
+          audio.play().catch(err => {
+            console.error('Failed to play audio:', err)
+            setIsPlaying(false)
+            setErrorMessage('Failed to play audio. Please try again.')
+          })
+        }
+
+        audio.onended = () => {
+          // Move to next paragraph when audio ends
+          handlePlayParagraph(index + 1)
+        }
+
+        audio.onerror = (e) => {
+          console.error('Audio error:', e)
           setIsPlaying(false)
-          setErrorMessage('Failed to play audio. Please try again.')
-        })
-      }
-
-      audio.onended = () => {
-        // Move to next paragraph when audio ends
-        handlePlayParagraph(index + 1)
-      }
-
-      audio.onerror = (e) => {
-        console.error('Audio error:', e)
+          setIsLoadingAudio(false)
+          setErrorMessage('Error playing audio. Please try again.')
+        }
+      } else {
+        console.error('Audio URL is null, cannot play audio')
         setIsPlaying(false)
         setIsLoadingAudio(false)
-        setErrorMessage('Error playing audio. Please try again.')
+        setErrorMessage('Failed to generate audio. Please try again.')
       }
     } catch (error) {
       console.error('Failed to play paragraph:', error)
