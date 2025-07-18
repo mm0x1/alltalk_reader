@@ -1,6 +1,8 @@
 # AllTalk Reader
 
-An audiobook reader application that uses the AllTalk API to convert text into speech.
+An audiobook reader application that uses the AllTalk API to convert text into speech. This was created for my personal use so that I didn't have to pay for software that does this.
+
+![reader thumbnail](public/thumbnails/reader.png)
 
 ## Overview
 
@@ -32,7 +34,7 @@ AllTalk Reader transforms any text into an audiobook with high-quality text-to-s
 
 ## Usage
 
-1. Paste your text in the input field
+1. Either paste your text in the input field
 2. Click "Process Text" to split the text into paragraphs
 3. Use the playback controls at the top to navigate through paragraphs
 4. Click on any paragraph to start reading from that position
@@ -52,5 +54,6 @@ The application connects to AllTalk by default at `http://localhost:7851`. You c
 
 - **Server Not Connected**: Ensure AllTalk is running and the correct IP/port is configured
 - **Voice not working**: Verify that the selected voice exists on your AllTalk server
-- **Audio playback issues**: Check your browser's audio settings and permissions
+- **Audio playback issues**: Check your browser's audio settings and permissions.
+
 

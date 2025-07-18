@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from 'react'
-import { 
-  splitIntoParagraphs, 
+import {
+  splitIntoParagraphs,
   generateTTS,
   getVoiceOptions,
   getServerStatus,
@@ -33,17 +33,17 @@ function BookReader() {
   const [selectedVoice, setSelectedVoice] = useState(getVoiceOptions()[0]?.id || 'female_01.wav')
   const [isServerConnected, setIsServerConnected] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  
+
   // Pre-generation state
   const [showBatchGenerator, setShowBatchGenerator] = useState(false)
   const [preGeneratedAudio, setPreGeneratedAudio] = useState<(string | null)[]>([])
   const [isPreGenerated, setIsPreGenerated] = useState(false)
-  
+
   // TTS settings
   const [speed, setSpeed] = useState(1.0)
   const [pitch, setPitch] = useState(0)
   const [language, setLanguage] = useState('en')
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Initialize API when component mounts
@@ -75,11 +75,11 @@ function BookReader() {
     if (!text.trim()) return
 
     setIsProcessing(true)
-    
+
     try {
       // Split text into paragraphs with size limit handling
       const newParagraphs = splitIntoParagraphs(text)
-      
+
       setParagraphs(newParagraphs)
       setCurrentParagraph(null)
       setIsPlaying(false)
@@ -88,7 +88,7 @@ function BookReader() {
       setErrorMessage(null)
       setIsPreGenerated(false)
       setPreGeneratedAudio(Array(newParagraphs.length).fill(null))
-      
+
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current = null
@@ -219,7 +219,7 @@ function BookReader() {
     setIsPreGenerated(false)
     setPreGeneratedAudio([])
     setShowBatchGenerator(false)
-    
+
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
@@ -240,9 +240,11 @@ function BookReader() {
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4 text-white">AllTalk Book Reader</h1>
       <p className="text-gray-400 mb-4">
-        Using the standard AllTalk API to generate TTS audio paragraph by paragraph.
+        Using the standard AllTalk API to generate TTS audio paragraph by paragraph. Text longer than <b>Max characters</b> will be split up.
       </p>
-      
+      <p className="text-gray-400 mb-4">
+        Click the green "Reload alltalk configuration" to load voices.
+      </p>
       <SettingsMonitor onConnectionStatusChange={setIsServerConnected} />
 
       {paragraphs.length === 0 ? (
@@ -271,7 +273,7 @@ function BookReader() {
                 placeholder="Paste your book text here..."
               />
             </div>
-            
+
             {showSettings && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-dark-300 p-4 rounded-lg">
                 <VoiceSelector
@@ -279,7 +281,7 @@ function BookReader() {
                   onChange={setSelectedVoice}
                   label="Character Voice"
                 />
-                
+
                 <TtsSettings
                   speed={speed}
                   pitch={pitch}
@@ -290,7 +292,7 @@ function BookReader() {
                 />
               </div>
             )}
-            
+
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-400">
                 {text ? `${text.length} characters in ${text.trim().split(/\s+/).length} words` : 'No text entered'}
@@ -318,7 +320,7 @@ function BookReader() {
                 ) : 'Process Text'}
               </button>
             </div>
-            
+
             {!isServerConnected && (
               <div className="mt-4 p-3 bg-dark-400 text-amber-300 rounded-lg border border-amber-500">
                 <div className="flex items-start">
@@ -349,17 +351,16 @@ function BookReader() {
               onSkipNext={() => currentParagraph !== null && currentParagraph < paragraphs.length - 1 && handlePlayParagraph(currentParagraph + 1)}
               isLoading={isLoadingAudio}
             />
-            
-            <button 
+
+            <button
               onClick={() => setShowBatchGenerator(true)}
               disabled={showBatchGenerator || isPreGenerated || !isServerConnected}
-              className={`px-3 py-1.5 text-sm rounded flex items-center ${
-                isPreGenerated 
-                  ? 'bg-accent-success/20 text-accent-success border border-accent-success' 
-                  : showBatchGenerator || !isServerConnected
-                    ? 'bg-dark-200 text-gray-500 cursor-not-allowed' 
-                    : 'bg-dark-400 text-accent-primary hover:bg-dark-500 border border-accent-primary'
-              }`}
+              className={`px-3 py-1.5 text-sm rounded flex items-center ${isPreGenerated
+                ? 'bg-accent-success/20 text-accent-success border border-accent-success'
+                : showBatchGenerator || !isServerConnected
+                  ? 'bg-dark-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-dark-400 text-accent-primary hover:bg-dark-500 border border-accent-primary'
+                }`}
             >
               {isPreGenerated ? (
                 <>
@@ -381,7 +382,7 @@ function BookReader() {
 
           {/* Batch generator */}
           {showBatchGenerator && (
-            <BatchGenerator 
+            <BatchGenerator
               paragraphs={paragraphs}
               voice={selectedVoice}
               speed={speed}
@@ -391,7 +392,7 @@ function BookReader() {
               onCancel={handleBatchCancel}
             />
           )}
-          
+
           {showSettings && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-dark-300 border border-dark-500 rounded-lg">
               <VoiceSelector
@@ -409,7 +410,7 @@ function BookReader() {
                 }}
                 label="Character Voice"
               />
-              
+
               <TtsSettings
                 speed={speed}
                 pitch={pitch}
@@ -447,17 +448,17 @@ function BookReader() {
               />
             </div>
           )}
-          
+
           {/* Status indicator */}
           {currentParagraph !== null && (
             <AudioCacheStatus
               status={
-                errorMessage 
-                  ? 'error' 
-                  : isLoadingAudio 
-                    ? 'generating' 
-                    : isPlaying 
-                      ? 'playing' 
+                errorMessage
+                  ? 'error'
+                  : isLoadingAudio
+                    ? 'generating'
+                    : isPlaying
+                      ? 'playing'
                       : 'paused'
               }
               paragraphIndex={currentParagraph}
@@ -465,7 +466,7 @@ function BookReader() {
               errorMessage={errorMessage || undefined}
             />
           )}
-          
+
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-200">Book Content</h2>
@@ -479,14 +480,14 @@ function BookReader() {
                 {showSettings ? 'Hide Settings' : 'Show Settings'}
               </button>
             </div>
-            
-            <ProgressBar 
+
+            <ProgressBar
               currentIndex={currentParagraph}
               totalParagraphs={paragraphs.length}
               onSelectParagraph={handlePlayParagraph}
             />
-            
-            <ParagraphList 
+
+            <ParagraphList
               paragraphs={paragraphs}
               currentParagraphIndex={currentParagraph}
               onPlayParagraph={handlePlayParagraph}
