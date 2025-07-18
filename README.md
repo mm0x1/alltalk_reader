@@ -1,72 +1,56 @@
-# Welcome to TanStack.com!
+# AllTalk Reader
 
-This site is built with TanStack Router!
+An audiobook reader application that uses the AllTalk API to convert text into speech.
 
-- [TanStack Router Docs](https://tanstack.com/router)
+## Overview
 
-It's deployed automagically with Netlify!
+AllTalk Reader transforms any text into an audiobook with high-quality text-to-speech. Simply paste your text, choose a voice, adjust settings, and listen. The application automatically splits long text into paragraphs, tracks your reading position, and provides playback controls.
 
-- [Netlify](https://netlify.com/)
+## Features
 
-## Development
+- **Dark Mode Interface**: Easy on the eyes for extended reading sessions
+- **Text-to-Speech**: Uses AllTalk's API for high-quality voice synthesis
+- **Multiple Voices**: Choose from various character voices
+- **Customizable Playback**: Adjust speed, pitch, and language settings
+- **Progress Tracking**: Easily track where you are in your text with visual indicators
+- **Paragraph Navigation**: Jump between sections with a simple click
+- **Batch Audio Generation**: Pre-generate audio for all paragraphs for a smoother experience
+- **Auto-splitting**: Intelligently divides long text into manageable paragraphs
 
-From your terminal:
+## Requirements
 
-```sh
-pnpm install
-pnpm dev
-```
+- Node.js 14+ and npm/pnpm
+- AllTalk TTS server running (default: http://localhost:7851)
 
-This starts your app in development mode, rebuilding assets on file changes.
+## Quick Start
 
-## Editing and previewing the docs of TanStack projects locally
+1. Ensure your AllTalk server is running and accessible
+2. Clone this repository
+3. Install dependencies: `pnpm install`
+4. Start the development server: `pnpm dev`
+5. Access the application at: http://localhost:5173 (or the port shown in your terminal)
 
-The documentations for all TanStack projects except for `React Charts` are hosted on [https://tanstack.com](https://tanstack.com), powered by this TanStack Router app.
-In production, the markdown doc pages are fetched from the GitHub repos of the projects, but in development they are read from the local file system.
+## Usage
 
-Follow these steps if you want to edit the doc pages of a project (in these steps we'll assume it's [`TanStack/form`](https://github.com/tanstack/form)) and preview them locally :
+1. Paste your text in the input field
+2. Click "Process Text" to split the text into paragraphs
+3. Use the playback controls at the top to navigate through paragraphs
+4. Click on any paragraph to start reading from that position
+5. Adjust voice, speed, pitch, and language settings as desired
+6. Optionally use "Pre-Generate All Audio" to cache the audio files for better performance
 
-1. Create a new directory called `tanstack`.
+## Server Configuration
 
-```sh
-mkdir tanstack
-```
+The application connects to AllTalk by default at `http://localhost:7851`. You can configure the connection settings by clicking the edit button in the Server Status section.
 
-2. Enter the directory and clone this repo and the repo of the project there.
+## Tips for Best Results
 
-```sh
-cd tanstack
-git clone git@github.com:TanStack/tanstack.com.git
-git clone git@github.com:TanStack/form.git
-```
+- Properly formatted text with paragraph breaks works best
+- Pre-generate audio for longer texts to avoid waiting during playback
 
-> [!NOTE]
-> Your `tanstack` directory should look like this:
->
-> ```
-> tanstack/
->    |
->    +-- form/
->    |
->    +-- tanstack.com/
-> ```
+## Troubleshooting
 
-> [!WARNING]
-> Make sure the name of the directory in your local file system matches the name of the project's repo. For example, `tanstack/form` must be cloned into `form` (this is the default) instead of `some-other-name`, because that way, the doc pages won't be found.
+- **Server Not Connected**: Ensure AllTalk is running and the correct IP/port is configured
+- **Voice not working**: Verify that the selected voice exists on your AllTalk server
+- **Audio playback issues**: Check your browser's audio settings and permissions
 
-3. Enter the `tanstack/tanstack.com` directory, install the dependencies and run the app in dev mode:
-
-```sh
-cd tanstack.com
-pnpm i
-# The app will run on https://localhost:3000 by default
-pnpm dev
-```
-
-4. Now you can visit http://localhost:3000/form/latest/docs/overview in the browser and see the changes you make in `tanstack/form/docs`.
-
-> [!NOTE]
-> The updated pages need to be manually reloaded in the browser.
-
-> [!WARNING]
-> You will need to update the `docs/config.json` file (in the project's repo) if you add a new doc page!
