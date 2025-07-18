@@ -4,19 +4,41 @@
 
 @layer base {
   html {
-    color-scheme: light dark;
+    color-scheme: dark;
   }
 
   * {
-    @apply border-gray-200 dark:border-gray-800;
+    @apply border-dark-700;
   }
 
   html,
   body {
-    @apply text-gray-900 bg-stone-800 dark:bg-gray-950 dark:text-gray-200;
+    @apply text-gray-200 bg-dark-100;
   }
 
   .using-mouse * {
     outline: none !important;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-accent-primary text-white rounded hover:bg-accent-hover focus:ring-2 focus:ring-accent-primary/50 transition duration-150 disabled:bg-gray-600 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-dark-300 text-white rounded hover:bg-dark-400 focus:ring-2 focus:ring-dark-500/50 transition duration-150 disabled:bg-dark-200 disabled:cursor-not-allowed;
+  }
+
+  .input-field {
+    @apply w-full p-2 bg-dark-200 border border-dark-500 text-gray-200 rounded focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary;
+  }
+
+  .card {
+    @apply bg-dark-200 border border-dark-500 rounded-lg p-4 shadow-lg;
+  }
+
+  .card-header {
+    @apply text-xl font-semibold mb-4 border-b border-dark-500 pb-2;
   }
 }

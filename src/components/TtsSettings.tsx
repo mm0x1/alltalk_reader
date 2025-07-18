@@ -52,16 +52,16 @@ export default function TtsSettings({
   
   return (
     <div className={className}>
-      <h3 className="text-sm font-medium mb-2">TTS Generation Settings</h3>
+      <h3 className="text-sm font-medium mb-2 text-gray-200">TTS Generation Settings</h3>
       
       <div className="space-y-3">
         {/* Speed setting */}
         <div className={`${!speedCapable ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between">
-            <label className="block text-sm">Speed: {speed.toFixed(2)}x</label>
+            <label className="block text-sm text-gray-300">Speed: {speed.toFixed(2)}x</label>
             <button 
               onClick={() => onSpeedChange(1.0)} 
-              className="text-xs text-blue-500 hover:text-blue-700"
+              className="text-xs text-accent-primary hover:text-accent-hover"
               disabled={!speedCapable}
             >
               Reset
@@ -74,7 +74,7 @@ export default function TtsSettings({
             step="0.05"
             value={speed}
             onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-            className="w-full"
+            className="w-full accent-accent-primary bg-dark-400"
             disabled={!speedCapable}
           />
           <div className="flex justify-between text-xs text-gray-500">
@@ -87,10 +87,10 @@ export default function TtsSettings({
         {/* Pitch setting */}
         <div className={`${!pitchCapable ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between">
-            <label className="block text-sm">Pitch: {pitch > 0 ? '+' : ''}{pitch}</label>
+            <label className="block text-sm text-gray-300">Pitch: {pitch > 0 ? '+' : ''}{pitch}</label>
             <button 
               onClick={() => onPitchChange(0)} 
-              className="text-xs text-blue-500 hover:text-blue-700"
+              className="text-xs text-accent-primary hover:text-accent-hover"
               disabled={!pitchCapable}
             >
               Reset
@@ -103,7 +103,7 @@ export default function TtsSettings({
             step="1"
             value={pitch}
             onChange={(e) => onPitchChange(parseInt(e.target.value))}
-            className="w-full"
+            className="w-full accent-accent-primary bg-dark-400"
             disabled={!pitchCapable}
           />
           <div className="flex justify-between text-xs text-gray-500">
@@ -115,11 +115,11 @@ export default function TtsSettings({
 
         {/* Language selection */}
         <div className={`${!languageCapable ? 'opacity-50 pointer-events-none' : ''}`}>
-          <label className="block text-sm mb-1">Language</label>
+          <label className="block text-sm mb-1 text-gray-300">Language</label>
           <select
             value={language}
             onChange={(e) => onLanguageChange(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
+            className="input-field"
             disabled={!languageCapable}
           >
             {languages.map((lang) => (
@@ -132,7 +132,7 @@ export default function TtsSettings({
       </div>
       
       {(!speedCapable || !pitchCapable || !languageCapable) && (
-        <p className="mt-2 text-xs text-amber-600">
+        <p className="mt-2 text-xs text-accent-warning">
           Some settings are disabled because they are not supported by the current TTS engine.
         </p>
       )}

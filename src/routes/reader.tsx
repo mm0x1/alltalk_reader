@@ -238,8 +238,8 @@ function BookReader() {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">AllTalk Book Reader</h1>
-      <p className="text-gray-600 mb-4">
+      <h1 className="text-2xl font-bold mb-4 text-white">AllTalk Book Reader</h1>
+      <p className="text-gray-400 mb-4">
         Using the standard AllTalk API to generate TTS audio paragraph by paragraph.
       </p>
       
@@ -247,15 +247,15 @@ function BookReader() {
 
       {paragraphs.length === 0 ? (
         <div className="space-y-4">
-          <div className="bg-stone-800 p-4 border border-gray-200 rounded-lg">
+          <div className="card">
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
-                <label htmlFor="text-input" className="block font-medium text-lg">
+                <label htmlFor="text-input" className="block font-medium text-lg text-gray-200">
                   Paste your text below:
                 </label>
                 <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className="text-sm px-3 py-1 bg-stone-800ray-100 hover:bg-stone-800ray-200 rounded flex items-center"
+                  className="text-sm px-3 py-1 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
@@ -265,7 +265,7 @@ function BookReader() {
               </div>
               <textarea
                 id="text-input"
-                className="w-full h-64 p-2 border border-gray-300 rounded"
+                className="input-field h-64"
                 value={text}
                 onChange={handleTextChange}
                 placeholder="Paste your book text here..."
@@ -273,7 +273,7 @@ function BookReader() {
             </div>
             
             {showSettings && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-stone-800 p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-dark-300 p-4 rounded-lg">
                 <VoiceSelector
                   value={selectedVoice}
                   onChange={setSelectedVoice}
@@ -292,11 +292,11 @@ function BookReader() {
             )}
             
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-400">
                 {text ? `${text.length} characters in ${text.trim().split(/\s+/).length} words` : 'No text entered'}
               </div>
               <button
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-stone-800ray-400"
+                className="btn-primary"
                 onClick={handleProcessText}
                 disabled={isProcessing || !text.trim() || !isServerConnected}
               >
@@ -320,7 +320,7 @@ function BookReader() {
             </div>
             
             {!isServerConnected && (
-              <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-lg border border-yellow-200">
+              <div className="mt-4 p-3 bg-dark-400 text-amber-300 rounded-lg border border-amber-500">
                 <div className="flex items-start">
                   <svg className="h-5 w-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -336,7 +336,7 @@ function BookReader() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 justify-between bg-stone-800ray-100 p-2 rounded mb-1">
+          <div className="flex flex-wrap items-center gap-2 justify-between bg-dark-300 p-4 rounded-lg mb-1">
             <PlaybackControls
               isPlaying={isPlaying}
               selectedVoice={selectedVoice}
@@ -355,10 +355,10 @@ function BookReader() {
               disabled={showBatchGenerator || isPreGenerated || !isServerConnected}
               className={`px-3 py-1.5 text-sm rounded flex items-center ${
                 isPreGenerated 
-                  ? 'bg-stone-800reen-100 text-green-700' 
+                  ? 'bg-accent-success/20 text-accent-success border border-accent-success' 
                   : showBatchGenerator || !isServerConnected
-                    ? 'bg-stone-800ray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    ? 'bg-dark-200 text-gray-500 cursor-not-allowed' 
+                    : 'bg-dark-400 text-accent-primary hover:bg-dark-500 border border-accent-primary'
               }`}
             >
               {isPreGenerated ? (
@@ -393,7 +393,7 @@ function BookReader() {
           )}
           
           {showSettings && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-stone-800 border border-gray-200 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-dark-300 border border-dark-500 rounded-lg">
               <VoiceSelector
                 value={selectedVoice}
                 onChange={voice => {
@@ -466,12 +466,12 @@ function BookReader() {
             />
           )}
           
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Book Content</h2>
+              <h2 className="text-lg font-semibold text-gray-200">Book Content</h2>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="text-sm px-3 py-1 bg-stone-800ray-100 hover:bg-stone-800ray-200 rounded flex items-center"
+                className="text-sm px-3 py-1 bg-dark-400 hover:bg-dark-500 rounded flex items-center transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />

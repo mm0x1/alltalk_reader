@@ -57,13 +57,13 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
 
   if (!isEditing) {
     return (
-      <div className="bg-stone-800 p-4 rounded-lg mb-4">
+      <div className="card mb-4">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold">AllTalk Server Status</h2>
+          <h2 className="text-lg font-semibold text-gray-200">AllTalk Server Status</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsEditing(true)}
-              className="px-2 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded"
+              className="p-2 bg-dark-400 hover:bg-dark-500 text-white rounded transition-colors"
               title="Edit API settings"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -72,7 +72,7 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
             </button>
             <button
               onClick={() => checkServerReady().then(() => setServerStatus(getServerStatus()))}
-              className="px-2 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded"
+              className="p-2 bg-accent-primary hover:bg-accent-hover text-white rounded transition-colors"
               title="Refresh connection status"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -81,7 +81,7 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
             </button>
             <button
               onClick={handleReloadConfig}
-              className="px-2 py-1 text-sm bg-green-100 hover:bg-green-200 rounded"
+              className="p-2 bg-accent-success hover:bg-accent-success/80 text-white rounded transition-colors"
               title="Reload AllTalk configuration"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -94,16 +94,16 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           <div>
             <div className="flex items-center">
-              <span className="font-medium mr-2">Server:</span>
+              <span className="font-medium mr-2 text-gray-300">Server:</span>
               {serverStatus.ready ? (
-                <span className="text-green-600 flex items-center">
+                <span className="text-accent-success flex items-center">
                   <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   Connected
                 </span>
               ) : (
-                <span className="text-red-600 flex items-center">
+                <span className="text-accent-danger flex items-center">
                   <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
@@ -111,23 +111,23 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
                 </span>
               )}
             </div>
-            <div>
+            <div className="text-gray-300">
               <span className="font-medium">URL:</span> {apiSettings.protocol}{apiSettings.ipPort}
             </div>
-            <div>
+            <div className="text-gray-300">
               <span className="font-medium">Available voices:</span> {serverStatus.availableVoices?.length || 0}
             </div>
           </div>
 
           <div>
-            <div>
+            <div className="text-gray-300">
               <span className="font-medium">Max characters:</span> {apiSettings.maxCharacters}
             </div>
-            <div>
+            <div className="text-gray-300">
               <span className="font-medium">Last check:</span> {lastCheckTime ? lastCheckTime.toLocaleTimeString() : 'Never'}
             </div>
             {serverStatus.error && (
-              <div className="text-red-600">
+              <div className="text-accent-danger">
                 <span className="font-medium">Error:</span> {serverStatus.error}
               </div>
             )}
@@ -138,19 +138,19 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
   }
 
   return (
-    <div className="bg-stone-800 p-4 rounded-lg mb-4">
+    <div className="card mb-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Edit API Settings</h2>
+        <h2 className="text-lg font-semibold text-gray-200">Edit API Settings</h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setIsEditing(false)}
-            className="px-3 py-1 text-sm bg-gray-300 hover:bg-gray-400 rounded"
+            className="px-3 py-1 text-sm bg-dark-400 hover:bg-dark-500 text-gray-200 rounded transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSaveSettings}
-            className="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded"
+            className="px-3 py-1 text-sm bg-accent-primary hover:bg-accent-hover text-white rounded transition-colors"
           >
             Save
           </button>
@@ -160,11 +160,11 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
       <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Protocol</label>
+            <label className="block text-sm font-medium mb-1 text-gray-300">Protocol</label>
             <select
               value={tempSettings.protocol}
               onChange={(e) => setTempSettings({ ...tempSettings, protocol: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="input-field"
             >
               <option value="http://">HTTP</option>
               <option value="https://">HTTPS</option>
@@ -172,12 +172,12 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">IP:Port</label>
+            <label className="block text-sm font-medium mb-1 text-gray-300">IP:Port</label>
             <input
               type="text"
               value={tempSettings.ipPort}
               onChange={(e) => setTempSettings({ ...tempSettings, ipPort: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="input-field"
               placeholder="localhost:7851"
             />
           </div>
@@ -185,32 +185,32 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Connection Timeout (seconds)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-300">Connection Timeout (seconds)</label>
             <input
               type="number"
               min="1"
               max="60"
               value={tempSettings.connectionTimeout}
               onChange={(e) => setTempSettings({ ...tempSettings, connectionTimeout: parseInt(e.target.value) })}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Max Characters per Request</label>
+            <label className="block text-sm font-medium mb-1 text-gray-300">Max Characters per Request</label>
             <input
               type="number"
               min="100"
               max="10000"
               value={tempSettings.maxCharacters}
               onChange={(e) => setTempSettings({ ...tempSettings, maxCharacters: parseInt(e.target.value) })}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="input-field"
               placeholder="4096"
             />
           </div>
         </div>
 
-        <div className="text-sm text-gray-600 italic">
+        <div className="text-sm text-gray-400 italic">
           Note: After changing these settings, the app will attempt to reconnect to the server.
         </div>
       </div>

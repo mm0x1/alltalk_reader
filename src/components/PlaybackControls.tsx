@@ -27,12 +27,15 @@ export default function PlaybackControls({
   isLoading = false,
 }: PlaybackControlsProps) {
   return (
-    <div className="bg-gray-100 p-4 rounded-lg mb-4">
+    <div className="w-full">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center space-x-2">
           <button
-            className={`p-2 rounded-full ${canSkipPrevious ? 'text-blue-500 hover:bg-blue-100' : 'text-gray-400'
-              }`}
+            className={`p-2 rounded-full ${
+              canSkipPrevious 
+                ? 'text-accent-primary hover:bg-dark-400' 
+                : 'text-dark-700 cursor-not-allowed'
+            }`}
             onClick={onSkipPrevious}
             disabled={!canSkipPrevious || isLoading}
             title="Previous paragraph"
@@ -43,12 +46,13 @@ export default function PlaybackControls({
           </button>
 
           <button
-            className={`p-2 rounded-full ${isLoading
-                ? 'bg-gray-400 text-white cursor-not-allowed'
+            className={`p-2 rounded-full ${
+              isLoading
+                ? 'bg-dark-500 text-white cursor-not-allowed'
                 : isPlaying
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-green-500 text-white hover:bg-green-600'
-              }`}
+                  ? 'bg-accent-danger text-white hover:bg-accent-danger/80'
+                  : 'bg-accent-success text-white hover:bg-accent-success/80'
+            }`}
             onClick={onPlayPause}
             disabled={isLoading}
             title={isLoading ? "Loading..." : isPlaying ? "Pause" : "Play"}
@@ -71,8 +75,11 @@ export default function PlaybackControls({
           </button>
 
           <button
-            className={`p-2 rounded-full ${canSkipNext ? 'text-blue-500 hover:bg-blue-100' : 'text-gray-400'
-              }`}
+            className={`p-2 rounded-full ${
+              canSkipNext 
+                ? 'text-accent-primary hover:bg-dark-400' 
+                : 'text-dark-700 cursor-not-allowed'
+            }`}
             onClick={onSkipNext}
             disabled={!canSkipNext || isLoading}
             title="Next paragraph"
@@ -84,12 +91,12 @@ export default function PlaybackControls({
         </div>
 
         <div className="flex items-center space-x-2 ml-auto">
-          <label htmlFor="voice-select-control" className="text-sm font-medium text-gray-700">
+          <label htmlFor="voice-select-control" className="text-sm font-medium text-gray-300">
             Voice:
           </label>
           <select
             id="voice-select-control"
-            className="p-1.5 text-sm border border-gray-300 rounded"
+            className="p-1.5 text-sm bg-dark-200 border border-dark-600 text-gray-200 rounded"
             value={selectedVoice}
             onChange={(e) => onVoiceChange(e.target.value)}
             disabled={isLoading}
@@ -102,7 +109,7 @@ export default function PlaybackControls({
           </select>
 
           <button
-            className="p-1.5 text-sm text-white bg-stone-8000 rounded hover:bg-gray-600 disabled:bg-gray-400"
+            className="btn-secondary text-sm"
             onClick={onReset}
             disabled={isLoading}
             title="New text"
@@ -112,7 +119,7 @@ export default function PlaybackControls({
         </div>
       </div>
 
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="mt-2 text-xs text-gray-400">
         <p>
           {isLoading
             ? "Generating audio... Please wait."

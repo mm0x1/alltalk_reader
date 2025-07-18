@@ -15,7 +15,7 @@ export default function ProgressBarIndicator({
   showPercentage = true,
   className = '',
   height = 'h-4',
-  colorClass = 'bg-blue-500'
+  colorClass = 'bg-accent-primary'
 }: ProgressBarIndicatorProps) {
   // Ensure progress is between 0 and 100
   const validProgress = Math.max(0, Math.min(100, progress));
@@ -24,14 +24,14 @@ export default function ProgressBarIndicator({
     <div className={`w-full ${className}`}>
       {label && (
         <div className="flex justify-between mb-1">
-          <span className="text-sm font-medium">{label}</span>
+          <span className="text-sm font-medium text-gray-300">{label}</span>
           {showPercentage && (
-            <span className="text-sm font-medium">{Math.round(validProgress)}%</span>
+            <span className="text-sm font-medium text-gray-300">{Math.round(validProgress)}%</span>
           )}
         </div>
       )}
       
-      <div className={`w-full ${height} bg-gray-200 rounded-full overflow-hidden`}>
+      <div className={`w-full ${height} bg-dark-400 rounded-full overflow-hidden`}>
         <div 
           className={`${height} ${colorClass} transition-all duration-300 ease-in-out`}
           style={{ width: `${validProgress}%` }}

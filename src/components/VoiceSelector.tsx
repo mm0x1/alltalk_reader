@@ -63,7 +63,7 @@ export default function VoiceSelector({
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-1">
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-medium text-gray-200">
           {label}
         </label>
         <button
@@ -71,8 +71,8 @@ export default function VoiceSelector({
           disabled={isRefreshing || !serverStatus.ready}
           className={`px-2 py-1 text-xs rounded flex items-center ${
             isRefreshing || !serverStatus.ready 
-              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              ? 'bg-dark-400 text-gray-500 cursor-not-allowed' 
+              : 'bg-accent-primary/20 text-accent-primary hover:bg-accent-primary/30 border border-accent-primary/30'
           }`}
           title={serverStatus.ready ? "Refresh voice list" : "Server not connected"}
         >
@@ -97,7 +97,7 @@ export default function VoiceSelector({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-2 pr-8 border border-gray-300 rounded appearance-none"
+          className="input-field w-full pr-8 appearance-none"
           disabled={!serverStatus.ready && voices.length === 0}
         >
           {voices.length === 0 ? (
@@ -110,7 +110,7 @@ export default function VoiceSelector({
             ))
           )}
         </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
@@ -118,7 +118,7 @@ export default function VoiceSelector({
       </div>
       
       {!serverStatus.ready && (
-        <p className="mt-1 text-xs text-red-500">
+        <p className="mt-1 text-xs text-accent-danger">
           Server disconnected. Using default voices.
         </p>
       )}

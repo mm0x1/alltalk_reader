@@ -19,14 +19,14 @@ export default function ProgressBar({
 
   return (
     <div className="mb-6">
-      <div className="flex justify-between text-sm text-gray-500 mb-1">
+      <div className="flex justify-between text-sm text-gray-400 mb-1">
         <span>Progress</span>
         <span>{progress}%</span>
       </div>
       
-      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-dark-400 rounded-full overflow-hidden">
         <div 
-          className="h-full bg-blue-500 transition-all duration-300"
+          className="h-full bg-accent-primary transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -38,8 +38,8 @@ export default function ProgressBar({
             onClick={() => onSelectParagraph(index)}
             className={`w-6 h-6 text-xs flex items-center justify-center rounded ${
               currentIndex === index
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                ? 'bg-accent-primary text-white'
+                : 'bg-dark-400 hover:bg-dark-500 text-gray-300'
             }`}
             title={`Paragraph ${index + 1}`}
           >
