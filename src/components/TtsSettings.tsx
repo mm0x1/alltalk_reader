@@ -24,11 +24,11 @@ export default function TtsSettings({
   const settings = serverStatus?.currentSettings;
   
   // Check if features are supported by the current TTS engine
-  const speedCapable = settings?.generationspeed_capable || true;
-  const pitchCapable = settings?.pitch_capable || true;
-  const languageCapable = settings?.languages_capable || true;
+  const speedCapable = settings?.generationspeed_capable ?? true;
+  const pitchCapable = settings?.pitch_capable ?? true;
+  const languageCapable = settings?.languages_capable ?? true;
   
-  // Supported languages
+  // Supported languages as per the AllTalk API documentation
   const languages = [
     { code: 'auto', name: 'Auto Detect' },
     { code: 'ar', name: 'Arabic' },

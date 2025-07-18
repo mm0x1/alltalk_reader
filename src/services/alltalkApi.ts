@@ -15,7 +15,13 @@ const API_CONFIG = {
 };
 
 // Server status and available resources
-let SERVER_STATUS = {
+let SERVER_STATUS: {
+  ready: boolean;
+  error: string | null;
+  currentSettings: any;
+  availableVoices: string[];
+  availableRvcVoices: string[];
+} = {
   ready: false,
   error: null,
   currentSettings: null,
@@ -64,7 +70,7 @@ export async function checkServerReady() {
     return false;
   } catch (error) {
     SERVER_STATUS.ready = false;
-    SERVER_STATUS.error = `Error connecting to server: ${error.message}`;
+    SERVER_STATUS.error = `Error connecting to server: ${error instanceof Error ? error.message : String(error)}`;
     return false;
   }
 }
@@ -89,7 +95,7 @@ export async function initializeApi() {
     
     return settingsSuccess && voicesSuccess && rvcVoicesSuccess;
   } catch (error) {
-    SERVER_STATUS.error = `Error initializing API: ${error.message}`;
+    SERVER_STATUS.error = `Error initializing API: ${error instanceof Error ? error.message : String(error)}`;
     return false;
   }
 }
@@ -113,7 +119,7 @@ export async function getCurrentSettings() {
     SERVER_STATUS.currentSettings = data;
     return true;
   } catch (error) {
-    SERVER_STATUS.error = `Error fetching settings: ${error.message}`;
+    SERVER_STATUS.error = `Error fetching settings: ${error instanceof Error ? error.message : String(error)}`;
     return false;
   }
 }
@@ -137,7 +143,7 @@ export async function getAvailableVoices() {
     SERVER_STATUS.availableVoices = data.voices || [];
     return true;
   } catch (error) {
-    SERVER_STATUS.error = `Error fetching voices: ${error.message}`;
+    SERVER_STATUS.error = `Error fetching voices: ${error instanceof Error ? error.message : String(error)}`;
     return false;
   }
 }
@@ -158,10 +164,10 @@ export async function getAvailableRvcVoices() {
     }
     
     const data = await response.json();
-    SERVER_STATUS.availableRvcVoices = data.rvcvoices || [];
+    SERVER_STATUS.availableRvcVoices = data.voices || [];
     return true;
   } catch (error) {
-    SERVER_STATUS.error = `Error fetching RVC voices: ${error.message}`;
+    SERVER_STATUS.error = `Error fetching RVC voices: ${error instanceof Error ? error.message : String(error)}`;
     return false;
   }
 }
@@ -185,7 +191,7 @@ export async function reloadConfig() {
     await initializeApi();
     return true;
   } catch (error) {
-    SERVER_STATUS.error = `Error reloading config: ${error.message}`;
+    SERVER_STATUS.error = `Error reloading config: ${error instanceof Error ? error.message : String(error)}`;
     return false;
   }
 }
@@ -197,7 +203,7 @@ export async function reloadConfig() {
  * @param {Object} options - Options for the TTS generation
  * @returns {Promise<Object|null>} Response from the server or null if failed
  */
-export async function generateTTS(text, options = {}) {
+export async function generateTTS(text: string, options: any = {}) {
   const baseUrl = getBaseUrl();
   
   // Check text length against maximum allowed
@@ -210,7 +216,7 @@ export async function generateTTS(text, options = {}) {
   // Prepare the request payload with defaults
   const payload = new URLSearchParams({
     text_input: text,
-    text_filtering: options.textFiltering || 'none',
+    text_filtering: options.textFiltering || 'standard',
     character_voice_gen: options.characterVoice || 'female_01.wav',
     narrator_enabled: options.narratorEnabled ? 'true' : 'false',
     narrator_voice_gen: options.narratorVoice || '',
@@ -218,12 +224,25 @@ export async function generateTTS(text, options = {}) {
     language: options.language || 'en',
     output_file_name: options.outputFileName || `alltalk_output_${Date.now()}`,
     output_file_timestamp: options.outputFileTimestamp ? 'true' : 'false',
-    autoplay: 'false',
-    ...(options.speed !== undefined && { speed: options.speed.toString() }),
-    ...(options.pitch !== undefined && { pitch: options.pitch.toString() }),
-    ...(options.temperature !== undefined && { temperature: options.temperature.toString() }),
-    ...(options.repetitionPenalty !== undefined && { repetition_penalty: options.repetitionPenalty.toString() }),
+    autoplay: 'false'
   });
+  
+  // Only add optional parameters if they are defined
+  if (options.speed !== undefined) {
+    payload.append('speed', options.speed.toString());
+  }
+  
+  if (options.pitch !== undefined) {
+    payload.append('pitch', options.pitch.toString());
+  }
+  
+  if (options.temperature !== undefined) {
+    payload.append('temperature', options.temperature.toString());
+  }
+  
+  if (options.repetitionPenalty !== undefined) {
+    payload.append('repetition_penalty', options.repetitionPenalty.toString());
+  }
   
   try {
     const response = await fetch(`${baseUrl}/api/tts-generate`, {
@@ -250,7 +269,7 @@ export async function generateTTS(text, options = {}) {
       throw new Error(`TTS generation failed: ${result.status}`);
     }
   } catch (error) {
-    SERVER_STATUS.error = `Error generating TTS: ${error.message}`;
+    SERVER_STATUS.error = `Error generating TTS: ${error instanceof Error ? error.message : String(error)}`;
     return null;
   }
 }
@@ -262,7 +281,7 @@ export async function generateTTS(text, options = {}) {
  * @param {number} maxLength - Maximum length of each chunk
  * @returns {string[]} Array of text chunks
  */
-export function splitTextIntoChunks(text, maxLength = API_CONFIG.maxCharacters) {
+export function splitTextIntoChunks(text: string, maxLength = API_CONFIG.maxCharacters): string[] {
   if (!text) return [];
   
   // If text is under the limit, return it as a single chunk
@@ -317,7 +336,7 @@ export function splitTextIntoChunks(text, maxLength = API_CONFIG.maxCharacters) 
  * @param {string} text - The text to split
  * @returns {string[]} Array of paragraphs, each within the character limit
  */
-export function splitIntoParagraphs(text) {
+export function splitIntoParagraphs(text: string): string[] {
   if (!text || typeof text !== 'string') return [];
   
   // First split by double newlines (common paragraph separator)
@@ -363,7 +382,7 @@ export function getApiConfig() {
  * 
  * @param {Object} newConfig - New configuration parameters
  */
-export function updateApiConfig(newConfig) {
+export function updateApiConfig(newConfig: any) {
   Object.assign(API_CONFIG, newConfig);
 }
 

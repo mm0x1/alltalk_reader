@@ -36,24 +36,31 @@ export async function generateSpeech(
     language = DEFAULT_LANGUAGE,
     outputFileName = `paragraph_${Date.now()}`,
     baseUrl = API_BASE_URL,
-    speed = 1.0,
-    pitch = 0,
+    speed,
+    pitch,
   } = options;
   
   // Prepare the payload
   const payload = new URLSearchParams({
     text_input: text,
-    text_filtering: 'none',
+    text_filtering: 'standard',
     character_voice_gen: characterVoice,
     narrator_enabled: 'false',
     text_not_inside: 'character',
     language: language,
     output_file_name: outputFileName,
     output_file_timestamp: 'true',
-    autoplay: 'false',
-    speed: speed.toString(),
-    pitch: pitch.toString(),
+    autoplay: 'false'
   });
+  
+  // Only add optional parameters if they're defined
+  if (speed !== undefined) {
+    payload.append('speed', speed.toString());
+  }
+  
+  if (pitch !== undefined) {
+    payload.append('pitch', pitch.toString());
+  }
   
   try {
     // Send POST request to the API
@@ -79,7 +86,7 @@ export async function generateSpeech(
       return null;
     }
   } catch (error) {
-    console.error('Error generating TTS:', error);
+    console.error('Error generating TTS:', error instanceof Error ? error.message : String(error));
     return null;
   }
 }
@@ -96,13 +103,15 @@ export async function playParagraph(
   options: {
     voice?: string;
     language?: string;
+    speed?: number;
+    pitch?: number;
     onEnd?: () => void;
     onError?: (error: any) => void;
     onLoading?: () => void;
     onLoaded?: () => void;
   } = {}
 ): Promise<HTMLAudioElement | null> {
-  const { voice, language, onEnd, onError, onLoading, onLoaded } = options;
+  const { voice, language, speed, pitch, onEnd, onError, onLoading, onLoaded } = options;
   
   if (onLoading) {
     onLoading();
@@ -112,6 +121,8 @@ export async function playParagraph(
     const audioUrl = await generateSpeech(text, {
       characterVoice: voice,
       language,
+      speed,
+      pitch,
       outputFileName: `paragraph_${Date.now()}`,
     });
     
@@ -138,7 +149,7 @@ export async function playParagraph(
     
     return audio;
   } catch (error) {
-    console.error('Failed to play audio:', error);
+    console.error('Failed to play audio:', error instanceof Error ? error.message : String(error));
     if (onError) onError(error);
     return null;
   }
