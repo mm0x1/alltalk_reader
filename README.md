@@ -18,6 +18,16 @@ AllTalk Reader transforms any text into an audiobook with high-quality text-to-s
 - **Paragraph Navigation**: Jump between sections with a simple click
 - **Batch Audio Generation**: Pre-generate audio for all paragraphs for a smoother experience
 - **Auto-splitting**: Intelligently divides long text into manageable paragraphs
+- **Persistent Sessions**: Save and reload pre-generated audio sessions even after a browser refresh
+
+## New Feature: Persistent Audio Sessions
+
+This app now supports saving pre-generated audio sessions to a file-based database, so you can reload them after refreshing or returning to the app later. Features include:
+
+- Automatic session saving when pre-generating audio
+- Session management interface to view, load, and delete past sessions
+- Sessions are stored in a local file database rather than browser storage
+- Sessions persist across browser refreshes and app restarts
 
 ## Requirements
 
@@ -29,8 +39,13 @@ AllTalk Reader transforms any text into an audiobook with high-quality text-to-s
 1. Ensure your AllTalk server is running and accessible
 2. Clone this repository
 3. Install dependencies: `pnpm install`
-4. Start the development server: `pnpm dev`
-5. Access the application at: http://localhost:5173 (or the port shown in your terminal)
+4. Start both the session server and development server: `pnpm start:all`
+5. Access the application at: http://localhost:3000
+
+If you only want to run the Vite development server without session storage:
+```bash
+pnpm dev
+```
 
 ## Usage
 
@@ -40,6 +55,13 @@ AllTalk Reader transforms any text into an audiobook with high-quality text-to-s
 4. Click on any paragraph to start reading from that position
 5. Adjust voice, speed, pitch, and language settings as desired
 6. Optionally use "Pre-Generate All Audio" to cache the audio files for better performance
+
+### Using Saved Sessions
+
+1. Click the "Saved Sessions" button at the top of the page to see previously generated sessions
+2. Select a session to load it (this will replace your current text and audio)
+3. Sessions are automatically saved when you use the "Pre-Generate All Audio" function
+4. You can delete sessions you no longer need from the session manager
 
 ## Server Configuration
 
@@ -54,6 +76,8 @@ The application connects to AllTalk by default at `http://localhost:7851`. You c
 
 - **Server Not Connected**: Ensure AllTalk is running and the correct IP/port is configured
 - **Voice not working**: Verify that the selected voice exists on your AllTalk server
-- **Audio playback issues**: Check your browser's audio settings and permissions.
+- **Audio playback issues**: Check your browser's audio settings and permissions
+- **Session storage not working**: Make sure the session storage server (port 3001) is running alongside the Vite server
+- **Sessions not appearing**: Ensure the `data` directory exists and is writable by the application
 
 

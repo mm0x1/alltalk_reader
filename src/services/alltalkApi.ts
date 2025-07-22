@@ -43,15 +43,15 @@ export async function checkServerReady() {
   const baseUrl = getBaseUrl();
   const startTime = Date.now();
   const timeout = API_CONFIG.connectionTimeout * 1000;
-  
+
   SERVER_STATUS.error = null;
-  
+
   try {
     while (Date.now() - startTime < timeout) {
       try {
         const response = await fetch(`${baseUrl}/api/ready`);
         const text = await response.text();
-        
+
         if (text === 'Ready') {
           SERVER_STATUS.ready = true;
           return true;
@@ -59,11 +59,11 @@ export async function checkServerReady() {
       } catch (error) {
         // Keep trying until timeout
       }
-      
+
       // Wait a short time before trying again
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-    
+
     // If we get here, the server didn't respond in time
     SERVER_STATUS.ready = false;
     SERVER_STATUS.error = 'Server did not respond in time. Check if AllTalk is running.';
@@ -84,7 +84,7 @@ export async function initializeApi() {
   if (!(await checkServerReady())) {
     return false;
   }
-  
+
   try {
     // Get current settings, voices, and RVC voices in parallel
     const [settingsSuccess, voicesSuccess, rvcVoicesSuccess] = await Promise.all([
@@ -92,7 +92,7 @@ export async function initializeApi() {
       getAvailableVoices(),
       getAvailableRvcVoices(),
     ]);
-    
+
     return settingsSuccess && voicesSuccess && rvcVoicesSuccess;
   } catch (error) {
     SERVER_STATUS.error = `Error initializing API: ${error instanceof Error ? error.message : String(error)}`;
@@ -107,14 +107,14 @@ export async function initializeApi() {
  */
 export async function getCurrentSettings() {
   const baseUrl = getBaseUrl();
-  
+
   try {
     const response = await fetch(`${baseUrl}/api/currentsettings`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
-    
+
     const data = await response.json();
     SERVER_STATUS.currentSettings = data;
     return true;
@@ -131,14 +131,14 @@ export async function getCurrentSettings() {
  */
 export async function getAvailableVoices() {
   const baseUrl = getBaseUrl();
-  
+
   try {
     const response = await fetch(`${baseUrl}/api/voices`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
-    
+
     const data = await response.json();
     SERVER_STATUS.availableVoices = data.voices || [];
     return true;
@@ -155,14 +155,14 @@ export async function getAvailableVoices() {
  */
 export async function getAvailableRvcVoices() {
   const baseUrl = getBaseUrl();
-  
+
   try {
     const response = await fetch(`${baseUrl}/api/rvcvoices`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
-    
+
     const data = await response.json();
     SERVER_STATUS.availableRvcVoices = data.voices || [];
     return true;
@@ -179,14 +179,14 @@ export async function getAvailableRvcVoices() {
  */
 export async function reloadConfig() {
   const baseUrl = getBaseUrl();
-  
+
   try {
     const response = await fetch(`${baseUrl}/api/reload_config`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
-    
+
     // After reloading config, re-fetch settings and voices
     await initializeApi();
     return true;
@@ -205,14 +205,14 @@ export async function reloadConfig() {
  */
 export async function generateTTS(text: string, options: any = {}) {
   const baseUrl = getBaseUrl();
-  
+
   // Check text length against maximum allowed
   if (text.length > API_CONFIG.maxCharacters) {
     console.warn(`Text length (${text.length}) exceeds maximum allowed characters (${API_CONFIG.maxCharacters}).`);
     console.warn('Text will be truncated.');
     text = text.substring(0, API_CONFIG.maxCharacters);
   }
-  
+
   // Prepare the request payload with defaults
   const payload = new URLSearchParams({
     text_input: text,
@@ -226,24 +226,24 @@ export async function generateTTS(text: string, options: any = {}) {
     output_file_timestamp: options.outputFileTimestamp ? 'true' : 'false',
     autoplay: 'false'
   });
-  
+
   // Only add optional parameters if they are defined
   if (options.speed !== undefined) {
     payload.append('speed', options.speed.toString());
   }
-  
+
   if (options.pitch !== undefined) {
     payload.append('pitch', options.pitch.toString());
   }
-  
+
   if (options.temperature !== undefined) {
     payload.append('temperature', options.temperature.toString());
   }
-  
+
   if (options.repetitionPenalty !== undefined) {
     payload.append('repetition_penalty', options.repetitionPenalty.toString());
   }
-  
+
   try {
     const response = await fetch(`${baseUrl}/api/tts-generate`, {
       method: 'POST',
@@ -252,16 +252,16 @@ export async function generateTTS(text: string, options: any = {}) {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
-    
+
     const result = await response.json();
-    
+
     if (result.status === 'generate-success') {
       // Return successful result, including the full URL for the audio file
-      return { 
+      return {
         ...result,
         fullAudioUrl: `${baseUrl}${result.output_file_url}`
       };
@@ -283,50 +283,50 @@ export async function generateTTS(text: string, options: any = {}) {
  */
 export function splitTextIntoChunks(text: string, maxLength = API_CONFIG.maxCharacters): string[] {
   if (!text) return [];
-  
+
   // If text is under the limit, return it as a single chunk
   if (text.length <= maxLength) {
     return [text];
   }
-  
+
   const chunks = [];
   let remainingText = text;
-  
+
   while (remainingText.length > 0) {
     if (remainingText.length <= maxLength) {
       // Add the remaining text as the last chunk
       chunks.push(remainingText);
       break;
     }
-    
+
     // Find a good break point within the maxLength
     let breakPoint = remainingText.lastIndexOf('.', maxLength);
-    
+
     if (breakPoint === -1 || breakPoint < maxLength / 2) {
       // If no period found or it's too early, try semicolon
       breakPoint = remainingText.lastIndexOf(';', maxLength);
     }
-    
+
     if (breakPoint === -1 || breakPoint < maxLength / 2) {
       // If no semicolon found or it's too early, try comma
       breakPoint = remainingText.lastIndexOf(',', maxLength);
     }
-    
+
     if (breakPoint === -1 || breakPoint < maxLength / 2) {
       // If no comma found or it's too early, try space
       breakPoint = remainingText.lastIndexOf(' ', maxLength);
     }
-    
+
     if (breakPoint === -1 || breakPoint < maxLength / 2) {
       // If no good break point found, just break at the maximum length
       breakPoint = maxLength;
     }
-    
+
     // Add the chunk and remove it from the remaining text
     chunks.push(remainingText.substring(0, breakPoint + 1).trim());
     remainingText = remainingText.substring(breakPoint + 1).trim();
   }
-  
+
   return chunks;
 }
 
@@ -338,22 +338,22 @@ export function splitTextIntoChunks(text: string, maxLength = API_CONFIG.maxChar
  */
 export function splitIntoParagraphs(text: string): string[] {
   if (!text || typeof text !== 'string') return [];
-  
+
   // First split by double newlines (common paragraph separator)
   const paragraphs = text
     .split(/\n\s*\n/)
     .map(p => p.trim())
     .filter(p => p.length > 0);
-  
+
   // Then ensure each paragraph respects the character limit
   const maxLength = API_CONFIG.maxCharacters;
-  
+
   // Process each paragraph and flatten the result
   return paragraphs.flatMap(paragraph => {
     if (paragraph.length <= maxLength) {
       return [paragraph];
     }
-    
+
     // If a paragraph is too long, split it into chunks
     return splitTextIntoChunks(paragraph, maxLength);
   });
@@ -400,7 +400,7 @@ export function getVoiceOptions() {
       { id: 'male_02.wav', name: 'Male 2' }
     ];
   }
-  
+
   // Transform the voice list into a user-friendly format
   return SERVER_STATUS.availableVoices.map(voice => ({
     id: voice,

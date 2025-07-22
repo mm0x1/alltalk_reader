@@ -8,6 +8,7 @@ import {
   checkServerReady,
   initializeApi
 } from '~/services/alltalkApi'
+import { initializeSessionApi } from '~/services/sessionStorage'
 import ProgressBar from '~/components/ProgressBar'
 import ParagraphList from '~/components/ParagraphList'
 import PlaybackControls from '~/components/PlaybackControls'
@@ -16,6 +17,9 @@ import SettingsMonitor from '~/components/SettingsMonitor'
 import VoiceSelector from '~/components/VoiceSelector'
 import TtsSettings from '~/components/TtsSettings'
 import BatchGenerator from '~/components/BatchGenerator'
+import SessionManager from '~/components/SessionManager'
+import SessionStorageConfig from '~/components/SessionStorageConfig'
+import { AudioSession } from '~/services/sessionStorage'
 
 export const Route = createFileRoute('/reader')({
   component: BookReader,
@@ -38,6 +42,16 @@ function BookReader() {
   const [showBatchGenerator, setShowBatchGenerator] = useState(false)
   const [preGeneratedAudio, setPreGeneratedAudio] = useState<(string | null)[]>([])
   const [isPreGenerated, setIsPreGenerated] = useState(false)
+  
+  // Session management
+  const [showSessionManager, setShowSessionManager] = useState(false)
+  const [sessionManagerKey, setSessionManagerKey] = useState(Date.now());
+
+  // Function to open session manager with a fresh key
+  const openSessionManager = () => {
+    setSessionManagerKey(Date.now());
+    setShowSessionManager(true);
+  }
 
   // TTS settings
   const [speed, setSpeed] = useState(1.0)
@@ -48,6 +62,7 @@ function BookReader() {
 
   // Initialize API when component mounts
   useEffect(() => {
+    // Initialize AllTalk API
     initializeApi()
       .then(success => {
         setIsServerConnected(success)
@@ -63,6 +78,10 @@ function BookReader() {
         console.error('Failed to initialize API:', error)
         setIsServerConnected(false)
       })
+      
+    // Initialize Session Storage API with default settings
+    // (component will allow user to change these)
+    initializeSessionApi()
   }, [])
 
   // Handle text input
@@ -202,6 +221,46 @@ function BookReader() {
   const handleBatchCancel = () => {
     setShowBatchGenerator(false);
   }
+  
+  // Load a saved session
+  const handleLoadSession = (session: AudioSession) => {
+    if (!session) return;
+    
+    try {
+      // Set text and paragraphs
+      setText(session.text);
+      setParagraphs(session.paragraphs);
+      
+      // Set settings
+      setSelectedVoice(session.settings.voice);
+      setSpeed(session.settings.speed);
+      setPitch(session.settings.pitch);
+      setLanguage(session.settings.language);
+      
+      // Set the pre-generated audio
+      setPreGeneratedAudio(session.audioUrls);
+      setIsPreGenerated(true);
+      
+      // Reset playback state
+      setCurrentParagraph(null);
+      setIsPlaying(false);
+      setIsLoadingAudio(false);
+      setErrorMessage(null);
+      
+      // Stop any current audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      console.log(`Loaded session with ${session.paragraphs.length} paragraphs and ${session.audioUrls.length} audio files`);
+    } catch (error) {
+      console.error('Error loading session:', error);
+      setErrorMessage('Failed to load the session. Please try again.');
+    }
+    
+    setShowSessionManager(false);
+  }
 
   // Handle play/pause
   const togglePlayback = () => {
@@ -246,13 +305,39 @@ function BookReader() {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4 text-white">AllTalk Book Reader</h1>
-      <p className="text-gray-400 mb-4">
-        Using the standard AllTalk API to generate TTS audio paragraph by paragraph. Text longer than <b>Max characters</b> will be split up.
-      </p>
+      <div className="flex flex-wrap items-center justify-between mb-4">
+        <p className="text-gray-400">
+          Using the standard AllTalk API to generate TTS audio paragraph by paragraph. Text longer than <b>Max characters</b> will be split up.
+        </p>
+        
+        <button
+          onClick={openSessionManager}
+          className="text-sm px-3 py-1.5 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+          </svg>
+          Saved Sessions
+        </button>
+      </div>
       <p className="text-gray-400 mb-4">
         Click the green "Reload alltalk configuration" to load voices.
       </p>
       <SettingsMonitor onConnectionStatusChange={setIsServerConnected} />
+      <SessionStorageConfig onConfigChange={() => setSessionManagerKey(Date.now())} />
+      
+      {/* Session Manager */}
+      {showSessionManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-auto">
+            <SessionManager 
+              key={sessionManagerKey}
+              onLoadSession={handleLoadSession} 
+              onClose={() => setShowSessionManager(false)} 
+            />
+          </div>
+        </div>
+      )}
 
       {paragraphs.length === 0 ? (
         <div className="space-y-4">
@@ -391,6 +476,7 @@ function BookReader() {
           {showBatchGenerator && (
             <BatchGenerator
               paragraphs={paragraphs}
+              text={text}
               voice={selectedVoice}
               speed={speed}
               pitch={pitch}
