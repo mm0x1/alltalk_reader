@@ -8,7 +8,16 @@ import {
   checkServerReady,
   initializeApi
 } from '~/services/alltalkApi'
-import { initializeSessionApi } from '~/services/sessionStorage'
+import {
+  initializeSessionApi,
+  AudioSession,
+  getOfflineAudioUrl,
+  prepareSessionForExport,
+  downloadSessionAsFile,
+  importSessionFromFile,
+  generateSessionId,
+  generateSessionName
+} from '~/services/sessionStorage'
 import ProgressBar from '~/components/ProgressBar'
 import ParagraphList from '~/components/ParagraphList'
 import PlaybackControls from '~/components/PlaybackControls'
@@ -19,7 +28,7 @@ import TtsSettings from '~/components/TtsSettings'
 import BatchGenerator from '~/components/BatchGenerator'
 import SessionManager from '~/components/SessionManager'
 import SessionStorageConfig from '~/components/SessionStorageConfig'
-import { AudioSession } from '~/services/sessionStorage'
+import ExportImportManager from '~/components/ExportImportManager'
 
 export const Route = createFileRoute('/reader')({
   component: BookReader,
@@ -40,17 +49,25 @@ function BookReader() {
 
   // Pre-generation state
   const [showBatchGenerator, setShowBatchGenerator] = useState(false)
-  const [preGeneratedAudio, setPreGeneratedAudio] = useState<(string | null)[]>([])
+  const [preGeneratedAudio, setPreGeneratedAudio] = useState<string[]>([])
   const [isPreGenerated, setIsPreGenerated] = useState(false)
-  
+
   // Session management
   const [showSessionManager, setShowSessionManager] = useState(false)
-  const [sessionManagerKey, setSessionManagerKey] = useState(Date.now());
+  const [sessionManagerKey, setSessionManagerKey] = useState(Date.now())
+  const [currentSession, setCurrentSession] = useState<AudioSession | null>(null)
+  const [isOfflineSession, setIsOfflineSession] = useState(false)
+
+  // Export/import state
+  const [showExportImport, setShowExportImport] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
+  const [importError, setImportError] = useState<string | null>(null)
 
   // Function to open session manager with a fresh key
   const openSessionManager = () => {
-    setSessionManagerKey(Date.now());
-    setShowSessionManager(true);
+    setSessionManagerKey(Date.now())
+    setShowSessionManager(true)
   }
 
   // TTS settings
@@ -78,7 +95,7 @@ function BookReader() {
         console.error('Failed to initialize API:', error)
         setIsServerConnected(false)
       })
-      
+
     // Initialize Session Storage API with default settings
     // (component will allow user to change these)
     initializeSessionApi()
@@ -106,7 +123,7 @@ function BookReader() {
       setIsLoadingAudio(false)
       setErrorMessage(null)
       setIsPreGenerated(false)
-      setPreGeneratedAudio(Array(newParagraphs.length).fill(null))
+      setPreGeneratedAudio(Array(newParagraphs.length).fill(''))
 
       if (audioRef.current) {
         audioRef.current.pause()
@@ -145,8 +162,16 @@ function BookReader() {
     try {
       let audioUrl: string | null = null;
 
+      // Check for offline session
+      if (isOfflineSession && currentSession) {
+        audioUrl = getOfflineAudioUrl(currentSession, index);
+        if (!audioUrl) {
+          throw new Error('Offline audio not available for this paragraph');
+        }
+        console.log(`Using offline audio for paragraph ${index + 1}/${paragraphs.length}`);
+      }
       // Check if we have pre-generated audio for this paragraph
-      if (isPreGenerated && preGeneratedAudio[index]) {
+      else if (isPreGenerated && preGeneratedAudio[index]) {
         audioUrl = preGeneratedAudio[index];
         console.log(`Using pre-generated audio for paragraph ${index + 1}/${paragraphs.length}`);
       } else {
@@ -221,44 +246,55 @@ function BookReader() {
   const handleBatchCancel = () => {
     setShowBatchGenerator(false);
   }
-  
+
   // Load a saved session
   const handleLoadSession = (session: AudioSession) => {
     if (!session) return;
-    
+
     try {
       // Set text and paragraphs
       setText(session.text);
       setParagraphs(session.paragraphs);
-      
+
       // Set settings
       setSelectedVoice(session.settings.voice);
       setSpeed(session.settings.speed);
       setPitch(session.settings.pitch);
       setLanguage(session.settings.language);
-      
-      // Set the pre-generated audio
-      setPreGeneratedAudio(session.audioUrls);
+
+      // Set the current session reference
+      setCurrentSession(session);
+
+      // Check if this is an offline session
+      if (session.isOfflineSession && session.audioBlobData) {
+        setIsOfflineSession(true);
+        console.log('Loaded offline session with embedded audio');
+      } else {
+        setIsOfflineSession(false);
+        // Set the pre-generated audio for online sessions
+        setPreGeneratedAudio(session.audioUrls);
+      }
+
       setIsPreGenerated(true);
-      
+
       // Reset playback state
       setCurrentParagraph(null);
       setIsPlaying(false);
       setIsLoadingAudio(false);
       setErrorMessage(null);
-      
+
       // Stop any current audio
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
-      
-      console.log(`Loaded session with ${session.paragraphs.length} paragraphs and ${session.audioUrls.length} audio files`);
+
+      console.log(`Loaded session with ${session.paragraphs.length} paragraphs`);
     } catch (error) {
       console.error('Error loading session:', error);
       setErrorMessage('Failed to load the session. Please try again.');
     }
-    
+
     setShowSessionManager(false);
   }
 
@@ -274,6 +310,28 @@ function BookReader() {
     }
   }
 
+  // Handle file selection for import
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+
+    const file = e.target.files[0];
+    setImportError(null);
+
+    try {
+      const importedSession = await importSessionFromFile(file);
+      handleLoadSession(importedSession);
+      setShowExportImport(false);
+    } catch (error) {
+      console.error('Error importing session:', error);
+      setImportError(error instanceof Error ? error.message : 'Failed to import session');
+    }
+
+    // Clear the file input
+    e.target.value = '';
+  };
+
   // Reset everything
   const handleReset = () => {
     setParagraphs([])
@@ -285,6 +343,8 @@ function BookReader() {
     setIsPreGenerated(false)
     setPreGeneratedAudio([])
     setShowBatchGenerator(false)
+    setCurrentSession(null)
+    setIsOfflineSession(false)
 
     if (audioRef.current) {
       audioRef.current.pause()
@@ -309,7 +369,7 @@ function BookReader() {
         <p className="text-gray-400">
           Using the standard AllTalk API to generate TTS audio paragraph by paragraph. Text longer than <b>Max characters</b> will be split up.
         </p>
-        
+
         <button
           onClick={openSessionManager}
           className="text-sm px-3 py-1.5 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
@@ -325,16 +385,76 @@ function BookReader() {
       </p>
       <SettingsMonitor onConnectionStatusChange={setIsServerConnected} />
       <SessionStorageConfig onConfigChange={() => setSessionManagerKey(Date.now())} />
-      
+
       {/* Session Manager */}
       {showSessionManager && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="w-full max-w-3xl max-h-[90vh] overflow-auto">
-            <SessionManager 
+            <SessionManager
               key={sessionManagerKey}
-              onLoadSession={handleLoadSession} 
-              onClose={() => setShowSessionManager(false)} 
+              onLoadSession={handleLoadSession}
+              onClose={() => setShowSessionManager(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Import Session Modal - Only for initial screen */}
+      {showExportImport && paragraphs.length === 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-auto">
+            <div className="card">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-200">Import Session</h2>
+                <button
+                  onClick={() => {
+                    setShowExportImport(false);
+                    setImportError(null);
+                  }}
+                  className="p-1.5 hover:bg-dark-400 rounded"
+                  title="Close"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-gray-400 mb-4">
+                Import a previously exported session with embedded audio files for offline playback.
+                Select a file to import:
+              </p>
+
+              {importError && (
+                <div className="mb-4 p-3 bg-accent-danger/20 text-accent-danger rounded-lg border border-accent-danger/30">
+                  <p className="font-medium">Import Error</p>
+                  <p className="text-sm mt-1">{importError}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="file-upload-initial"
+                  className="px-4 py-2 rounded flex items-center bg-accent-primary hover:bg-accent-primary/80 text-white cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L4 8m4-4v12" />
+                  </svg>
+                  Select File to Import
+                  <input
+                    id="file-upload-initial"
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileSelect}
+                    className="sr-only"
+                  />
+                </label>
+              </div>
+
+              <p className="text-sm text-gray-400 mt-2">
+                Only files previously exported from AllTalk Reader can be imported.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -347,15 +467,26 @@ function BookReader() {
                 <label htmlFor="text-input" className="block font-medium text-lg text-gray-200">
                   Paste your text below:
                 </label>
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="text-sm px-3 py-1 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                  </svg>
-                  {showSettings ? 'Hide Settings' : 'Show Settings'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowExportImport(true)}
+                    className="text-sm px-3 py-1 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Import Session
+                  </button>
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="text-sm px-3 py-1 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                    {showSettings ? 'Hide Settings' : 'Show Settings'}
+                  </button>
+                </div>
               </div>
               <textarea
                 id="text-input"
@@ -444,32 +575,44 @@ function BookReader() {
               isLoading={isLoadingAudio}
             />
 
-            <button
-              onClick={() => setShowBatchGenerator(true)}
-              disabled={showBatchGenerator || isPreGenerated || !isServerConnected}
-              className={`px-3 py-1.5 text-sm rounded flex items-center ${isPreGenerated
-                ? 'bg-accent-success/20 text-accent-success border border-accent-success'
-                : showBatchGenerator || !isServerConnected
-                  ? 'bg-dark-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-dark-400 text-accent-primary hover:bg-dark-500 border border-accent-primary'
-                }`}
-            >
-              {isPreGenerated ? (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Pre-Generated
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                  Pre-Generate All Audio
-                </>
-              )}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowBatchGenerator(true)}
+                disabled={showBatchGenerator || isPreGenerated || !isServerConnected}
+                className={`px-3 py-1.5 text-sm rounded flex items-center ${isPreGenerated
+                  ? 'bg-accent-success/20 text-accent-success border border-accent-success'
+                  : showBatchGenerator || !isServerConnected
+                    ? 'bg-dark-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-dark-400 text-accent-primary hover:bg-dark-500 border border-accent-primary'
+                  }`}
+              >
+                {isPreGenerated ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Pre-Generated
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Pre-Generate All Audio
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowExportImport(true)}
+                className="px-3 py-1.5 text-sm rounded flex items-center bg-dark-400 text-white hover:bg-dark-500 border border-dark-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                {isOfflineSession ? "Offline Session" : "Export/Import"}
+              </button>
+            </div>
           </div>
 
           {/* Batch generator */}
@@ -486,6 +629,34 @@ function BookReader() {
             />
           )}
 
+          {/* Export/Import manager for existing session */}
+          {showExportImport && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+              <div className="w-full max-w-3xl max-h-[90vh] overflow-auto">
+                <ExportImportManager
+                  session={currentSession ?? {
+                    id: generateSessionId(),
+                    name: generateSessionName(text),
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    text,
+                    paragraphs,
+                    audioUrls: (preGeneratedAudio ?? []).map(url => url || ''), // Convert null values to empty strings
+                    settings: {
+                      voice: selectedVoice,
+                      speed,
+                      pitch,
+                      language,
+                    }
+                  }}
+                  isPreGenerated={isPreGenerated}
+                  onImportSession={handleLoadSession}
+                  onClose={() => setShowExportImport(false)}
+                />
+              </div>
+            </div>
+          )}
+
           {showSettings && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-dark-300 border border-dark-500 rounded-lg">
               <VoiceSelector
@@ -499,7 +670,7 @@ function BookReader() {
                   }
                   // Reset pre-generated state when voice changes
                   setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(null));
+                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
                 }}
                 label="Character Voice"
               />
@@ -516,7 +687,7 @@ function BookReader() {
                   }
                   // Reset pre-generated state when settings change
                   setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(null));
+                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
                 }}
                 onPitchChange={value => {
                   setPitch(value);
@@ -526,7 +697,7 @@ function BookReader() {
                   }
                   // Reset pre-generated state when settings change
                   setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(null));
+                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
                 }}
                 onLanguageChange={value => {
                   setLanguage(value);
@@ -536,7 +707,7 @@ function BookReader() {
                   }
                   // Reset pre-generated state when settings change
                   setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(null));
+                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
                 }}
               />
             </div>
@@ -586,6 +757,7 @@ function BookReader() {
               onPlayParagraph={handlePlayParagraph}
               isLoading={isLoadingAudio}
               preGeneratedStatus={isPreGenerated ? preGeneratedAudio.map(url => url !== null) : undefined}
+              isOfflineSession={isOfflineSession}
             />
           </div>
         </div>

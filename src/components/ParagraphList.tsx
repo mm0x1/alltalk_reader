@@ -6,6 +6,7 @@ interface ParagraphListProps {
   onPlayParagraph: (index: number) => void;
   isLoading?: boolean;
   preGeneratedStatus?: boolean[];
+  isOfflineSession?: boolean;
 }
 
 export default function ParagraphList({
@@ -14,6 +15,7 @@ export default function ParagraphList({
   onPlayParagraph,
   isLoading = false,
   preGeneratedStatus,
+  isOfflineSession = false,
 }: ParagraphListProps) {
   const paragraphRefs = useRef<(HTMLDivElement | null)[]>([]);
   
@@ -29,9 +31,17 @@ export default function ParagraphList({
 
   return (
     <div className="space-y-4 mt-4 max-h-[600px] overflow-y-auto pr-2" data-testid="paragraph-list">
-      <h2 className="text-xl font-semibold sticky top-0 bg-dark-200 py-2 z-10 border-b border-dark-500">
-        Your Book
-      </h2>
+      <div className="text-xl font-semibold sticky top-0 bg-dark-200 py-2 z-10 border-b border-dark-500 flex justify-between items-center">
+        <h2>Your Book</h2>
+        {isOfflineSession && (
+          <span className="text-xs bg-accent-success/20 text-accent-success px-2 py-1 rounded-full border border-accent-success/30 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2.102 1.998l-6.674.875a1.998 1.998 0 01-2.215-1.642L4.838 13H4a2 2 0 01-2-2V6c0-1.1.9-2 2-2zm2 3a1 1 0 011-1h3a1 1 0 110 2H7a1 1 0 01-1-1zm0 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+            Offline Mode
+          </span>
+        )}
+      </div>
       
       {paragraphs.map((paragraph, index) => (
         <div 
@@ -97,7 +107,15 @@ export default function ParagraphList({
               )}
             </button>
             <div className="flex items-center space-x-2">
-              {preGeneratedStatus && (
+              {isOfflineSession && (
+                <span className="text-xs text-accent-success">
+                  <svg className="h-4 w-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 016 0v2h2V7a5 5 0 00-5-5z" />
+                  </svg>
+                  Offline
+                </span>
+              )}
+              {!isOfflineSession && preGeneratedStatus && (
                 <span className={`text-xs ${preGeneratedStatus[index] ? 'text-accent-success' : 'text-gray-500'}`}>
                   {preGeneratedStatus[index] ? (
                     <>

@@ -2,7 +2,8 @@
  * Session Storage Service
  * 
  * This service provides persistent storage for audio generation sessions,
- * stored in a file-based database on the server.
+ * stored in a file-based database on the server and with export/import capabilities
+ * for offline usage.
  */
 
 // Define the structure for our session data
@@ -14,12 +15,14 @@ export interface AudioSession {
   text: string; // Original text
   paragraphs: string[]; // Split paragraphs 
   audioUrls: string[]; // Generated audio URLs
+  audioBlobData?: Record<string, string | null>; // Base64 encoded audio data for offline use
   settings: {
     voice: string;
     speed: number;
     pitch: number;
     language: string;
   };
+  isOfflineSession?: boolean; // Flag to indicate if this is an imported offline session
 }
 
 // Session Storage configuration
@@ -188,7 +191,7 @@ export function generateSessionId(): string {
 
 /**
  * Check if audio URLs in a session are still valid
- * This does a basic check by testing if the URLs match expected pattern
+ * This checks both online URLs and offline blob data
  * 
  * @param {AudioSession} session - The session to check
  * @returns {boolean} True if the session appears valid
@@ -204,7 +207,21 @@ export function isSessionValid(session: AudioSession): boolean {
     return false;
   }
 
-  // Check if URLs follow expected pattern
+  // If offline session, check if we have blob data
+  if (session.isOfflineSession) {
+    if (!session.audioBlobData) return false;
+    
+    // Check if we have data for each paragraph
+    for (let i = 0; i < session.paragraphs.length; i++) {
+      const key = `audio_${i}`;
+      if (!session.audioBlobData[key]) {
+        return false;
+      }
+    }
+    return true;
+  }
+  
+  // For online sessions, check URL pattern
   for (const url of session.audioUrls) {
     if (!url || typeof url !== 'string' || !url.startsWith('http')) {
       return false;
@@ -212,4 +229,192 @@ export function isSessionValid(session: AudioSession): boolean {
   }
 
   return true;
+}
+
+/**
+ * Prepare a session for export by downloading audio and converting to base64
+ * 
+ * @param {AudioSession} session - The session to export
+ * @param {(progress: number) => void} [onProgress] - Optional progress callback
+ * @returns {Promise<AudioSession>} A new session object with embedded audio data
+ */
+export async function prepareSessionForExport(
+  session: AudioSession, 
+  onProgress?: (progress: number) => void
+): Promise<AudioSession> {
+  // Create a deep copy of the session
+  const exportSession: AudioSession = JSON.parse(JSON.stringify(session));
+  
+  // Initialize the audio blob data object
+  exportSession.audioBlobData = {};
+  exportSession.isOfflineSession = true;
+  
+  // Download and convert each audio file
+  for (let i = 0; i < session.audioUrls.length; i++) {
+    try {
+      // Update progress
+      if (onProgress) {
+        onProgress((i / session.audioUrls.length) * 100);
+      }
+      
+      const url = session.audioUrls[i];
+      if (!url) {
+        exportSession.audioBlobData[`audio_${i}`] = null;
+        continue;
+      }
+      
+      // Fetch the audio file
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio file: ${response.status}`);
+      }
+      
+      // Get the blob
+      const blob = await response.blob();
+      
+      // Convert to base64
+      const base64Data = await blobToBase64(blob);
+      
+      // Store in the session
+      exportSession.audioBlobData[`audio_${i}`] = base64Data;
+    } catch (error) {
+      console.error(`Error processing audio file at index ${i}:`, error);
+      exportSession.audioBlobData[`audio_${i}`] = null;
+    }
+  }
+  
+  // Set final progress
+  if (onProgress) {
+    onProgress(100);
+  }
+  
+  return exportSession;
+}
+
+/**
+ * Export a session to a JSON file for download
+ * 
+ * @param {AudioSession} exportSession - The prepared session with embedded audio
+ * @returns {void}
+ */
+export function downloadSessionAsFile(exportSession: AudioSession): void {
+  // Create a JSON string from the session
+  const jsonString = JSON.stringify(exportSession, null, 2);
+  
+  // Create a blob from the JSON string
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  
+  // Clean up the session name for the file name
+  const fileName = `alltalk-${exportSession.name.substring(0, 30)
+    .replace(/\W+/g, '-')
+    .toLowerCase()}-${new Date(exportSession.createdAt).toISOString().split('T')[0]}.json`;
+  
+  // Create a download link
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  
+  // Click the link to download the file
+  document.body.appendChild(a);
+  a.click();
+  
+  // Clean up
+  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+/**
+ * Import a session from a file
+ * 
+ * @param {File} file - The file to import
+ * @returns {Promise<AudioSession>} The imported session
+ */
+export function importSessionFromFile(file: File): Promise<AudioSession> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      try {
+        if (!event.target || !event.target.result) {
+          throw new Error('Failed to read file');
+        }
+        
+        const json = JSON.parse(event.target.result as string);
+        
+        // Validate the imported session
+        if (!json.id || !json.name || !json.paragraphs || !json.audioUrls || !json.audioBlobData) {
+          throw new Error('Invalid session file format');
+        }
+        
+        // Make sure the session is marked as offline
+        json.isOfflineSession = true;
+        
+        // Update the timestamp
+        json.updatedAt = Date.now();
+        
+        resolve(json as AudioSession);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+    
+    // Read the file as text
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Get audio blob URL for an offline session paragraph
+ * 
+ * @param {AudioSession} session - The offline session
+ * @param {number} index - The paragraph index
+ * @returns {string|null} A blob URL for the audio or null if not available
+ */
+export function getOfflineAudioUrl(session: AudioSession, index: number): string | null {
+  if (!session.isOfflineSession || !session.audioBlobData) {
+    return null;
+  }
+  
+  const key = `audio_${index}`;
+  const base64Data = session.audioBlobData[key];
+  
+  if (!base64Data) {
+    return null;
+  }
+  
+  // Convert base64 to blob
+  const byteCharacters = atob(base64Data.split(',')[1]);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: 'audio/wav' });
+  
+  // Create and return a blob URL
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Helper function to convert a Blob to a base64 string
+ * 
+ * @param {Blob} blob - The blob to convert
+ * @returns {Promise<string>} A promise that resolves to the base64 string
+ */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(reader.result as string);
+    };
+    reader.onerror = () => {
+      reject(new Error('Failed to convert blob to base64'));
+    };
+    reader.readAsDataURL(blob);
+  });
 }
