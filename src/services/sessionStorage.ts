@@ -25,7 +25,11 @@ export interface AudioSession {
 // Session Storage configuration
 let SESSION_STORAGE_CONFIG = {
   protocol: 'http://',
-  ipPort: window.location.hostname + ':3001', // Default to same hostname as the web app, port 3001
+  ipPort:
+    (typeof window !== 'undefined'
+      ? window.location.hostname
+      : 'localhost') +
+    ':3001', // Default to same hostname as the web app, port 3001
   apiPath: '/api',
   initialized: false
 };
@@ -40,10 +44,10 @@ export function initializeSessionApi(config?: Partial<typeof SESSION_STORAGE_CON
   if (config) {
     SESSION_STORAGE_CONFIG = { ...SESSION_STORAGE_CONFIG, ...config };
   }
-  
+
   // Set initialized to true
   SESSION_STORAGE_CONFIG.initialized = true;
-  
+
   console.log(`Session API initialized with URL: ${getSessionApiUrl()}`);
 }
 
@@ -61,12 +65,12 @@ export async function getAllSessions(): Promise<AudioSession[]> {
   try {
     const apiUrl = getSessionApiUrl();
     console.log(`Fetching sessions from: ${apiUrl}/sessions`);
-    
+
     const response = await fetch(`${apiUrl}/sessions`);
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.success ? data.sessions : [];
   } catch (error) {
@@ -91,7 +95,7 @@ export async function getSessionById(sessionId: string): Promise<AudioSession | 
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.success ? data.session : null;
   } catch (error) {
@@ -110,7 +114,7 @@ export async function saveSession(session: AudioSession): Promise<boolean> {
   try {
     const apiUrl = getSessionApiUrl();
     console.log(`Saving session to: ${apiUrl}/sessions`);
-    
+
     const response = await fetch(`${apiUrl}/sessions`, {
       method: 'POST',
       headers: {
@@ -118,11 +122,11 @@ export async function saveSession(session: AudioSession): Promise<boolean> {
       },
       body: JSON.stringify(session),
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.success;
   } catch (error) {
@@ -143,11 +147,11 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
     const response = await fetch(`${apiUrl}/sessions/${sessionId}`, {
       method: 'DELETE',
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.success;
   } catch (error) {
@@ -165,11 +169,11 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
 export function generateSessionName(text: string): string {
   // Take first 30 characters and clean up
   const nameBase = text.trim().substring(0, 30).replace(/\n/g, ' ');
-  
+
   // Add date stamp
   const date = new Date();
   const datePart = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  
+
   return `${nameBase}... (${datePart})`;
 }
 
@@ -194,18 +198,18 @@ export function isSessionValid(session: AudioSession): boolean {
   if (!session || !session.id || !session.paragraphs || !session.audioUrls) {
     return false;
   }
-  
+
   // Check if we have URLs for each paragraph
   if (session.paragraphs.length !== session.audioUrls.length) {
     return false;
   }
-  
+
   // Check if URLs follow expected pattern
   for (const url of session.audioUrls) {
     if (!url || typeof url !== 'string' || !url.startsWith('http')) {
       return false;
     }
   }
-  
+
   return true;
 }

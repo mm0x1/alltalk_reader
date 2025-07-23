@@ -3,6 +3,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
+import os from 'os';
 
 const app = express();
 const PORT = 3001;
@@ -68,11 +69,11 @@ app.get('/api/sessions/:id', (req, res) => {
     const sessionId = req.params.id;
     const sessions = getSessions();
     const session = sessions.find(s => s.id === sessionId);
-    
+
     if (!session) {
       return res.status(404).json({ success: false, error: 'Session not found' });
     }
-    
+
     res.json({ success: true, session });
   } catch (error) {
     console.error('Error fetching session:', error);
@@ -84,14 +85,14 @@ app.get('/api/sessions/:id', (req, res) => {
 app.post('/api/sessions', (req, res) => {
   try {
     const newSession = req.body;
-    
+
     if (!newSession || !newSession.id) {
       return res.status(400).json({ success: false, error: 'Invalid session data' });
     }
-    
+
     let sessions = getSessions();
     const existingIndex = sessions.findIndex(s => s.id === newSession.id);
-    
+
     if (existingIndex >= 0) {
       // Update existing session
       newSession.updatedAt = Date.now();
@@ -102,12 +103,12 @@ app.post('/api/sessions', (req, res) => {
       newSession.updatedAt = Date.now();
       sessions.push(newSession);
     }
-    
+
     // Sort by updated date (newest first)
     sessions.sort((a, b) => b.updatedAt - a.updatedAt);
-    
+
     const saved = saveSessions(sessions);
-    
+
     if (saved) {
       res.json({ success: true, session: newSession });
     } else {
@@ -125,15 +126,15 @@ app.delete('/api/sessions/:id', (req, res) => {
     const sessionId = req.params.id;
     let sessions = getSessions();
     const initialCount = sessions.length;
-    
+
     sessions = sessions.filter(session => session.id !== sessionId);
-    
+
     if (sessions.length === initialCount) {
       return res.status(404).json({ success: false, error: 'Session not found' });
     }
-    
+
     const saved = saveSessions(sessions);
-    
+
     if (saved) {
       res.json({ success: true });
     } else {
@@ -147,11 +148,11 @@ app.delete('/api/sessions/:id', (req, res) => {
 
 // Start server - bind to all interfaces so it's accessible remotely
 app.listen(PORT, '0.0.0.0', () => {
-  const interfaces = Object.values(require('os').networkInterfaces())
+  const interfaces = Object.values(os.networkInterfaces())
     .flat()
     .filter(({ family, internal }) => family.includes('IPv4') && !internal)
     .map(({ address }) => address);
-  
+
   console.log(`Session storage server running on port ${PORT}`);
   console.log(`Local access: http://localhost:${PORT}`);
   if (interfaces.length > 0) {
