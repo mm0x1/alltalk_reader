@@ -16,10 +16,10 @@ export default function AudioCacheStatus({
   if (status === 'initial') return null;
   
   const statusClassName = {
-    generating: 'bg-accent-primary/20 text-accent-primary border border-accent-primary/30',
-    playing: 'bg-accent-success/20 text-accent-success border border-accent-success/30',
-    paused: 'bg-accent-warning/20 text-accent-warning border border-accent-warning/30',
-    error: 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30',
+    generating: 'status-generating',
+    playing: 'status-playing',
+    paused: 'status-paused',
+    error: 'status-error',
   }[status];
   
   const statusIcon = {
@@ -47,26 +47,34 @@ export default function AudioCacheStatus({
   }[status];
   
   let statusText = '';
+  let additionalInfo = '';
   
   switch (status) {
     case 'generating':
-      statusText = `Generating audio for paragraph ${paragraphIndex! + 1}${totalParagraphs ? ` of ${totalParagraphs}` : ''}...`;
+      statusText = `Generating audio`;
+      additionalInfo = `Paragraph ${paragraphIndex! + 1}${totalParagraphs ? ` of ${totalParagraphs}` : ''}`;
       break;
     case 'playing':
-      statusText = `Playing paragraph ${paragraphIndex! + 1}${totalParagraphs ? ` of ${totalParagraphs}` : ''}`;
+      statusText = `Now reading`;
+      additionalInfo = `Paragraph ${paragraphIndex! + 1}${totalParagraphs ? ` of ${totalParagraphs}` : ''}`;
       break;
     case 'paused':
-      statusText = `Paused at paragraph ${paragraphIndex! + 1}${totalParagraphs ? ` of ${totalParagraphs}` : ''}`;
+      statusText = `Paused`;
+      additionalInfo = `At paragraph ${paragraphIndex! + 1}${totalParagraphs ? ` of ${totalParagraphs}` : ''}`;
       break;
     case 'error':
-      statusText = errorMessage || 'Error generating audio';
+      statusText = 'Error';
+      additionalInfo = errorMessage || 'Error generating audio';
       break;
   }
   
   return (
-    <div className={`mb-4 p-3 rounded-lg flex items-center ${statusClassName}`}>
-      {statusIcon}
-      <span>{statusText}</span>
+    <div className={`audiobook-status ${statusClassName}`}>
+      <div className="status-icon">{statusIcon}</div>
+      <div className="status-content">
+        <div className="status-text">{statusText}</div>
+        <div className="status-details">{additionalInfo}</div>
+      </div>
     </div>
   );
 }

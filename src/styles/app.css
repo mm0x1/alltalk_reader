@@ -41,4 +41,195 @@
   .card-header {
     @apply text-xl font-semibold mb-4 border-b border-dark-500 pb-2;
   }
+
+  .book-reader-card {
+    @apply p-0 max-w-full w-full mx-auto;
+  }
+
+  /* Book Reading UI */
+  .book-container {
+    @apply w-full h-[101vh] min-h-[500px] bg-dark-200 shadow-2xl overflow-hidden flex flex-col;
+  }
+
+  .book-header {
+    @apply px-6 py-3 border-b border-dark-500;
+  }
+
+  .book-pages {
+    @apply flex-1 overflow-y-auto px-0 py-4;
+    scroll-behavior: smooth;
+  }
+
+  .book-paragraph {
+    @apply relative py-4 px-2 border-b border-dark-500/30 transition-all duration-300 cursor-pointer;
+  }
+
+  .book-paragraph:hover {
+    @apply bg-dark-300/50;
+  }
+
+  .book-paragraph-active {
+    @apply bg-accent-primary/10 border-l-4 border-l-accent-primary pl-4;
+  }
+
+  .book-text {
+    @apply text-xl leading-relaxed font-serif text-gray-100 mb-3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    hyphens: auto;
+  }
+
+  .paragraph-controls {
+    @apply flex justify-between items-center mt-2 opacity-70 transition-opacity;
+  }
+
+  .book-paragraph:hover .paragraph-controls {
+    @apply opacity-100;
+  }
+
+  .play-button {
+    @apply text-sm flex items-center px-3 py-1 rounded-full bg-dark-400/80 hover:bg-dark-500 transition-colors;
+  }
+
+  .paragraph-info {
+    @apply flex items-center gap-2;
+  }
+
+  .paragraph-badge {
+    @apply text-xs px-2 py-0.5 rounded-full;
+  }
+
+  .offline-badge {
+    @apply bg-accent-success/20 text-accent-success border border-accent-success/30;
+  }
+
+  .cached-badge {
+    @apply bg-accent-primary/20 text-accent-primary border border-accent-primary/30;
+  }
+
+  .not-cached-badge {
+    @apply bg-dark-400/50 text-gray-400 border border-dark-500;
+  }
+
+  .paragraph-number {
+    @apply text-xs text-gray-500 bg-dark-400/50 px-2 py-0.5 rounded-full;
+  }
+
+  /* Progress Bar */
+  .book-progress {
+    @apply px-2;
+  }
+
+  .progress-bar-container {
+    @apply w-full h-3 bg-dark-400 rounded-full overflow-hidden relative cursor-pointer;
+    background-image: linear-gradient(
+      to right,
+      rgba(30, 30, 35, 0.3) 1px,
+      transparent 1px
+    );
+    background-size: 5% 100%;
+  }
+
+  .progress-bar-filled {
+    @apply h-full bg-gradient-to-r from-accent-primary to-accent-hover transition-all duration-300 shadow-lg;
+  }
+
+  .chapter-markers {
+    @apply flex justify-start flex-wrap;
+  }
+
+  .chapter-marker {
+    @apply w-6 h-6 text-xs flex items-center justify-center rounded transition-all duration-200;
+    @apply bg-dark-400 hover:bg-dark-500 text-gray-300;
+  }
+
+  .chapter-marker.current-marker {
+    @apply bg-accent-primary text-white transform scale-110 shadow-md;
+  }
+
+  .book-nav-button {
+    @apply px-2 py-1 bg-dark-400 hover:bg-dark-500 text-gray-200 rounded text-xs transition-colors;
+  }
+
+  /* Audiobook Controls */
+  .audiobook-controls {
+    @apply flex items-center justify-between w-full;
+  }
+
+  .control-button {
+    @apply flex flex-col items-center px-3 py-2 rounded-lg transition-all duration-200;
+  }
+
+  .control-button.disabled {
+    @apply opacity-50 cursor-not-allowed bg-dark-400/30;
+  }
+
+  .control-button:not(.disabled) {
+    @apply hover:bg-dark-400;
+  }
+
+  .play-pause-button {
+    @apply min-w-[70px];
+  }
+
+  .play-pause-button.loading {
+    @apply bg-dark-500/70 text-white;
+  }
+
+  .play-pause-button.playing {
+    @apply bg-accent-danger/20 text-accent-danger hover:bg-accent-danger/30;
+  }
+
+  .play-pause-button.paused {
+    @apply bg-accent-success/20 text-accent-success hover:bg-accent-success/30;
+  }
+
+  .control-label {
+    @apply text-xs mt-1 font-medium;
+  }
+
+  .previous-button,
+  .next-button {
+    @apply text-accent-primary;
+  }
+
+  .new-book-button {
+    @apply flex items-center px-3 py-2 rounded-lg bg-dark-400/50 hover:bg-dark-500 text-gray-200 text-sm transition-colors;
+  }
+
+  /* Audiobook Status */
+  .audiobook-status {
+    @apply mb-4 p-3 rounded-lg flex items-center shadow-md;
+  }
+
+  .status-generating {
+    @apply bg-accent-primary/10 text-accent-primary border-l-4 border-accent-primary;
+  }
+
+  .status-playing {
+    @apply bg-accent-success/10 text-accent-success border-l-4 border-accent-success;
+  }
+
+  .status-paused {
+    @apply bg-accent-warning/10 text-accent-warning border-l-4 border-accent-warning;
+  }
+
+  .status-error {
+    @apply bg-accent-danger/10 text-accent-danger border-l-4 border-accent-danger;
+  }
+
+  .status-icon {
+    @apply mr-3;
+  }
+
+  .status-content {
+    @apply flex-1;
+  }
+
+  .status-text {
+    @apply font-semibold;
+  }
+
+  .status-details {
+    @apply text-sm opacity-80;
+  }
 }

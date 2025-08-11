@@ -363,7 +363,7 @@ function BookReader() {
   }, [])
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-4 text-white">AllTalk Book Reader</h1>
       <div className="flex flex-wrap items-center justify-between mb-4">
         <p className="text-gray-400">
@@ -731,8 +731,8 @@ function BookReader() {
             />
           )}
 
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
+          <div className="card book-reader-card">
+            <div className="flex px-2 pt-2 items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-200">Book Content</h2>
               <button
                 onClick={() => setShowSettings(!showSettings)}
