@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { initializeSessionApi, getSessionApiConfig } from '~/services/sessionStorage';
+import { initializeSessionApi, getSessionApiConfig, clearAllCachedAudioBlobs, getCacheSize } from '~/services/sessionStorage';
 
 interface SessionStorageConfigProps {
   onConfigChange?: (isConnected: boolean) => void;
@@ -14,9 +14,39 @@ export default function SessionStorageConfig({ onConfigChange }: SessionStorageC
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cacheInfo, setCacheInfo] = useState({ entries: 0, estimatedSizeKB: 0 });
 
   // Get current URL
   const currentUrl = `${configValues.protocol}${configValues.ipPort}`;
+
+  // Update cache info
+  const updateCacheInfo = () => {
+    setCacheInfo(getCacheSize());
+  };
+
+  // Clear cache with confirmation
+  const handleClearCache = () => {
+    const { entries, estimatedSizeKB } = getCacheSize();
+    
+    if (entries === 0) {
+      alert('No cached audio files to clear.');
+      return;
+    }
+    
+    const sizeText = estimatedSizeKB > 1024 
+      ? `${(estimatedSizeKB / 1024).toFixed(1)} MB`
+      : `${estimatedSizeKB} KB`;
+    
+    if (window.confirm(
+      `Clear ${entries} cached audio files (approx. ${sizeText})?\n\n` +
+      'This will remove all temporarily cached audio from your browser storage. ' +
+      'You can always re-generate or re-cache audio as needed.'
+    )) {
+      const clearedCount = clearAllCachedAudioBlobs();
+      updateCacheInfo();
+      alert(`Successfully cleared ${clearedCount} cache entries.`);
+    }
+  };
 
   // Test connection to session storage server
   const testConnection = async () => {
@@ -59,6 +89,7 @@ export default function SessionStorageConfig({ onConfigChange }: SessionStorageC
   // Initialize configuration on mount
   useEffect(() => {
     testConnection();
+    updateCacheInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,7 +153,29 @@ export default function SessionStorageConfig({ onConfigChange }: SessionStorageC
           </svg>
           Refresh
         </button>
+        <button
+          onClick={() => {
+            handleClearCache();
+            updateCacheInfo();
+          }}
+          className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-700 rounded flex items-center transition-colors"
+          title={`Clear cached audio files (${cacheInfo.entries} files, ${cacheInfo.estimatedSizeKB > 1024 ? `${(cacheInfo.estimatedSizeKB / 1024).toFixed(1)} MB` : `${cacheInfo.estimatedSizeKB} KB`})`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          Clear Cache
+        </button>
       </div>
+
+      {/* Cache info display */}
+      {cacheInfo.entries > 0 && (
+        <div className="text-xs text-gray-500 mb-2 pl-5">
+          Audio cache: {cacheInfo.entries} files, {cacheInfo.estimatedSizeKB > 1024 
+            ? `${(cacheInfo.estimatedSizeKB / 1024).toFixed(1)} MB`
+            : `${cacheInfo.estimatedSizeKB} KB`}
+        </div>
+      )}
 
       {showConfig && (
         <div className="p-4 mb-4 rounded-lg bg-dark-300 border border-dark-400">

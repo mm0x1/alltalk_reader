@@ -564,6 +564,63 @@ export function clearCachedAudioBlobsForSession(sessionId: string): void {
 }
 
 /**
+ * Clear all cached audio blobs from sessionStorage
+ * This will clear all cached audio files for all sessions
+ * 
+ * @returns {number} Number of cache entries cleared
+ */
+export function clearAllCachedAudioBlobs(): number {
+  let clearedCount = 0;
+  
+  try {
+    const keys = Object.keys(sessionStorage);
+    const cacheKeys = keys.filter(key => key.startsWith('audio_cache_'));
+    
+    cacheKeys.forEach(key => {
+      sessionStorage.removeItem(key);
+      clearedCount++;
+    });
+    
+    console.log(`Cleared ${clearedCount} cache entries from sessionStorage`);
+  } catch (error) {
+    console.error('Error clearing all cached audio blobs:', error);
+  }
+  
+  return clearedCount;
+}
+
+/**
+ * Get the total size of cached audio data in sessionStorage (approximate)
+ * 
+ * @returns {Object} Cache size information
+ */
+export function getCacheSize(): { entries: number; estimatedSizeKB: number } {
+  let entries = 0;
+  let totalSize = 0;
+  
+  try {
+    const keys = Object.keys(sessionStorage);
+    const cacheKeys = keys.filter(key => key.startsWith('audio_cache_'));
+    entries = cacheKeys.length;
+    
+    cacheKeys.forEach(key => {
+      const value = sessionStorage.getItem(key);
+      if (value) {
+        totalSize += value.length;
+      }
+    });
+    
+    // Convert to KB (rough estimate, not exact due to encoding overhead)
+    const estimatedSizeKB = Math.round(totalSize / 1024);
+    
+    return { entries, estimatedSizeKB };
+  } catch (error) {
+    console.error('Error calculating cache size:', error);
+    return { entries: 0, estimatedSizeKB: 0 };
+  }
+}
+
+/**
  * Get audio URL for playback, checking various sources in order of preference
  * This function handles offline sessions, cached audio, and server URLs
  * 
