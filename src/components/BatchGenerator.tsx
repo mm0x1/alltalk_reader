@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateTTS } from '~/services/alltalkApi';
 import ProgressBarIndicator from './ProgressBarIndicator';
-import { saveSession, generateSessionId, generateSessionName, AudioSession } from '~/services/sessionStorage';
+import { saveSession, generateSessionId, generateSessionName, AudioSession, cacheAudioBlobsForSession } from '~/services/sessionStorage';
 
 interface BatchGeneratorProps {
   paragraphs: string[];
@@ -40,6 +40,7 @@ export default function BatchGenerator({
     const generateAudioSequentially = async () => {
       setIsGenerating(true);
       const urls: string[] = [];
+      const audioBlobs: Record<string, Blob> = {}; // Cache blobs for offline export
       
       // Generate audio for each paragraph sequentially
       for (let i = 0; i < paragraphs.length; i++) {
@@ -64,6 +65,17 @@ export default function BatchGenerator({
           
           urls[i] = result.fullAudioUrl;
           setAudioUrls([...urls]);
+          
+          // Download and cache the audio blob for offline use
+          try {
+            const audioResponse = await fetch(result.fullAudioUrl);
+            if (audioResponse.ok) {
+              const blob = await audioResponse.blob();
+              audioBlobs[`audio_${i}`] = blob;
+            }
+          } catch (blobError) {
+            console.warn(`Could not cache audio blob for paragraph ${i+1}:`, blobError);
+          }
         } catch (err) {
           if (isMounted) {
             console.error(`Error generating audio for paragraph ${i+1}:`, err);
@@ -81,7 +93,7 @@ export default function BatchGenerator({
         // Save the completed session - make sure all URLs are present
         if (urls.length === paragraphs.length && urls.every(url => url !== null && url !== undefined)) {
           console.log("Saving session with all audio URLs:", urls.length);
-          await saveAudioSession(urls);
+          await saveAudioSession(urls, audioBlobs);
         } else {
           console.error("Cannot save session, missing URLs:", urls.length, "expected:", paragraphs.length);
           setSaveError('Failed to save session: missing audio files');
@@ -99,7 +111,7 @@ export default function BatchGenerator({
     };
   }, [paragraphs, voice, speed, pitch, language, onComplete, text]);
 
-  const saveAudioSession = async (urls: string[]) => {
+  const saveAudioSession = async (urls: string[], audioBlobs: Record<string, Blob>) => {
     if (urls.length === 0 || urls.length !== paragraphs.length) {
       console.error("Cannot save session, invalid URLs:", urls.length, "expected:", paragraphs.length);
       setSaveError('Failed to save session: missing audio files');
@@ -111,14 +123,16 @@ export default function BatchGenerator({
     
     try {
       // Create session object
+      const sessionId = generateSessionId();
       const session: AudioSession = {
-        id: generateSessionId(),
+        id: sessionId,
         name: generateSessionName(text),
         createdAt: Date.now(),
         updatedAt: Date.now(),
         text,
         paragraphs,
         audioUrls: urls,
+        hasLocalAudio: Object.keys(audioBlobs).length > 0,
         settings: {
           voice,
           speed,
@@ -131,6 +145,12 @@ export default function BatchGenerator({
       const success = await saveSession(session);
       
       if (success) {
+        // Cache the audio blobs for offline use
+        if (Object.keys(audioBlobs).length > 0) {
+          console.log("Caching", Object.keys(audioBlobs).length, "audio blobs for offline use");
+          await cacheAudioBlobsForSession(sessionId, audioBlobs);
+        }
+        
         console.log("Session saved successfully");
         setSessionSaved(true);
       } else {

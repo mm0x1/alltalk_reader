@@ -16,6 +16,7 @@ export interface AudioSession {
   paragraphs: string[]; // Split paragraphs 
   audioUrls: string[]; // Generated audio URLs
   audioBlobData?: Record<string, string | null>; // Base64 encoded audio data for offline use
+  audioLocalFiles?: Record<string, string>; // Local file paths for audio files
   settings: {
     voice: string;
     speed: number;
@@ -23,6 +24,7 @@ export interface AudioSession {
     language: string;
   };
   isOfflineSession?: boolean; // Flag to indicate if this is an imported offline session
+  hasLocalAudio?: boolean; // Flag to indicate if audio data is stored locally
 }
 
 // Session Storage configuration
@@ -398,6 +400,203 @@ export function getOfflineAudioUrl(session: AudioSession, index: number): string
   
   // Create and return a blob URL
   return URL.createObjectURL(blob);
+}
+
+/**
+ * Prepare a session for export using already-cached audio data
+ * This function works even when the AllTalk server is offline by using cached blob data
+ * 
+ * @param {AudioSession} session - The session to export
+ * @param {Record<string, Blob>} cachedAudioBlobs - Cached audio blobs by paragraph index
+ * @param {(progress: number) => void} [onProgress] - Optional progress callback
+ * @returns {Promise<AudioSession>} A new session object with embedded audio data
+ */
+export async function prepareSessionForExportFromCache(
+  session: AudioSession,
+  cachedAudioBlobs: Record<string, Blob>,
+  onProgress?: (progress: number) => void
+): Promise<AudioSession> {
+  // Create a deep copy of the session
+  const exportSession: AudioSession = JSON.parse(JSON.stringify(session));
+  
+  // Initialize the audio blob data object
+  exportSession.audioBlobData = {};
+  exportSession.isOfflineSession = true;
+  
+  // Convert each cached audio blob to base64
+  for (let i = 0; i < session.paragraphs.length; i++) {
+    try {
+      // Update progress
+      if (onProgress) {
+        onProgress((i / session.paragraphs.length) * 100);
+      }
+      
+      const key = `audio_${i}`;
+      const blob = cachedAudioBlobs[key];
+      
+      if (!blob) {
+        exportSession.audioBlobData[key] = null;
+        continue;
+      }
+      
+      // Convert to base64
+      const base64Data = await blobToBase64(blob);
+      
+      // Store in the session
+      exportSession.audioBlobData[key] = base64Data;
+    } catch (error) {
+      console.error(`Error processing cached audio at index ${i}:`, error);
+      exportSession.audioBlobData[`audio_${i}`] = null;
+    }
+  }
+  
+  // Set final progress
+  if (onProgress) {
+    onProgress(100);
+  }
+  
+  return exportSession;
+}
+
+/**
+ * Cache audio blobs for a session to enable offline export
+ * This should be called during pre-generation to store audio data locally
+ * 
+ * @param {string} sessionId - The session ID
+ * @param {Record<string, Blob>} audioBlobs - Audio blobs by paragraph index
+ */
+export async function cacheAudioBlobsForSession(sessionId: string, audioBlobs: Record<string, Blob>): Promise<void> {
+  // Store in sessionStorage or localStorage for persistence across page reloads
+  const cacheKey = `audio_cache_${sessionId}`;
+  
+  try {
+    // Convert blobs to base64 for storage
+    const keys = Object.keys(audioBlobs);
+    
+    for (const key of keys) {
+      try {
+        const base64Data = await blobToBase64(audioBlobs[key]);
+        // Store individual files to avoid hitting storage limits
+        sessionStorage.setItem(`${cacheKey}_${key}`, base64Data);
+      } catch (error) {
+        console.error(`Error caching audio blob ${key}:`, error);
+      }
+    }
+    
+    // Store metadata about cached files
+    sessionStorage.setItem(`${cacheKey}_meta`, JSON.stringify({
+      sessionId,
+      keys,
+      timestamp: Date.now()
+    }));
+    
+    console.log(`Cached ${keys.length} audio blobs for session ${sessionId}`);
+  } catch (error) {
+    console.error('Error caching audio blobs:', error);
+  }
+}
+
+/**
+ * Get cached audio blobs for a session
+ * 
+ * @param {string} sessionId - The session ID
+ * @returns {Record<string, Blob>} Cached audio blobs by paragraph index
+ */
+export function getCachedAudioBlobsForSession(sessionId: string): Record<string, Blob> {
+  const cacheKey = `audio_cache_${sessionId}`;
+  const blobs: Record<string, Blob> = {};
+  
+  try {
+    // Get metadata
+    const metaData = sessionStorage.getItem(`${cacheKey}_meta`);
+    if (!metaData) {
+      return blobs;
+    }
+    
+    const meta = JSON.parse(metaData);
+    
+    // Get each cached file
+    meta.keys.forEach((key: string) => {
+      const base64Data = sessionStorage.getItem(`${cacheKey}_${key}`);
+      if (base64Data) {
+        // Convert base64 back to blob
+        const byteCharacters = atob(base64Data.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        blobs[key] = new Blob([byteArray], { type: 'audio/wav' });
+      }
+    });
+  } catch (error) {
+    console.error('Error retrieving cached audio blobs:', error);
+  }
+  
+  return blobs;
+}
+
+/**
+ * Clear cached audio blobs for a session
+ * 
+ * @param {string} sessionId - The session ID
+ */
+export function clearCachedAudioBlobsForSession(sessionId: string): void {
+  const cacheKey = `audio_cache_${sessionId}`;
+  
+  try {
+    // Get metadata to know which keys to clear
+    const metaData = sessionStorage.getItem(`${cacheKey}_meta`);
+    if (metaData) {
+      const meta = JSON.parse(metaData);
+      
+      // Clear each cached file
+      meta.keys.forEach((key: string) => {
+        sessionStorage.removeItem(`${cacheKey}_${key}`);
+      });
+    }
+    
+    // Clear metadata
+    sessionStorage.removeItem(`${cacheKey}_meta`);
+  } catch (error) {
+    console.error('Error clearing cached audio blobs:', error);
+  }
+}
+
+/**
+ * Get audio URL for playback, checking various sources in order of preference
+ * This function handles offline sessions, cached audio, and server URLs
+ * 
+ * @param {AudioSession} session - The session
+ * @param {number} index - The paragraph index
+ * @param {string} [fallbackUrl] - Fallback URL if other sources fail
+ * @returns {string|null} Audio URL for playback
+ */
+export function getAudioUrlForPlayback(session: AudioSession, index: number, fallbackUrl?: string): string | null {
+  const key = `audio_${index}`;
+  
+  // First priority: Offline session with embedded audio
+  if (session.isOfflineSession && session.audioBlobData && session.audioBlobData[key]) {
+    return getOfflineAudioUrl(session, index);
+  }
+  
+  // Second priority: Cached audio blobs
+  const cachedBlobs = getCachedAudioBlobsForSession(session.id);
+  if (cachedBlobs[key]) {
+    return URL.createObjectURL(cachedBlobs[key]);
+  }
+  
+  // Third priority: Original URL (may require server)
+  if (session.audioUrls[index]) {
+    return session.audioUrls[index];
+  }
+  
+  // Fourth priority: Fallback URL
+  if (fallbackUrl) {
+    return fallbackUrl;
+  }
+  
+  return null;
 }
 
 /**

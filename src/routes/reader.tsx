@@ -12,6 +12,7 @@ import {
   initializeSessionApi,
   AudioSession,
   getOfflineAudioUrl,
+  getAudioUrlForPlayback,
   prepareSessionForExport,
   downloadSessionAsFile,
   importSessionFromFile,
@@ -162,24 +163,22 @@ function BookReader() {
     try {
       let audioUrl: string | null = null;
 
-      // Check for offline session
-      if (isOfflineSession && currentSession) {
-        audioUrl = getOfflineAudioUrl(currentSession, index);
-        if (!audioUrl) {
-          throw new Error('Offline audio not available for this paragraph');
-        }
-        console.log(`Using offline audio for paragraph ${index + 1}/${paragraphs.length}`);
+      // First, try using the smart audio URL function that handles cached audio
+      if (currentSession) {
+        audioUrl = getAudioUrlForPlayback(currentSession, index, 
+          isPreGenerated && preGeneratedAudio[index] ? preGeneratedAudio[index] : undefined);
       }
-      // Check if we have pre-generated audio for this paragraph
+      // If no session or no audio URL found, try other sources
       else if (isPreGenerated && preGeneratedAudio[index]) {
         audioUrl = preGeneratedAudio[index];
         console.log(`Using pre-generated audio for paragraph ${index + 1}/${paragraphs.length}`);
-      } else {
-        // Generate TTS for the paragraph
-        const paragraph = paragraphs[index];
-        console.log(`Generating TTS for paragraph ${index + 1}/${paragraphs.length} (${paragraph.length} characters)`);
+      }
 
-        const result = await generateTTS(paragraph, {
+      // If still no audio URL, generate new TTS
+      if (!audioUrl) {
+        console.log(`Generating TTS for paragraph ${index + 1}/${paragraphs.length} (${paragraphs[index].length} characters)`);
+
+        const result = await generateTTS(paragraphs[index], {
           characterVoice: selectedVoice,
           language,
           outputFileName: `paragraph_${index}_${Date.now()}`,
@@ -219,7 +218,15 @@ function BookReader() {
           console.error('Audio error:', e)
           setIsPlaying(false)
           setIsLoadingAudio(false)
-          setErrorMessage('Error playing audio. Please try again.')
+          
+          // Provide more specific error message
+          if (currentSession?.isOfflineSession) {
+            setErrorMessage('Offline audio not available for this paragraph.');
+          } else if (!isServerConnected) {
+            setErrorMessage('AllTalk server is offline. Please connect to the server or use an offline session.');
+          } else {
+            setErrorMessage('Error playing audio. Please try again.');
+          }
         }
       } else {
         console.error('Audio URL is null, cannot play audio')
@@ -231,7 +238,13 @@ function BookReader() {
       console.error('Failed to play paragraph:', error)
       setIsPlaying(false)
       setIsLoadingAudio(false)
-      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred')
+      
+      // Provide context-specific error messages
+      if (error instanceof Error && error.message.includes('fetch')) {
+        setErrorMessage('AllTalk server is not accessible. Please check if the server is running.');
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+      }
     }
   }
 
@@ -765,3 +778,5 @@ function BookReader() {
     </div>
   )
 }
+
+

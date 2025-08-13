@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AudioSession, prepareSessionForExport, downloadSessionAsFile, importSessionFromFile } from '~/services/sessionStorage';
+import { AudioSession, prepareSessionForExport, prepareSessionForExportFromCache, getCachedAudioBlobsForSession, downloadSessionAsFile, importSessionFromFile } from '~/services/sessionStorage';
 import ProgressBarIndicator from './ProgressBarIndicator';
 
 interface ExportImportManagerProps {
@@ -38,8 +38,19 @@ export default function ExportImportManager({
     setExportError(null);
 
     try {
-      // Prepare the session for export (download audio files and convert to base64)
-      const exportableSession = await prepareSessionForExport(session, setExportProgress);
+      // First try to use cached audio blobs (works offline)
+      const cachedBlobs = getCachedAudioBlobsForSession(session.id);
+      const hasCachedAudio = Object.keys(cachedBlobs).length === session.paragraphs.length;
+      
+      let exportableSession: AudioSession;
+      
+      if (hasCachedAudio) {
+        console.log('Using cached audio data for export (offline capable)');
+        exportableSession = await prepareSessionForExportFromCache(session, cachedBlobs, setExportProgress);
+      } else {
+        console.log('No cached audio found, attempting to download from server');
+        exportableSession = await prepareSessionForExport(session, setExportProgress);
+      }
       
       // Download the session as a JSON file
       downloadSessionAsFile(exportableSession);
@@ -51,7 +62,15 @@ export default function ExportImportManager({
       }, 1000);
     } catch (error) {
       console.error('Error exporting session:', error);
-      setExportError(error instanceof Error ? error.message : 'Failed to export session');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to export session';
+      
+      // If server fetch failed, suggest the user that AllTalk server might be offline
+      if (errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
+        setExportError('Export failed: AllTalk server appears to be offline. ' +
+                      'Pre-generate the session again while the server is online to enable offline export.');
+      } else {
+        setExportError(errorMessage);
+      }
       setIsExporting(false);
     }
   };
