@@ -52,6 +52,10 @@ function BookReader() {
   const [showBatchGenerator, setShowBatchGenerator] = useState(false)
   const [preGeneratedAudio, setPreGeneratedAudio] = useState<string[]>([])
   const [isPreGenerated, setIsPreGenerated] = useState(false)
+  
+  // Auto-progression state
+  const [isAutoProgressing, setIsAutoProgressing] = useState(false)
+  const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Session management
   const [showSessionManager, setShowSessionManager] = useState(false)
@@ -77,9 +81,25 @@ function BookReader() {
   const [language, setLanguage] = useState('en')
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [isSafari, setIsSafari] = useState(false)
 
   // Initialize API when component mounts
   useEffect(() => {
+    // Detect Safari/iOS
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isSafariUA = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    setIsSafari(isSafariUA || isIOS);
+    
+    if (isSafariUA || isIOS) {
+      console.log('🍎 Safari/iOS detected - using compatible audio handling');
+      // Pre-create audio element for Safari/iOS to maintain user interaction context
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+        audioRef.current.preload = 'metadata';
+      }
+    }
+    
     // Initialize AllTalk API
     initializeApi()
       .then(success => {
@@ -125,6 +145,7 @@ function BookReader() {
       setErrorMessage(null)
       setIsPreGenerated(false)
       setPreGeneratedAudio(Array(newParagraphs.length).fill(''))
+      setIsAutoProgressing(false)
 
       if (audioRef.current) {
         audioRef.current.pause()
@@ -140,14 +161,73 @@ function BookReader() {
     }
   }
 
+  // Handle auto-progression to next paragraph with error handling
+  const handleAutoProgression = async (currentIndex: number) => {
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex >= paragraphs.length) {
+      // End of book reached
+      setIsPlaying(false);
+      setCurrentParagraph(null);
+      setIsLoadingAudio(false);
+      setIsAutoProgressing(false);
+      setErrorMessage(null);
+      console.log('Reached end of book');
+      return;
+    }
+
+    setIsAutoProgressing(true);
+    
+    // Set a timeout to prevent indefinite hanging
+    autoProgressTimeoutRef.current = setTimeout(() => {
+      console.warn(`Auto-progression timeout for paragraph ${nextIndex + 1}`);
+      setIsAutoProgressing(false);
+      setIsLoadingAudio(false);
+      setErrorMessage(`Auto-progression timed out. Click paragraph ${nextIndex + 1} to continue.`);
+    }, 15000); // 15 second timeout
+    
+    try {
+      console.log(`🚀 Auto-progressing from paragraph ${currentIndex + 1} to ${nextIndex + 1}`);
+      await handlePlayParagraph(nextIndex);
+      console.log(`✅ handlePlayParagraph completed for paragraph ${nextIndex + 1}`);
+      // Note: isAutoProgressing will be reset when audio successfully loads and plays
+    } catch (error) {
+      console.error('Auto-progression failed:', error);
+      
+      // Clear timeout and reset states on failure
+      if (autoProgressTimeoutRef.current) {
+        clearTimeout(autoProgressTimeoutRef.current);
+        autoProgressTimeoutRef.current = null;
+      }
+      
+      setIsPlaying(false);
+      setIsLoadingAudio(false);
+      setIsAutoProgressing(false);
+      
+      // Show error message specific to auto-progression
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setErrorMessage(`Auto-progression failed: ${errorMsg}. Click the next paragraph to continue manually.`);
+      
+      // Keep currentParagraph at the failed index so user can retry
+      setCurrentParagraph(nextIndex);
+    }
+  };
+
   // Play a paragraph at the specified index
-  const handlePlayParagraph = async (index: number) => {
+  const handlePlayParagraph = async (index: number, isManualClick = false) => {
+    console.log(`🎯 handlePlayParagraph called for index ${index + 1}, isManualClick: ${isManualClick}`);
     if (index >= paragraphs.length) {
       setIsPlaying(false)
       setCurrentParagraph(null)
       setIsLoadingAudio(false)
       setErrorMessage(null)
+      setIsAutoProgressing(false)
       return
+    }
+
+    // Reset auto-progression flag for manual clicks
+    if (isManualClick) {
+      setIsAutoProgressing(false)
     }
 
     setCurrentParagraph(index)
@@ -157,7 +237,10 @@ function BookReader() {
     // Stop current audio if playing
     if (audioRef.current) {
       audioRef.current.pause()
-      audioRef.current = null
+      if (!isSafari) {
+        // Only nullify on non-Safari browsers to allow reuse on Safari/iOS
+        audioRef.current = null
+      }
     }
 
     try {
@@ -195,29 +278,83 @@ function BookReader() {
 
       // Create and play audio
       if (audioUrl !== null) {
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-
-        // Set up event handlers
-        audio.oncanplaythrough = () => {
+        console.log(`${isSafari ? '🍎' : '🔧'} ${isSafari ? 'Reusing' : 'Creating'} audio object for paragraph ${index + 1} with URL: ${audioUrl}`);
+        
+        let audio: HTMLAudioElement;
+        
+        if (isSafari && audioRef.current) {
+          // Reuse existing audio element on Safari/iOS to maintain user interaction context
+          audio = audioRef.current;
+          // Clear existing event handlers to prevent conflicts
+          audio.oncanplaythrough = null;
+          audio.oncanplay = null;
+          audio.onended = null;
+          audio.onerror = null;
+          // Set new source
+          audio.src = audioUrl;
+          console.log(`🍎 Safari: Updated audio source to ${audioUrl}`);
+        } else {
+          // Create new audio element for other browsers
+          audio = new Audio(audioUrl);
+        }
+        
+        // Set up event handlers BEFORE assigning to ref and loading
+        let hasPlayStarted = false;
+        
+        const startPlayback = () => {
+          if (hasPlayStarted) return; // Prevent double execution
+          hasPlayStarted = true;
+          
+          console.log(`📻 Audio ready for paragraph ${index + 1}, starting playback`);
           setIsLoadingAudio(false)
           setIsPlaying(true)
-          audio.play().catch(err => {
-            console.error('Failed to play audio:', err)
-            setIsPlaying(false)
-            setErrorMessage('Failed to play audio. Please try again.')
+          setIsAutoProgressing(false) // Reset auto-progression when audio successfully starts
+          
+          // Clear auto-progression timeout
+          if (autoProgressTimeoutRef.current) {
+            clearTimeout(autoProgressTimeoutRef.current);
+            autoProgressTimeoutRef.current = null;
+          }
+          
+          // Try to play the audio with more robust error handling
+          audio.play().then(() => {
+            console.log(`🔊 Audio playback started successfully for paragraph ${index + 1}`);
+          }).catch(err => {
+            console.error(`❌ Failed to play audio for paragraph ${index + 1}:`, err);
+            setIsPlaying(false);
+            setIsAutoProgressing(false);
+            
+            // Check if it's an autoplay policy issue
+            if (err.name === 'NotAllowedError') {
+              setErrorMessage('Autoplay blocked by browser. Click to continue playing.');
+            } else {
+              setErrorMessage('Failed to play audio. Please try again.');
+            }
           })
-        }
+        };
+        
+        audio.oncanplaythrough = startPlayback;
+        audio.oncanplay = startPlayback; // Fallback for some browsers
 
         audio.onended = () => {
-          // Move to next paragraph when audio ends
-          handlePlayParagraph(index + 1)
+          console.log(`🎵 Audio ended for paragraph ${index + 1}, current paragraph in state: ${currentParagraph}, starting auto-progression`);
+          // Move to next paragraph when audio ends with proper error handling
+          setIsPlaying(false);
+          // Use the index parameter from the function scope, which should be correct
+          handleAutoProgression(index);
         }
 
         audio.onerror = (e) => {
           console.error('Audio error:', e)
           setIsPlaying(false)
           setIsLoadingAudio(false)
+          setIsAutoProgressing(false)
+          
+          // Clear auto-progression timeout
+          if (autoProgressTimeoutRef.current) {
+            clearTimeout(autoProgressTimeoutRef.current);
+            autoProgressTimeoutRef.current = null;
+          }
           
           // Provide more specific error message
           if (currentSession?.isOfflineSession) {
@@ -228,6 +365,11 @@ function BookReader() {
             setErrorMessage('Error playing audio. Please try again.');
           }
         }
+        
+        // Assign to ref and start loading
+        audioRef.current = audio;
+        audio.preload = 'auto';
+        audio.load();
       } else {
         console.error('Audio URL is null, cannot play audio')
         setIsPlaying(false)
@@ -238,6 +380,13 @@ function BookReader() {
       console.error('Failed to play paragraph:', error)
       setIsPlaying(false)
       setIsLoadingAudio(false)
+      setIsAutoProgressing(false)
+      
+      // Clear auto-progression timeout
+      if (autoProgressTimeoutRef.current) {
+        clearTimeout(autoProgressTimeoutRef.current);
+        autoProgressTimeoutRef.current = null;
+      }
       
       // Provide context-specific error messages
       if (error instanceof Error && error.message.includes('fetch')) {
@@ -295,6 +444,7 @@ function BookReader() {
       setIsPlaying(false);
       setIsLoadingAudio(false);
       setErrorMessage(null);
+      setIsAutoProgressing(false);
 
       // Stop any current audio
       if (audioRef.current) {
@@ -319,7 +469,7 @@ function BookReader() {
       }
       setIsPlaying(false)
     } else if (!isLoadingAudio) {
-      handlePlayParagraph(currentParagraph !== null ? currentParagraph : 0)
+      handlePlayParagraph(currentParagraph !== null ? currentParagraph : 0, true)
     }
   }
 
@@ -358,6 +508,7 @@ function BookReader() {
     setShowBatchGenerator(false)
     setCurrentSession(null)
     setIsOfflineSession(false)
+    setIsAutoProgressing(false)
 
     if (audioRef.current) {
       audioRef.current.pause()
@@ -365,12 +516,16 @@ function BookReader() {
     }
   }
 
-  // Clean up audio on unmount
+  // Clean up audio and timeouts on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current = null
+      }
+      if (autoProgressTimeoutRef.current) {
+        clearTimeout(autoProgressTimeoutRef.current);
+        autoProgressTimeoutRef.current = null;
       }
     }
   }, [])
@@ -583,8 +738,8 @@ function BookReader() {
               onReset={handleReset}
               canSkipPrevious={currentParagraph !== null && currentParagraph > 0}
               canSkipNext={currentParagraph !== null && currentParagraph < paragraphs.length - 1}
-              onSkipPrevious={() => currentParagraph !== null && currentParagraph > 0 && handlePlayParagraph(currentParagraph - 1)}
-              onSkipNext={() => currentParagraph !== null && currentParagraph < paragraphs.length - 1 && handlePlayParagraph(currentParagraph + 1)}
+              onSkipPrevious={() => currentParagraph !== null && currentParagraph > 0 && handlePlayParagraph(currentParagraph - 1, true)}
+              onSkipNext={() => currentParagraph !== null && currentParagraph < paragraphs.length - 1 && handlePlayParagraph(currentParagraph + 1, true)}
               isLoading={isLoadingAudio}
             />
 
@@ -761,13 +916,13 @@ function BookReader() {
             <ProgressBar
               currentIndex={currentParagraph}
               totalParagraphs={paragraphs.length}
-              onSelectParagraph={handlePlayParagraph}
+              onSelectParagraph={(index) => handlePlayParagraph(index, true)}
             />
 
             <ParagraphList
               paragraphs={paragraphs}
               currentParagraphIndex={currentParagraph}
-              onPlayParagraph={handlePlayParagraph}
+              onPlayParagraph={(index) => handlePlayParagraph(index, true)}
               isLoading={isLoadingAudio}
               preGeneratedStatus={isPreGenerated ? preGeneratedAudio.map(url => url !== null) : undefined}
               isOfflineSession={isOfflineSession}

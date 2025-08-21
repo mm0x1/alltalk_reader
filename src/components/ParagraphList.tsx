@@ -56,7 +56,7 @@ export default function ParagraphList({
         {paragraphs.map((paragraph, index) => (
           <div 
             key={index}
-            ref={el => paragraphRefs.current[index] = el}
+            ref={el => { paragraphRefs.current[index] = el }}
             className={`book-paragraph ${
               currentParagraphIndex === index
                 ? 'book-paragraph-active'
