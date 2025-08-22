@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RedirectRouteImport } from './routes/redirect'
+import { Route as ReaderOriginalRouteImport } from './routes/reader-original'
 import { Route as ReaderRouteImport } from './routes/reader'
 import { Route as PathlessLayoutRouteImport } from './routes/_pathlessLayout'
 import { Route as IndexRouteImport } from './routes/index'
@@ -20,6 +21,11 @@ import { Route as PathlessLayoutNestedLayoutRouteARouteImport } from './routes/_
 const RedirectRoute = RedirectRouteImport.update({
   id: '/redirect',
   path: '/redirect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReaderOriginalRoute = ReaderOriginalRouteImport.update({
+  id: '/reader-original',
+  path: '/reader-original',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReaderRoute = ReaderRouteImport.update({
@@ -57,6 +63,7 @@ const PathlessLayoutNestedLayoutRouteARoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reader': typeof ReaderRoute
+  '/reader-original': typeof ReaderOriginalRoute
   '/redirect': typeof RedirectRoute
   '/route-a': typeof PathlessLayoutNestedLayoutRouteARoute
   '/route-b': typeof PathlessLayoutNestedLayoutRouteBRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reader': typeof ReaderRoute
+  '/reader-original': typeof ReaderOriginalRoute
   '/redirect': typeof RedirectRoute
   '/route-a': typeof PathlessLayoutNestedLayoutRouteARoute
   '/route-b': typeof PathlessLayoutNestedLayoutRouteBRoute
@@ -73,6 +81,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_pathlessLayout': typeof PathlessLayoutRouteWithChildren
   '/reader': typeof ReaderRoute
+  '/reader-original': typeof ReaderOriginalRoute
   '/redirect': typeof RedirectRoute
   '/_pathlessLayout/_nested-layout': typeof PathlessLayoutNestedLayoutRouteWithChildren
   '/_pathlessLayout/_nested-layout/route-a': typeof PathlessLayoutNestedLayoutRouteARoute
@@ -80,14 +89,27 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/reader' | '/redirect' | '/route-a' | '/route-b'
+  fullPaths:
+    | '/'
+    | '/reader'
+    | '/reader-original'
+    | '/redirect'
+    | '/route-a'
+    | '/route-b'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/reader' | '/redirect' | '/route-a' | '/route-b'
+  to:
+    | '/'
+    | '/reader'
+    | '/reader-original'
+    | '/redirect'
+    | '/route-a'
+    | '/route-b'
   id:
     | '__root__'
     | '/'
     | '/_pathlessLayout'
     | '/reader'
+    | '/reader-original'
     | '/redirect'
     | '/_pathlessLayout/_nested-layout'
     | '/_pathlessLayout/_nested-layout/route-a'
@@ -98,6 +120,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PathlessLayoutRoute: typeof PathlessLayoutRouteWithChildren
   ReaderRoute: typeof ReaderRoute
+  ReaderOriginalRoute: typeof ReaderOriginalRoute
   RedirectRoute: typeof RedirectRoute
 }
 
@@ -108,6 +131,13 @@ declare module '@tanstack/react-router' {
       path: '/redirect'
       fullPath: '/redirect'
       preLoaderRoute: typeof RedirectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reader-original': {
+      id: '/reader-original'
+      path: '/reader-original'
+      fullPath: '/reader-original'
+      preLoaderRoute: typeof ReaderOriginalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reader': {
@@ -189,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PathlessLayoutRoute: PathlessLayoutRouteWithChildren,
   ReaderRoute: ReaderRoute,
+  ReaderOriginalRoute: ReaderOriginalRoute,
   RedirectRoute: RedirectRoute,
 }
 export const routeTree = rootRouteImport

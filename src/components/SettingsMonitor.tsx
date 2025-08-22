@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBaseUrl } from '~/config/env';
 import {
   getApiConfig,
   updateApiConfig,
@@ -112,7 +113,7 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
               )}
             </div>
             <div className="text-gray-300">
-              <span className="font-medium">URL:</span> {apiSettings.protocol}{apiSettings.ipPort}
+              <span className="font-medium">URL:</span> {getBaseUrl()}
             </div>
             <div className="text-gray-300">
               <span className="font-medium">Available voices:</span> {serverStatus.availableVoices?.length || 0}
@@ -172,13 +173,26 @@ export default function SettingsMonitor({ onConnectionStatusChange }: SettingsMo
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-300">IP:Port</label>
+            <label className="block text-sm font-medium mb-1 text-gray-300">Host</label>
             <input
               type="text"
-              value={tempSettings.ipPort}
-              onChange={(e) => setTempSettings({ ...tempSettings, ipPort: e.target.value })}
+              value={tempSettings.host}
+              onChange={(e) => setTempSettings({ ...tempSettings, host: e.target.value })}
               className="input-field"
-              placeholder="localhost:7851"
+              placeholder="localhost"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-300">Port</label>
+            <input
+              type="text"
+              value={tempSettings.port}
+              onChange={(e) => setTempSettings({ ...tempSettings, port: e.target.value })}
+              className="input-field"
+              placeholder="7851"
             />
           </div>
         </div>

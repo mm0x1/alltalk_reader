@@ -1,24 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useRef, useEffect } from 'react'
-import {
-  splitIntoParagraphs,
-  generateTTS,
-  getVoiceOptions,
-  getServerStatus,
-  checkServerReady,
-  initializeApi
-} from '~/services/alltalkApi'
-import {
-  initializeSessionApi,
-  AudioSession,
-  getOfflineAudioUrl,
-  getAudioUrlForPlayback,
-  prepareSessionForExport,
-  downloadSessionAsFile,
-  importSessionFromFile,
-  generateSessionId,
-  generateSessionName
-} from '~/services/sessionStorage'
+import { useState } from 'react'
+import { generateSessionId, generateSessionName } from '~/services/sessionStorage'
+import { useAudioPlayer } from '~/hooks/useAudioPlayer'
+import { useSessionManager } from '~/hooks/useSessionManager'
+import { useTtsSettings } from '~/hooks/useTtsSettings'
+import { useTextProcessor } from '~/hooks/useTextProcessor'
+import { useModalState } from '~/hooks/useModalState'
+import { useBatchGeneration } from '~/hooks/useBatchGeneration'
+import { useServerConnection } from '~/hooks/useServerConnection'
+
 import ProgressBar from '~/components/ProgressBar'
 import ParagraphList from '~/components/ParagraphList'
 import PlaybackControls from '~/components/PlaybackControls'
@@ -36,499 +26,138 @@ export const Route = createFileRoute('/reader')({
 })
 
 function BookReader() {
-  // State for the pasted text and split paragraphs
-  const [text, setText] = useState('')
-  const [paragraphs, setParagraphs] = useState<string[]>([])
-  const [currentParagraph, setCurrentParagraph] = useState<number | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [selectedVoice, setSelectedVoice] = useState(getVoiceOptions()[0]?.id || 'female_01.wav')
-  const [isServerConnected, setIsServerConnected] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-
-  // Pre-generation state
-  const [showBatchGenerator, setShowBatchGenerator] = useState(false)
-  const [preGeneratedAudio, setPreGeneratedAudio] = useState<string[]>([])
-  const [isPreGenerated, setIsPreGenerated] = useState(false)
-  
-  // Auto-progression state
-  const [isAutoProgressing, setIsAutoProgressing] = useState(false)
-  const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Session management
-  const [showSessionManager, setShowSessionManager] = useState(false)
-  const [sessionManagerKey, setSessionManagerKey] = useState(Date.now())
-  const [currentSession, setCurrentSession] = useState<AudioSession | null>(null)
-  const [isOfflineSession, setIsOfflineSession] = useState(false)
-
-  // Export/import state
-  const [showExportImport, setShowExportImport] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
-  const [exportProgress, setExportProgress] = useState(0)
+  // Import/export state (kept local as it's specific to UI flow)
   const [importError, setImportError] = useState<string | null>(null)
 
-  // Function to open session manager with a fresh key
-  const openSessionManager = () => {
-    setSessionManagerKey(Date.now())
-    setShowSessionManager(true)
-  }
+  // Custom hooks
+  const { isServerConnected, updateConnectionStatus } = useServerConnection()
+  const { text, paragraphs, isProcessing, handleTextChange, processText, loadFromSession: loadTextFromSession, reset: resetText } = useTextProcessor()
+  const { selectedVoice, speed, pitch, language, updateVoice, updateSpeed, updatePitch, updateLanguage, loadFromSession: loadTtsFromSession, reset: resetTts } = useTtsSettings()
+  const { preGeneratedAudio, isPreGenerated, handleBatchComplete, resetPreGenerated, initializeForParagraphs, loadFromSession: loadBatchFromSession } = useBatchGeneration()
+  const { showSettings, showBatchGenerator, showExportImport, toggleSettings, openBatchGenerator, closeBatchGenerator, openExportImport, closeExportImport } = useModalState()
+  
+  const { 
+    showSessionManager, 
+    sessionManagerKey, 
+    currentSession, 
+    isOfflineSession, 
+    openSessionManager, 
+    closeSessionManager, 
+    loadSession, 
+    handleFileImport, 
+    refreshSessionManager 
+  } = useSessionManager()
 
-  // TTS settings
-  const [speed, setSpeed] = useState(1.0)
-  const [pitch, setPitch] = useState(0)
-  const [language, setLanguage] = useState('en')
+  const {
+    currentParagraph,
+    isPlaying,
+    isLoadingAudio,
+    errorMessage,
+    handlePlayParagraph,
+    togglePlayback,
+    reset: resetAudio
+  } = useAudioPlayer({
+    paragraphs,
+    selectedVoice,
+    speed,
+    pitch,
+    language,
+    isServerConnected,
+    preGeneratedAudio,
+    isPreGenerated,
+    currentSession
+  })
 
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [isSafari, setIsSafari] = useState(false)
-
-  // Initialize API when component mounts
-  useEffect(() => {
-    // Detect Safari/iOS
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isSafariUA = /safari/.test(userAgent) && !/chrome/.test(userAgent);
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    setIsSafari(isSafariUA || isIOS);
-    
-    if (isSafariUA || isIOS) {
-      console.log('🍎 Safari/iOS detected - using compatible audio handling');
-      // Pre-create audio element for Safari/iOS to maintain user interaction context
-      if (!audioRef.current) {
-        audioRef.current = new Audio();
-        audioRef.current.preload = 'metadata';
-      }
-    }
-    
-    // Initialize AllTalk API
-    initializeApi()
-      .then(success => {
-        setIsServerConnected(success)
-        // Update selected voice options if server is connected
-        if (success) {
-          const voices = getVoiceOptions()
-          if (voices.length > 0) {
-            setSelectedVoice(voices[0].id)
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Failed to initialize API:', error)
-        setIsServerConnected(false)
-      })
-
-    // Initialize Session Storage API with default settings
-    // (component will allow user to change these)
-    initializeSessionApi()
-  }, [])
-
-  // Handle text input
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value)
-  }
-
-  // Process the pasted text
+  // Process text and initialize for batch generation
   const handleProcessText = () => {
-    if (!text.trim()) return
-
-    setIsProcessing(true)
-
     try {
-      // Split text into paragraphs with size limit handling
-      const newParagraphs = splitIntoParagraphs(text)
-
-      setParagraphs(newParagraphs)
-      setCurrentParagraph(null)
-      setIsPlaying(false)
-      setIsProcessing(false)
-      setIsLoadingAudio(false)
-      setErrorMessage(null)
-      setIsPreGenerated(false)
-      setPreGeneratedAudio(Array(newParagraphs.length).fill(''))
-      setIsAutoProgressing(false)
-
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-
-      // Log how many paragraphs were created
-      console.log(`Text processed into ${newParagraphs.length} paragraphs`)
+      const newParagraphs = processText()
+      initializeForParagraphs(newParagraphs.length)
+      resetAudio()
     } catch (error) {
       console.error('Error processing text:', error)
-      setIsProcessing(false)
-      setErrorMessage('Failed to process text. Please try again.')
     }
-  }
-
-  // Handle auto-progression to next paragraph with error handling
-  const handleAutoProgression = async (currentIndex: number) => {
-    const nextIndex = currentIndex + 1;
-    
-    if (nextIndex >= paragraphs.length) {
-      // End of book reached
-      setIsPlaying(false);
-      setCurrentParagraph(null);
-      setIsLoadingAudio(false);
-      setIsAutoProgressing(false);
-      setErrorMessage(null);
-      console.log('Reached end of book');
-      return;
-    }
-
-    setIsAutoProgressing(true);
-    
-    // Set a timeout to prevent indefinite hanging
-    autoProgressTimeoutRef.current = setTimeout(() => {
-      console.warn(`Auto-progression timeout for paragraph ${nextIndex + 1}`);
-      setIsAutoProgressing(false);
-      setIsLoadingAudio(false);
-      setErrorMessage(`Auto-progression timed out. Click paragraph ${nextIndex + 1} to continue.`);
-    }, 15000); // 15 second timeout
-    
-    try {
-      console.log(`🚀 Auto-progressing from paragraph ${currentIndex + 1} to ${nextIndex + 1}`);
-      await handlePlayParagraph(nextIndex);
-      console.log(`✅ handlePlayParagraph completed for paragraph ${nextIndex + 1}`);
-      // Note: isAutoProgressing will be reset when audio successfully loads and plays
-    } catch (error) {
-      console.error('Auto-progression failed:', error);
-      
-      // Clear timeout and reset states on failure
-      if (autoProgressTimeoutRef.current) {
-        clearTimeout(autoProgressTimeoutRef.current);
-        autoProgressTimeoutRef.current = null;
-      }
-      
-      setIsPlaying(false);
-      setIsLoadingAudio(false);
-      setIsAutoProgressing(false);
-      
-      // Show error message specific to auto-progression
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setErrorMessage(`Auto-progression failed: ${errorMsg}. Click the next paragraph to continue manually.`);
-      
-      // Keep currentParagraph at the failed index so user can retry
-      setCurrentParagraph(nextIndex);
-    }
-  };
-
-  // Play a paragraph at the specified index
-  const handlePlayParagraph = async (index: number, isManualClick = false) => {
-    console.log(`🎯 handlePlayParagraph called for index ${index + 1}, isManualClick: ${isManualClick}`);
-    if (index >= paragraphs.length) {
-      setIsPlaying(false)
-      setCurrentParagraph(null)
-      setIsLoadingAudio(false)
-      setErrorMessage(null)
-      setIsAutoProgressing(false)
-      return
-    }
-
-    // Reset auto-progression flag for manual clicks
-    if (isManualClick) {
-      setIsAutoProgressing(false)
-    }
-
-    setCurrentParagraph(index)
-    setIsLoadingAudio(true)
-    setErrorMessage(null)
-
-    // Stop current audio if playing
-    if (audioRef.current) {
-      audioRef.current.pause()
-      if (!isSafari) {
-        // Only nullify on non-Safari browsers to allow reuse on Safari/iOS
-        audioRef.current = null
-      }
-    }
-
-    try {
-      let audioUrl: string | null = null;
-
-      // First, try using the smart audio URL function that handles cached audio
-      if (currentSession) {
-        audioUrl = getAudioUrlForPlayback(currentSession, index, 
-          isPreGenerated && preGeneratedAudio[index] ? preGeneratedAudio[index] : undefined);
-      }
-      // If no session or no audio URL found, try other sources
-      else if (isPreGenerated && preGeneratedAudio[index]) {
-        audioUrl = preGeneratedAudio[index];
-        console.log(`Using pre-generated audio for paragraph ${index + 1}/${paragraphs.length}`);
-      }
-
-      // If still no audio URL, generate new TTS
-      if (!audioUrl) {
-        console.log(`Generating TTS for paragraph ${index + 1}/${paragraphs.length} (${paragraphs[index].length} characters)`);
-
-        const result = await generateTTS(paragraphs[index], {
-          characterVoice: selectedVoice,
-          language,
-          outputFileName: `paragraph_${index}_${Date.now()}`,
-          speed,
-          pitch,
-        });
-
-        if (!result) {
-          throw new Error('Failed to generate audio');
-        }
-
-        audioUrl = result.fullAudioUrl;
-      }
-
-      // Create and play audio
-      if (audioUrl !== null) {
-        console.log(`${isSafari ? '🍎' : '🔧'} ${isSafari ? 'Reusing' : 'Creating'} audio object for paragraph ${index + 1} with URL: ${audioUrl}`);
-        
-        let audio: HTMLAudioElement;
-        
-        if (isSafari && audioRef.current) {
-          // Reuse existing audio element on Safari/iOS to maintain user interaction context
-          audio = audioRef.current;
-          // Clear existing event handlers to prevent conflicts
-          audio.oncanplaythrough = null;
-          audio.oncanplay = null;
-          audio.onended = null;
-          audio.onerror = null;
-          // Set new source
-          audio.src = audioUrl;
-          console.log(`🍎 Safari: Updated audio source to ${audioUrl}`);
-        } else {
-          // Create new audio element for other browsers
-          audio = new Audio(audioUrl);
-        }
-        
-        // Set up event handlers BEFORE assigning to ref and loading
-        let hasPlayStarted = false;
-        
-        const startPlayback = () => {
-          if (hasPlayStarted) return; // Prevent double execution
-          hasPlayStarted = true;
-          
-          console.log(`📻 Audio ready for paragraph ${index + 1}, starting playback`);
-          setIsLoadingAudio(false)
-          setIsPlaying(true)
-          setIsAutoProgressing(false) // Reset auto-progression when audio successfully starts
-          
-          // Clear auto-progression timeout
-          if (autoProgressTimeoutRef.current) {
-            clearTimeout(autoProgressTimeoutRef.current);
-            autoProgressTimeoutRef.current = null;
-          }
-          
-          // Try to play the audio with more robust error handling
-          audio.play().then(() => {
-            console.log(`🔊 Audio playback started successfully for paragraph ${index + 1}`);
-          }).catch(err => {
-            console.error(`❌ Failed to play audio for paragraph ${index + 1}:`, err);
-            setIsPlaying(false);
-            setIsAutoProgressing(false);
-            
-            // Check if it's an autoplay policy issue
-            if (err.name === 'NotAllowedError') {
-              setErrorMessage('Autoplay blocked by browser. Click to continue playing.');
-            } else {
-              setErrorMessage('Failed to play audio. Please try again.');
-            }
-          })
-        };
-        
-        audio.oncanplaythrough = startPlayback;
-        audio.oncanplay = startPlayback; // Fallback for some browsers
-
-        audio.onended = () => {
-          console.log(`🎵 Audio ended for paragraph ${index + 1}, current paragraph in state: ${currentParagraph}, starting auto-progression`);
-          // Move to next paragraph when audio ends with proper error handling
-          setIsPlaying(false);
-          // Use the index parameter from the function scope, which should be correct
-          handleAutoProgression(index);
-        }
-
-        audio.onerror = (e) => {
-          console.error('Audio error:', e)
-          setIsPlaying(false)
-          setIsLoadingAudio(false)
-          setIsAutoProgressing(false)
-          
-          // Clear auto-progression timeout
-          if (autoProgressTimeoutRef.current) {
-            clearTimeout(autoProgressTimeoutRef.current);
-            autoProgressTimeoutRef.current = null;
-          }
-          
-          // Provide more specific error message
-          if (currentSession?.isOfflineSession) {
-            setErrorMessage('Offline audio not available for this paragraph.');
-          } else if (!isServerConnected) {
-            setErrorMessage('AllTalk server is offline. Please connect to the server or use an offline session.');
-          } else {
-            setErrorMessage('Error playing audio. Please try again.');
-          }
-        }
-        
-        // Assign to ref and start loading
-        audioRef.current = audio;
-        audio.preload = 'auto';
-        audio.load();
-      } else {
-        console.error('Audio URL is null, cannot play audio')
-        setIsPlaying(false)
-        setIsLoadingAudio(false)
-        setErrorMessage('Failed to generate audio. Please try again.')
-      }
-    } catch (error) {
-      console.error('Failed to play paragraph:', error)
-      setIsPlaying(false)
-      setIsLoadingAudio(false)
-      setIsAutoProgressing(false)
-      
-      // Clear auto-progression timeout
-      if (autoProgressTimeoutRef.current) {
-        clearTimeout(autoProgressTimeoutRef.current);
-        autoProgressTimeoutRef.current = null;
-      }
-      
-      // Provide context-specific error messages
-      if (error instanceof Error && error.message.includes('fetch')) {
-        setErrorMessage('AllTalk server is not accessible. Please check if the server is running.');
-      } else {
-        setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
-      }
-    }
-  }
-
-  // Handle the completion of batch generation
-  const handleBatchComplete = (audioUrls: string[]) => {
-    setPreGeneratedAudio(audioUrls);
-    setIsPreGenerated(true);
-    setShowBatchGenerator(false);
-  }
-
-  // Handle cancellation of batch generation
-  const handleBatchCancel = () => {
-    setShowBatchGenerator(false);
   }
 
   // Load a saved session
-  const handleLoadSession = (session: AudioSession) => {
-    if (!session) return;
-
+  const handleLoadSession = (session: any) => {
     try {
-      // Set text and paragraphs
-      setText(session.text);
-      setParagraphs(session.paragraphs);
-
-      // Set settings
-      setSelectedVoice(session.settings.voice);
-      setSpeed(session.settings.speed);
-      setPitch(session.settings.pitch);
-      setLanguage(session.settings.language);
-
-      // Set the current session reference
-      setCurrentSession(session);
-
-      // Check if this is an offline session
-      if (session.isOfflineSession && session.audioBlobData) {
-        setIsOfflineSession(true);
-        console.log('Loaded offline session with embedded audio');
-      } else {
-        setIsOfflineSession(false);
-        // Set the pre-generated audio for online sessions
-        setPreGeneratedAudio(session.audioUrls);
+      const sessionData = loadSession(session)
+      if (sessionData) {
+        loadTextFromSession(sessionData.text, sessionData.paragraphs)
+        loadTtsFromSession(sessionData.voice, sessionData.speed, sessionData.pitch, sessionData.language)
+        
+        if (session.isOfflineSession) {
+          resetPreGenerated()
+        } else {
+          loadBatchFromSession(sessionData.preGeneratedAudio)
+        }
+        
+        resetAudio()
       }
-
-      setIsPreGenerated(true);
-
-      // Reset playback state
-      setCurrentParagraph(null);
-      setIsPlaying(false);
-      setIsLoadingAudio(false);
-      setErrorMessage(null);
-      setIsAutoProgressing(false);
-
-      // Stop any current audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-
-      console.log(`Loaded session with ${session.paragraphs.length} paragraphs`);
     } catch (error) {
-      console.error('Error loading session:', error);
-      setErrorMessage('Failed to load the session. Please try again.');
+      console.error('Error loading session:', error)
     }
-
-    setShowSessionManager(false);
-  }
-
-  // Handle play/pause
-  const togglePlayback = () => {
-    if (isPlaying) {
-      if (audioRef.current) {
-        audioRef.current.pause()
-      }
-      setIsPlaying(false)
-    } else if (!isLoadingAudio) {
-      handlePlayParagraph(currentParagraph !== null ? currentParagraph : 0, true)
-    }
+    closeSessionManager()
   }
 
   // Handle file selection for import
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
+    if (!e.target.files || e.target.files.length === 0) return
 
-    const file = e.target.files[0];
-    setImportError(null);
+    const file = e.target.files[0]
+    setImportError(null)
 
     try {
-      const importedSession = await importSessionFromFile(file);
-      handleLoadSession(importedSession);
-      setShowExportImport(false);
+      const importedSession = await handleFileImport(file)
+      handleLoadSession(importedSession)
+      closeExportImport()
     } catch (error) {
-      console.error('Error importing session:', error);
-      setImportError(error instanceof Error ? error.message : 'Failed to import session');
+      console.error('Error importing session:', error)
+      setImportError(error instanceof Error ? error.message : 'Failed to import session')
     }
 
-    // Clear the file input
-    e.target.value = '';
-  };
+    e.target.value = ''
+  }
 
   // Reset everything
   const handleReset = () => {
-    setParagraphs([])
-    setText('')
-    setCurrentParagraph(null)
-    setIsPlaying(false)
-    setIsLoadingAudio(false)
-    setErrorMessage(null)
-    setIsPreGenerated(false)
-    setPreGeneratedAudio([])
-    setShowBatchGenerator(false)
-    setCurrentSession(null)
-    setIsOfflineSession(false)
-    setIsAutoProgressing(false)
+    resetText()
+    resetTts()
+    resetPreGenerated()
+    resetAudio()
+    closeBatchGenerator()
+  }
 
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
+  // Handle voice change with pre-generation reset
+  const handleVoiceChange = (voice: string) => {
+    updateVoice(voice, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
     }
   }
 
-  // Clean up audio and timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-      if (autoProgressTimeoutRef.current) {
-        clearTimeout(autoProgressTimeoutRef.current);
-        autoProgressTimeoutRef.current = null;
-      }
+  // Handle settings changes with pre-generation reset
+  const handleSpeedChange = (newSpeed: number) => {
+    updateSpeed(newSpeed, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
     }
-  }, [])
+  }
+
+  const handlePitchChange = (newPitch: number) => {
+    updatePitch(newPitch, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
+    }
+  }
+
+  const handleLanguageChange = (newLanguage: string) => {
+    updateLanguage(newLanguage, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
+    }
+  }
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -537,7 +166,6 @@ function BookReader() {
         <p className="text-gray-400">
           Using the standard AllTalk API to generate TTS audio paragraph by paragraph. Text longer than <b>Max characters</b> will be split up.
         </p>
-
         <button
           onClick={openSessionManager}
           className="text-sm px-3 py-1.5 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
@@ -551,22 +179,20 @@ function BookReader() {
       <p className="text-gray-400 mb-4">
         Click the green "Reload alltalk configuration" to load voices.
       </p>
-      <SettingsMonitor onConnectionStatusChange={setIsServerConnected} />
-      <SessionStorageConfig onConfigChange={() => setSessionManagerKey(Date.now())} />
-
-      {/* Session Manager */}
+      <SettingsMonitor onConnectionStatusChange={updateConnectionStatus} />
+      <SessionStorageConfig onConfigChange={refreshSessionManager} />
+      {/* Session Manager Modal */}
       {showSessionManager && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="w-full max-w-3xl max-h-[90vh] overflow-auto">
             <SessionManager
               key={sessionManagerKey}
               onLoadSession={handleLoadSession}
-              onClose={() => setShowSessionManager(false)}
+              onClose={closeSessionManager}
             />
           </div>
         </div>
       )}
-
       {/* Import Session Modal - Only for initial screen */}
       {showExportImport && paragraphs.length === 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -576,8 +202,8 @@ function BookReader() {
                 <h2 className="text-lg font-semibold text-gray-200">Import Session</h2>
                 <button
                   onClick={() => {
-                    setShowExportImport(false);
-                    setImportError(null);
+                    closeExportImport()
+                    setImportError(null)
                   }}
                   className="p-1.5 hover:bg-dark-400 rounded"
                   title="Close"
@@ -626,7 +252,6 @@ function BookReader() {
           </div>
         </div>
       )}
-
       {paragraphs.length === 0 ? (
         <div className="space-y-4">
           <div className="card">
@@ -637,7 +262,7 @@ function BookReader() {
                 </label>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowExportImport(true)}
+                    onClick={openExportImport}
                     className="text-sm px-3 py-1 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -646,7 +271,7 @@ function BookReader() {
                     Import Session
                   </button>
                   <button
-                    onClick={() => setShowSettings(!showSettings)}
+                    onClick={toggleSettings}
                     className="text-sm px-3 py-1 bg-dark-300 hover:bg-dark-400 rounded flex items-center transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -660,7 +285,7 @@ function BookReader() {
                 id="text-input"
                 className="input-field h-64"
                 value={text}
-                onChange={handleTextChange}
+                onChange={(e) => handleTextChange(e.target.value)}
                 placeholder="Paste your book text here..."
               />
             </div>
@@ -669,7 +294,7 @@ function BookReader() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-dark-300 p-4 rounded-lg">
                 <VoiceSelector
                   value={selectedVoice}
-                  onChange={setSelectedVoice}
+                  onChange={handleVoiceChange}
                   label="Character Voice"
                 />
 
@@ -677,9 +302,9 @@ function BookReader() {
                   speed={speed}
                   pitch={pitch}
                   language={language}
-                  onSpeedChange={setSpeed}
-                  onPitchChange={setPitch}
-                  onLanguageChange={setLanguage}
+                  onSpeedChange={handleSpeedChange}
+                  onPitchChange={handlePitchChange}
+                  onLanguageChange={handleLanguageChange}
                 />
               </div>
             )}
@@ -734,7 +359,7 @@ function BookReader() {
               isPlaying={isPlaying}
               selectedVoice={selectedVoice}
               onPlayPause={togglePlayback}
-              onVoiceChange={setSelectedVoice}
+              onVoiceChange={handleVoiceChange}
               onReset={handleReset}
               canSkipPrevious={currentParagraph !== null && currentParagraph > 0}
               canSkipNext={currentParagraph !== null && currentParagraph < paragraphs.length - 1}
@@ -745,7 +370,7 @@ function BookReader() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => setShowBatchGenerator(true)}
+                onClick={openBatchGenerator}
                 disabled={showBatchGenerator || isPreGenerated || !isServerConnected}
                 className={`px-3 py-1.5 text-sm rounded flex items-center ${isPreGenerated
                   ? 'bg-accent-success/20 text-accent-success border border-accent-success'
@@ -772,7 +397,7 @@ function BookReader() {
               </button>
 
               <button
-                onClick={() => setShowExportImport(true)}
+                onClick={openExportImport}
                 className="px-3 py-1.5 text-sm rounded flex items-center bg-dark-400 text-white hover:bg-dark-500 border border-dark-500"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -793,7 +418,7 @@ function BookReader() {
               pitch={pitch}
               language={language}
               onComplete={handleBatchComplete}
-              onCancel={handleBatchCancel}
+              onCancel={closeBatchGenerator}
             />
           )}
 
@@ -809,7 +434,7 @@ function BookReader() {
                     updatedAt: Date.now(),
                     text,
                     paragraphs,
-                    audioUrls: (preGeneratedAudio ?? []).map(url => url || ''), // Convert null values to empty strings
+                    audioUrls: (preGeneratedAudio ?? []).map(url => url || ''),
                     settings: {
                       voice: selectedVoice,
                       speed,
@@ -819,7 +444,7 @@ function BookReader() {
                   }}
                   isPreGenerated={isPreGenerated}
                   onImportSession={handleLoadSession}
-                  onClose={() => setShowExportImport(false)}
+                  onClose={closeExportImport}
                 />
               </div>
             </div>
@@ -829,17 +454,7 @@ function BookReader() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-dark-300 border border-dark-500 rounded-lg">
               <VoiceSelector
                 value={selectedVoice}
-                onChange={voice => {
-                  setSelectedVoice(voice);
-                  // If audio is currently playing, stop it
-                  if (isPlaying && audioRef.current) {
-                    audioRef.current.pause();
-                    setIsPlaying(false);
-                  }
-                  // Reset pre-generated state when voice changes
-                  setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
-                }}
+                onChange={handleVoiceChange}
                 label="Character Voice"
               />
 
@@ -847,36 +462,9 @@ function BookReader() {
                 speed={speed}
                 pitch={pitch}
                 language={language}
-                onSpeedChange={value => {
-                  setSpeed(value);
-                  if (isPlaying && audioRef.current) {
-                    audioRef.current.pause();
-                    setIsPlaying(false);
-                  }
-                  // Reset pre-generated state when settings change
-                  setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
-                }}
-                onPitchChange={value => {
-                  setPitch(value);
-                  if (isPlaying && audioRef.current) {
-                    audioRef.current.pause();
-                    setIsPlaying(false);
-                  }
-                  // Reset pre-generated state when settings change
-                  setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
-                }}
-                onLanguageChange={value => {
-                  setLanguage(value);
-                  if (isPlaying && audioRef.current) {
-                    audioRef.current.pause();
-                    setIsPlaying(false);
-                  }
-                  // Reset pre-generated state when settings change
-                  setIsPreGenerated(false);
-                  setPreGeneratedAudio(Array(paragraphs.length).fill(""));
-                }}
+                onSpeedChange={handleSpeedChange}
+                onPitchChange={handlePitchChange}
+                onLanguageChange={handleLanguageChange}
               />
             </div>
           )}
@@ -903,7 +491,7 @@ function BookReader() {
             <div className="flex px-2 pt-2 items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-200">Book Content</h2>
               <button
-                onClick={() => setShowSettings(!showSettings)}
+                onClick={toggleSettings}
                 className="text-sm px-3 py-1 bg-dark-400 hover:bg-dark-500 rounded flex items-center transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -933,5 +521,3 @@ function BookReader() {
     </div>
   )
 }
-
-
