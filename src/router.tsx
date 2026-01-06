@@ -24,6 +24,16 @@ export function createRouter() {
   )
 }
 
+// Singleton router instance for TanStack Start
+let routerInstance: ReturnType<typeof createRouter> | null = null
+
+export function getRouter() {
+  if (!routerInstance) {
+    routerInstance = createRouter()
+  }
+  return routerInstance
+}
+
 declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof createRouter>
