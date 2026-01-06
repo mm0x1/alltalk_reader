@@ -33,6 +33,7 @@ export {
 export {
   getOfflineAudioUrl,
   getAudioUrlForPlayback,
+  getAudioUrlForPlaybackAsync,
   revokeAudioObjectUrl,
   revokeAllAudioObjectUrls,
 } from './offline';

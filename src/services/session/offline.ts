@@ -7,6 +7,10 @@
 import type { AudioSession } from './types';
 import { base64ToBlob } from './utils';
 import { getCachedAudioBlobsForSession } from './cache';
+import {
+  getAudioBlob as getIndexedDbAudioBlob,
+  isIndexedDbAvailable,
+} from '../storage';
 
 /**
  * Track created Object URLs for cleanup to prevent memory leaks
@@ -62,7 +66,8 @@ export function getOfflineAudioUrl(session: AudioSession, index: number): string
 }
 
 /**
- * Get audio URL for playback, checking various sources in order of preference
+ * Get audio URL for playback, checking various sources in order of preference (sync version)
+ * @deprecated Use getAudioUrlForPlaybackAsync for better IndexedDB support
  */
 export function getAudioUrlForPlayback(
   session: AudioSession,
@@ -76,7 +81,7 @@ export function getAudioUrlForPlayback(
     return getOfflineAudioUrl(session, index);
   }
 
-  // Second priority: Cached audio blobs
+  // Second priority: Cached audio blobs (sessionStorage)
   const cachedBlobs = getCachedAudioBlobsForSession(session.id);
   if (cachedBlobs[key]) {
     return createTrackedObjectUrl(cachedBlobs[key]);
@@ -88,6 +93,53 @@ export function getAudioUrlForPlayback(
   }
 
   // Fourth priority: Fallback URL
+  if (fallbackUrl) {
+    return fallbackUrl;
+  }
+
+  return null;
+}
+
+/**
+ * Get audio URL for playback, checking various sources in order of preference (async version)
+ * This version supports IndexedDB for larger audio cache capacity.
+ */
+export async function getAudioUrlForPlaybackAsync(
+  session: AudioSession,
+  index: number,
+  fallbackUrl?: string
+): Promise<string | null> {
+  const key = `audio_${index}`;
+
+  // First priority: Offline session with embedded audio
+  if (session.isOfflineSession && session.audioBlobData && session.audioBlobData[key]) {
+    return getOfflineAudioUrl(session, index);
+  }
+
+  // Second priority: IndexedDB (preferred for large sessions)
+  if (isIndexedDbAvailable()) {
+    try {
+      const indexedDbBlob = await getIndexedDbAudioBlob(session.id, index);
+      if (indexedDbBlob) {
+        return createTrackedObjectUrl(indexedDbBlob);
+      }
+    } catch (error) {
+      console.warn('IndexedDB lookup failed:', error);
+    }
+  }
+
+  // Third priority: sessionStorage (legacy)
+  const cachedBlobs = getCachedAudioBlobsForSession(session.id);
+  if (cachedBlobs[key]) {
+    return createTrackedObjectUrl(cachedBlobs[key]);
+  }
+
+  // Fourth priority: Original URL (may require server)
+  if (session.audioUrls[index]) {
+    return session.audioUrls[index];
+  }
+
+  // Fifth priority: Fallback URL
   if (fallbackUrl) {
     return fallbackUrl;
   }

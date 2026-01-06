@@ -1,6 +1,6 @@
 /**
  * Session Saver Hook
- * 
+ *
  * Manages the state and logic for saving audio sessions with offline caching.
  * Extracted from BatchGenerator component for better separation of concerns.
  */
@@ -13,6 +13,10 @@ import {
   cacheAudioBlobsForSession,
   type AudioSession
 } from '~/services/session';
+import {
+  storeAudioBlobsForSession,
+  isIndexedDbAvailable,
+} from '~/services/storage';
 
 export function useSessionSaver() {
   const [isSaving, setIsSaving] = useState(false);
@@ -62,9 +66,21 @@ export function useSessionSaver() {
         // Cache the audio blobs for offline use
         if (Object.keys(audioBlobs).length > 0) {
           console.log("Caching", Object.keys(audioBlobs).length, "audio blobs for offline use");
-          await cacheAudioBlobsForSession(sessionId, audioBlobs);
+
+          // Use IndexedDB if available (much larger capacity), fall back to sessionStorage
+          if (isIndexedDbAvailable()) {
+            try {
+              await storeAudioBlobsForSession(sessionId, audioBlobs);
+              console.log("Audio cached in IndexedDB");
+            } catch (idbError) {
+              console.warn("IndexedDB cache failed, falling back to sessionStorage:", idbError);
+              await cacheAudioBlobsForSession(sessionId, audioBlobs);
+            }
+          } else {
+            await cacheAudioBlobsForSession(sessionId, audioBlobs);
+          }
         }
-        
+
         console.log("Session saved successfully");
         setSessionSaved(true);
         return true;
