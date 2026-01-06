@@ -1,5 +1,5 @@
 import React from 'react';
-import { getServerStatus } from '~/services/alltalkApi';
+import { useApiState } from '~/contexts/ApiStateContext';
 
 interface TtsSettingsProps {
   speed: number;
@@ -20,14 +20,14 @@ export default function TtsSettings({
   onLanguageChange,
   className = "",
 }: TtsSettingsProps) {
-  const serverStatus = getServerStatus();
-  const settings = serverStatus?.currentSettings;
-  
+  const { state } = useApiState();
+  const settings = state.serverStatus?.currentSettings;
+
   // Check if features are supported by the current TTS engine
   const speedCapable = settings?.generationspeed_capable ?? true;
   const pitchCapable = settings?.pitch_capable ?? true;
   const languageCapable = settings?.languages_capable ?? true;
-  
+
   // Supported languages as per the AllTalk API documentation
   const languages = [
     { code: 'auto', name: 'Auto Detect' },
@@ -49,18 +49,18 @@ export default function TtsSettings({
     { code: 'es', name: 'Spanish' },
     { code: 'tr', name: 'Turkish' },
   ];
-  
+
   return (
     <div className={className}>
       <h3 className="text-sm font-medium mb-2 text-gray-200">TTS Generation Settings</h3>
-      
+
       <div className="space-y-3">
         {/* Speed setting */}
         <div className={`${!speedCapable ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between">
             <label className="block text-sm text-gray-300">Speed: {speed.toFixed(2)}x</label>
-            <button 
-              onClick={() => onSpeedChange(1.0)} 
+            <button
+              onClick={() => onSpeedChange(1.0)}
               className="text-xs text-accent-primary hover:text-accent-hover"
               disabled={!speedCapable}
             >
@@ -88,8 +88,8 @@ export default function TtsSettings({
         <div className={`${!pitchCapable ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between">
             <label className="block text-sm text-gray-300">Pitch: {pitch > 0 ? '+' : ''}{pitch}</label>
-            <button 
-              onClick={() => onPitchChange(0)} 
+            <button
+              onClick={() => onPitchChange(0)}
               className="text-xs text-accent-primary hover:text-accent-hover"
               disabled={!pitchCapable}
             >
@@ -130,7 +130,7 @@ export default function TtsSettings({
           </select>
         </div>
       </div>
-      
+
       {(!speedCapable || !pitchCapable || !languageCapable) && (
         <p className="mt-2 text-xs text-accent-warning">
           Some settings are disabled because they are not supported by the current TTS engine.

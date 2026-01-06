@@ -12,6 +12,8 @@ import * as React from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
 import { NotFound } from '~/components/NotFound'
+import { ErrorBoundary } from '~/components/ErrorBoundary'
+import { ApiStateProvider } from '~/contexts/ApiStateContext'
 import appCss from '~/styles/app.css?url'
 import { seo } from '~/utils/seo'
 
@@ -60,18 +62,22 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="p-2 flex gap-2 text-lg border-b border-dark-500 pb-2">
-          <Link
-            to="/reader"
-            activeProps={{
-              className: 'font-bold text-accent-primary',
-            }}
-            className="text-gray-300 hover:text-white transition-colors"
-          >
-            Book Reader
-          </Link>{' '}
-        </div>
-        {children}
+        <ApiStateProvider>
+          <ErrorBoundary>
+            <div className="p-2 flex gap-2 text-lg border-b border-dark-500 pb-2">
+              <Link
+                to="/reader"
+                activeProps={{
+                  className: 'font-bold text-accent-primary',
+                }}
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                Book Reader
+              </Link>{' '}
+            </div>
+            {children}
+          </ErrorBoundary>
+        </ApiStateProvider>
         <Scripts />
       </body>
     </html>

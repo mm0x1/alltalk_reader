@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { generateSessionId, generateSessionName } from '~/services/sessionStorage'
+import { generateSessionId, generateSessionName, type AudioSession } from '~/services/session'
 import { useAudioPlayer } from '~/hooks/useAudioPlayer'
 import { useSessionManager } from '~/hooks/useSessionManager'
 import { useTtsSettings } from '~/hooks/useTtsSettings'
@@ -80,7 +80,7 @@ function BookReader() {
   }
 
   // Load a saved session
-  const handleLoadSession = (session: any) => {
+  const handleLoadSession = (session: AudioSession) => {
     try {
       const sessionData = loadSession(session)
       if (sessionData) {

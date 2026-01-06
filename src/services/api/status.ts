@@ -1,6 +1,6 @@
 /**
  * Status Service
- * 
+ *
  * Handles server status checking and current settings retrieval.
  * Extracted from alltalkApi.ts for better separation of concerns.
  */
@@ -8,11 +8,12 @@
 import { apiClient, ConnectionError } from './client';
 import { API_CONFIG } from '~/config/env';
 import { API_ENDPOINTS } from '~/design-system/constants';
+import type { AllTalkSettings } from '~/types/api';
 
 export interface ServerStatus {
   ready: boolean;
   error: string | null;
-  currentSettings: any;
+  currentSettings: AllTalkSettings | null;
   availableVoices: string[];
   availableRvcVoices: string[];
 }
@@ -50,9 +51,9 @@ export class StatusService {
     }
   }
 
-  async getCurrentSettings(): Promise<any> {
+  async getCurrentSettings(): Promise<AllTalkSettings> {
     try {
-      const data = await this.client.get<any>(API_ENDPOINTS.CURRENT_SETTINGS);
+      const data = await this.client.get<AllTalkSettings>(API_ENDPOINTS.CURRENT_SETTINGS);
       return data;
     } catch (error) {
       throw new Error(`Error fetching settings: ${error instanceof Error ? error.message : String(error)}`);
@@ -61,7 +62,7 @@ export class StatusService {
 
   async reloadConfig(): Promise<void> {
     try {
-      await this.client.get<any>(API_ENDPOINTS.RELOAD_CONFIG);
+      await this.client.get<void>(API_ENDPOINTS.RELOAD_CONFIG);
     } catch (error) {
       throw new Error(`Error reloading config: ${error instanceof Error ? error.message : String(error)}`);
     }

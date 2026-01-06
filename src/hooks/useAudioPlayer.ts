@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { generateTTS } from '~/services/alltalkApi'
-import { AudioSession, getAudioUrlForPlayback } from '~/services/sessionStorage'
+import { ttsService } from '~/services/api'
+import {
+  type AudioSession,
+  getAudioUrlForPlayback,
+  revokeAudioObjectUrl,
+  revokeAllAudioObjectUrls
+} from '~/services/session'
 
 interface UseAudioPlayerProps {
   paragraphs: string[]
@@ -34,6 +39,7 @@ export function useAudioPlayer({
   
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const currentAudioUrlRef = useRef<string | null>(null)
 
   // Detect Safari/iOS
   useEffect(() => {
@@ -124,6 +130,12 @@ export function useAudioPlayer({
       }
     }
 
+    // Revoke previous blob URL to prevent memory leak
+    if (currentAudioUrlRef.current) {
+      revokeAudioObjectUrl(currentAudioUrlRef.current)
+      currentAudioUrlRef.current = null
+    }
+
     try {
       let audioUrl: string | null = null
 
@@ -138,7 +150,7 @@ export function useAudioPlayer({
       if (!audioUrl) {
         console.log(`Generating TTS for paragraph ${index + 1}/${paragraphs.length} (${paragraphs[index].length} characters)`)
 
-        const result = await generateTTS(paragraphs[index], {
+        const result = await ttsService.generateTTS(paragraphs[index], {
           characterVoice: selectedVoice,
           language,
           outputFileName: `paragraph_${index}_${Date.now()}`,
@@ -231,6 +243,7 @@ export function useAudioPlayer({
         }
         
         audioRef.current = audio
+        currentAudioUrlRef.current = audioUrl
         audio.preload = 'auto'
         audio.load()
       } else {
@@ -299,6 +312,8 @@ export function useAudioPlayer({
         clearTimeout(autoProgressTimeoutRef.current)
         autoProgressTimeoutRef.current = null
       }
+      // Revoke all blob URLs to prevent memory leaks
+      revokeAllAudioObjectUrls()
     }
   }, [])
 

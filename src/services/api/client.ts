@@ -22,7 +22,7 @@ export class ApiClient {
     });
   }
 
-  async post<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown, options: RequestInit = {}): Promise<T> {
     const body = data instanceof FormData ? data : JSON.stringify(data);
     const headers = data instanceof FormData 
       ? {} 

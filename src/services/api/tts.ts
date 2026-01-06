@@ -73,7 +73,14 @@ export class TtsService {
     }
 
     try {
-      const response = await fetch(`${getBaseUrl()}${API_ENDPOINTS.TTS_GENERATE}`, {
+      // Debug logging to diagnose the issue
+      const url = `${getBaseUrl()}${API_ENDPOINTS.TTS_GENERATE}`;
+      console.log('🔍 TTS Debug Info:');
+      console.log('URL:', url);
+      console.log('Payload:', payload.toString());
+      console.log('Headers:', { 'Content-Type': 'application/x-www-form-urlencoded' });
+
+      const response = await fetch(url, {
         method: 'POST',
         body: payload,
         headers: {
@@ -82,10 +89,17 @@ export class TtsService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
+        const errorText = await response.text();
+        console.error('🚨 TTS API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`HTTP error ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('✅ TTS API Success Response:', result);
 
       if (result.status === 'generate-success') {
         // Return successful result, including the full URL for the audio file

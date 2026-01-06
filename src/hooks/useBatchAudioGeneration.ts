@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { generateTTS } from '~/services/alltalkApi';
+import { ttsService } from '~/services/api';
 
 interface UseBatchAudioGenerationOptions {
   paragraphs: string[];
@@ -55,7 +55,7 @@ export function useBatchAudioGeneration({
           // Calculate progress percentage
           setProgress(((i) / paragraphs.length) * 100);
           
-          const result = await generateTTS(paragraphs[i], {
+          const result = await ttsService.generateTTS(paragraphs[i], {
             characterVoice: voice,
             language,
             speed,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SessionList from './SessionList';
-import { AudioSession } from '~/services/sessionStorage';
+import { type AudioSession } from '~/services/session';
 
 interface SessionManagerProps {
   onLoadSession: (session: AudioSession) => void;

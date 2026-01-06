@@ -6,13 +6,13 @@
  */
 
 import { useState } from 'react';
-import { 
-  saveSession, 
-  generateSessionId, 
-  generateSessionName, 
+import {
+  saveSession,
+  generateSessionId,
+  generateSessionName,
   cacheAudioBlobsForSession,
-  type AudioSession 
-} from '~/services/sessionStorage';
+  type AudioSession
+} from '~/services/session';
 
 export function useSessionSaver() {
   const [isSaving, setIsSaving] = useState(false);

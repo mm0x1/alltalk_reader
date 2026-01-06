@@ -1,10 +1,11 @@
 /**
  * Paragraph Display Component
- * 
+ *
  * Individual paragraph display with text and optional controls.
+ * Memoized to prevent unnecessary re-renders in large lists.
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { ParagraphControls } from './ParagraphControls';
 
 interface ParagraphDisplayProps {
@@ -20,7 +21,7 @@ interface ParagraphDisplayProps {
   paragraphRef: (el: HTMLDivElement | null) => void;
 }
 
-export function ParagraphDisplay({
+export const ParagraphDisplay = memo(function ParagraphDisplay({
   paragraph,
   index,
   totalParagraphs,
@@ -57,4 +58,4 @@ export function ParagraphDisplay({
       )}
     </div>
   );
-}
+});

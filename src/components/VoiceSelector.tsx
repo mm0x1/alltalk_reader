@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { getVoiceOptions, getServerStatus, reloadConfig } from '~/services/alltalkApi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useApiState } from '~/contexts/ApiStateContext';
+import { voiceService, type VoiceOption } from '~/services/api';
 
 interface VoiceSelectorProps {
   value: string;
@@ -8,58 +9,42 @@ interface VoiceSelectorProps {
   className?: string;
 }
 
-export default function VoiceSelector({ 
-  value, 
-  onChange, 
-  label = "Voice", 
-  className = "" 
+export default function VoiceSelector({
+  value,
+  onChange,
+  label = "Voice",
+  className = ""
 }: VoiceSelectorProps) {
-  const [voices, setVoices] = useState(getVoiceOptions());
-  const [serverStatus, setServerStatus] = useState(getServerStatus());
+  const { state, actions } = useApiState();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Effect to update voices when server status changes
-  useEffect(() => {
-    const checkVoices = () => {
-      setVoices(getVoiceOptions());
-      setServerStatus(getServerStatus());
-    };
-    
-    // Initial check
-    checkVoices();
-    
-    // Setup interval for periodic checks
-    const interval = setInterval(checkVoices, 30000);
-    
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
-  
+
+  // Format voices for display
+  const voices: VoiceOption[] = useMemo(() => {
+    return voiceService.formatVoiceOptions(state.availableVoices);
+  }, [state.availableVoices]);
+
   // Handle refreshing the voice list
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    
+
     try {
-      await reloadConfig();
-      setVoices(getVoiceOptions());
-      setServerStatus(getServerStatus());
+      await actions.reloadConfig();
     } catch (error) {
       console.error('Failed to refresh voices:', error);
     } finally {
       setIsRefreshing(false);
     }
   };
-  
+
   // If the current value is not in the list, use the first available voice
   const currentVoiceExists = voices.some(voice => voice.id === value);
-  
+
   useEffect(() => {
     if (!currentVoiceExists && voices.length > 0) {
       onChange(voices[0].id);
     }
   }, [currentVoiceExists, voices, onChange]);
-  
+
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-1">
@@ -68,37 +53,37 @@ export default function VoiceSelector({
         </label>
         <button
           onClick={handleRefresh}
-          disabled={isRefreshing || !serverStatus.ready}
+          disabled={isRefreshing || !state.isConnected}
           className={`px-2 py-1 text-xs rounded flex items-center ${
-            isRefreshing || !serverStatus.ready 
-              ? 'bg-dark-400 text-gray-500 cursor-not-allowed' 
+            isRefreshing || !state.isConnected
+              ? 'bg-dark-400 text-gray-500 cursor-not-allowed'
               : 'bg-accent-primary/20 text-accent-primary hover:bg-accent-primary/30 border border-accent-primary/30'
           }`}
-          title={serverStatus.ready ? "Refresh voice list" : "Server not connected"}
+          title={state.isConnected ? "Refresh voice list" : "Server not connected"}
         >
-          <svg 
-            className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} 
-            fill="none" 
-            viewBox="0 0 24 24" 
+          <svg
+            className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
-      
+
       <div className="relative">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="input-field w-full pr-8 appearance-none"
-          disabled={!serverStatus.ready && voices.length === 0}
+          disabled={!state.isConnected && voices.length === 0}
         >
           {voices.length === 0 ? (
             <option value="">No voices available</option>
@@ -116,13 +101,13 @@ export default function VoiceSelector({
           </svg>
         </div>
       </div>
-      
-      {!serverStatus.ready && (
+
+      {!state.isConnected && (
         <p className="mt-1 text-xs text-accent-danger">
           Server disconnected. Using default voices.
         </p>
       )}
-      
+
       <p className="mt-1 text-xs text-gray-500">
         {voices.length} {voices.length === 1 ? 'voice' : 'voices'} available
       </p>

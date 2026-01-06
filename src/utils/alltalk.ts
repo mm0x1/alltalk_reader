@@ -106,7 +106,7 @@ export async function playParagraph(
     speed?: number;
     pitch?: number;
     onEnd?: () => void;
-    onError?: (error: any) => void;
+    onError?: (error: unknown) => void;
     onLoading?: () => void;
     onLoaded?: () => void;
   } = {}

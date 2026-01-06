@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { getVoiceOptions } from '~/services/alltalkApi'
+
+const DEFAULT_VOICE = 'female_01.wav'
 
 export function useTtsSettings() {
-  const [selectedVoice, setSelectedVoice] = useState(getVoiceOptions()[0]?.id || 'female_01.wav')
+  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE)
   const [speed, setSpeed] = useState(1.0)
   const [pitch, setPitch] = useState(0)
   const [language, setLanguage] = useState('en')
@@ -35,7 +36,7 @@ export function useTtsSettings() {
   }
 
   const reset = () => {
-    setSelectedVoice(getVoiceOptions()[0]?.id || 'female_01.wav')
+    setSelectedVoice(DEFAULT_VOICE)
     setSpeed(1.0)
     setPitch(0)
     setLanguage('en')

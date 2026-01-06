@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { initializeSessionApi, getSessionApiConfig, clearAllCachedAudioBlobs, getCacheSize } from '~/services/sessionStorage';
+import {
+  initializeSessionApi,
+  getSessionApiConfig,
+  clearAllCachedAudioBlobs,
+  getCacheSize
+} from '~/services/session';
 
 interface SessionStorageConfigProps {
   onConfigChange?: (isConnected: boolean) => void;

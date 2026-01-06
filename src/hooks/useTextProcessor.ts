@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { splitIntoParagraphs } from '~/services/alltalkApi'
+import { ttsService } from '~/services/api'
 
 export function useTextProcessor() {
   const [text, setText] = useState('')
@@ -18,7 +18,7 @@ export function useTextProcessor() {
     setIsProcessing(true)
 
     try {
-      const newParagraphs = splitIntoParagraphs(text)
+      const newParagraphs = ttsService.splitIntoParagraphs(text)
       setParagraphs(newParagraphs)
       setIsProcessing(false)
       

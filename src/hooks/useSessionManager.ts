@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AudioSession, importSessionFromFile } from '~/services/sessionStorage'
+import { type AudioSession, importSessionFromFile } from '~/services/session'
 
 export function useSessionManager() {
   const [showSessionManager, setShowSessionManager] = useState(false)

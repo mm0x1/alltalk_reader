@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface AudioCacheStatusProps {
   status: 'initial' | 'generating' | 'playing' | 'paused' | 'error';
@@ -7,7 +7,7 @@ interface AudioCacheStatusProps {
   errorMessage?: string;
 }
 
-export default function AudioCacheStatus({
+const AudioCacheStatus = memo(function AudioCacheStatus({
   status,
   paragraphIndex,
   totalParagraphs,
@@ -77,4 +77,6 @@ export default function AudioCacheStatus({
       </div>
     </div>
   );
-}
+});
+
+export default AudioCacheStatus;

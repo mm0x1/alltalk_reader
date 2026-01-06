@@ -1,29 +1,25 @@
-import { useState, useEffect } from 'react'
-import { initializeApi } from '~/services/alltalkApi'
-import { initializeSessionApi } from '~/services/sessionStorage'
+import { useEffect } from 'react'
+import { useApiState } from '~/contexts/ApiStateContext'
+import { initializeSessionApi } from '~/services/session'
 
 export function useServerConnection() {
-  const [isServerConnected, setIsServerConnected] = useState(false)
+  const { state, actions } = useApiState()
 
   useEffect(() => {
-    initializeApi()
-      .then(success => {
-        setIsServerConnected(success)
-      })
-      .catch(error => {
-        console.error('Failed to initialize API:', error)
-        setIsServerConnected(false)
-      })
-
+    // Initialize session API on mount
     initializeSessionApi()
   }, [])
 
   const updateConnectionStatus = (status: boolean) => {
-    setIsServerConnected(status)
+    // This is now managed by the ApiStateContext
+    // If we need to manually update, we can trigger a re-check
+    if (status) {
+      actions.checkConnection()
+    }
   }
 
   return {
-    isServerConnected,
+    isServerConnected: state.isConnected,
     updateConnectionStatus
   }
 }

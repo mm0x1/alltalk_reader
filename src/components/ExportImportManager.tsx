@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { AudioSession, prepareSessionForExport, prepareSessionForExportFromCache, getCachedAudioBlobsForSession, downloadSessionAsFile, importSessionFromFile } from '~/services/sessionStorage';
+import {
+  type AudioSession,
+  prepareSessionForExport,
+  prepareSessionForExportFromCache,
+  getCachedAudioBlobsForSession,
+  downloadSessionAsFile,
+  importSessionFromFile
+} from '~/services/session';
 import ProgressBarIndicator from './ProgressBarIndicator';
 
 interface ExportImportManagerProps {

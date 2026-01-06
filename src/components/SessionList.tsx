@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   getAllSessions,
-  deleteSession, 
-  AudioSession, 
+  deleteSession,
+  type AudioSession,
   isSessionValid
-} from '~/services/sessionStorage';
+} from '~/services/session';
 
 interface SessionListProps {
   onLoadSession: (session: AudioSession) => void;
