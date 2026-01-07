@@ -14,8 +14,48 @@ export interface AllTalkSettings {
   pitch_capable: boolean;
   languages_capable: boolean;
 
+  // Advanced capabilities (Phase 5)
+  streaming_capable?: boolean;
+  multivoice_capable?: boolean;
+  deepspeed_available?: boolean;
+  deepspeed_enabled?: boolean;
+  lowvram_capable?: boolean;
+  lowvram_enabled?: boolean;
+  temperature_capable?: boolean;
+  rvc_available?: boolean;
+
+  // Current loaded model/engine info
+  current_model_loaded?: string;
+  current_engine_loaded?: string;
+  audio_format?: string;
+  available_models?: string[];
+
   // Additional settings that may be returned by the API
   [key: string]: unknown;
+}
+
+/**
+ * Response from /api/reload (model switch)
+ */
+export interface ModelReloadResponse {
+  status: 'model-success' | 'model-failure';
+  message?: string;
+}
+
+/**
+ * Response from /api/deepspeed toggle
+ */
+export interface DeepSpeedToggleResponse {
+  status: 'deepspeed-success' | 'deepspeed-failure';
+  message?: string;
+}
+
+/**
+ * Response from /api/lowvramsetting toggle
+ */
+export interface LowVramToggleResponse {
+  status: 'lowvram-success' | 'lowvram-failure';
+  message?: string;
 }
 
 /**

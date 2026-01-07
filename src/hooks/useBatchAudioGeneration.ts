@@ -15,6 +15,9 @@ interface UseBatchAudioGenerationOptions {
   pitch: number;
   language: string;
   onComplete: (urls: string[], audioBlobs: Record<string, Blob>) => void;
+  // Advanced settings (Phase 5)
+  temperature?: number;
+  repetitionPenalty?: number;
 }
 
 export function useBatchAudioGeneration({
@@ -23,7 +26,9 @@ export function useBatchAudioGeneration({
   speed,
   pitch,
   language,
-  onComplete
+  onComplete,
+  temperature,
+  repetitionPenalty,
 }: UseBatchAudioGenerationOptions) {
   const [progress, setProgress] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -60,6 +65,8 @@ export function useBatchAudioGeneration({
             language,
             speed,
             pitch,
+            temperature,
+            repetitionPenalty,
             outputFileName: `prebatch_${i}_${Date.now()}`
           });
           

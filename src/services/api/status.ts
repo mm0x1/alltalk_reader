@@ -1,14 +1,19 @@
 /**
  * Status Service
  *
- * Handles server status checking and current settings retrieval.
+ * Handles server status checking, current settings retrieval, and server control.
  * Extracted from alltalkApi.ts for better separation of concerns.
  */
 
 import { apiClient, ConnectionError } from './client';
-import { API_CONFIG } from '~/config/env';
+import { API_CONFIG, getBaseUrl } from '~/config/env';
 import { API_ENDPOINTS } from '~/design-system/constants';
-import type { AllTalkSettings } from '~/types/api';
+import type {
+  AllTalkSettings,
+  ModelReloadResponse,
+  DeepSpeedToggleResponse,
+  LowVramToggleResponse
+} from '~/types/api';
 
 export interface ServerStatus {
   ready: boolean;
@@ -65,6 +70,78 @@ export class StatusService {
       await this.client.get<void>(API_ENDPOINTS.RELOAD_CONFIG);
     } catch (error) {
       throw new Error(`Error reloading config: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Switch TTS model (requires model reload)
+   * @param modelName - The name of the model to load
+   */
+  async switchModel(modelName: string): Promise<ModelReloadResponse> {
+    try {
+      const url = `${getBaseUrl()}${API_ENDPOINTS.MODEL_RELOAD}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ tts_method: modelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result as ModelReloadResponse;
+    } catch (error) {
+      throw new Error(`Error switching model: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Toggle DeepSpeed acceleration
+   * @param enable - Whether to enable or disable DeepSpeed
+   */
+  async toggleDeepSpeed(enable: boolean): Promise<DeepSpeedToggleResponse> {
+    try {
+      const url = `${getBaseUrl()}${API_ENDPOINTS.DEEPSPEED_TOGGLE}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ new_deepspeed_value: enable ? 'True' : 'False' }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result as DeepSpeedToggleResponse;
+    } catch (error) {
+      throw new Error(`Error toggling DeepSpeed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Toggle Low VRAM mode
+   * @param enable - Whether to enable or disable Low VRAM mode
+   */
+  async toggleLowVram(enable: boolean): Promise<LowVramToggleResponse> {
+    try {
+      const url = `${getBaseUrl()}${API_ENDPOINTS.LOWVRAM_TOGGLE}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ new_low_vram_value: enable ? 'True' : 'False' }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result as LowVramToggleResponse;
+    } catch (error) {
+      throw new Error(`Error toggling Low VRAM: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

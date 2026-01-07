@@ -23,9 +23,12 @@ import SessionStorageConfig from '~/components/SessionStorageConfig'
 import ExportImportManager from '~/components/ExportImportManager'
 import { BufferStatusIndicator, BufferPlayButton, BufferSettings } from '~/components/buffer'
 import { ResumePrompt } from '~/components/session'
+import { AllTalkServerSettings } from '~/components/settings'
+import { useAdvancedSettingsEnabled } from '~/hooks/useCapabilities'
 
 export const Route = createFileRoute('/reader')({
   component: BookReader,
+  ssr: false, // Disable SSR to avoid serialization errors with non-serializable state (Blobs, Sets, etc.)
 })
 
 function BookReader() {
@@ -36,10 +39,21 @@ function BookReader() {
   const [showResumePrompt, setShowResumePrompt] = useState(false)
   const [lastPlaybackPositionIndex, setLastPlaybackPositionIndex] = useState<number | null>(null)
 
+  // Advanced settings flag (Phase 5)
+  const advancedSettingsEnabled = useAdvancedSettingsEnabled()
+
   // Custom hooks
   const { isServerConnected, updateConnectionStatus } = useServerConnection()
   const { text, paragraphs, isProcessing, handleTextChange, processText, loadFromSession: loadTextFromSession, reset: resetText } = useTextProcessor()
-  const { selectedVoice, speed, pitch, language, updateVoice, updateSpeed, updatePitch, updateLanguage, loadFromSession: loadTtsFromSession, reset: resetTts } = useTtsSettings()
+  const {
+    selectedVoice, speed, pitch, language,
+    updateVoice, updateSpeed, updatePitch, updateLanguage,
+    // Advanced settings (Phase 5)
+    temperature, repetitionPenalty, selectedRvcVoice, rvcPitch,
+    updateTemperature, updateRepetitionPenalty, updateRvcVoice, updateRvcPitch,
+    defaults: ttsDefaults,
+    loadFromSession: loadTtsFromSession, reset: resetTts
+  } = useTtsSettings()
   const { preGeneratedAudio, isPreGenerated, handleBatchComplete, resetPreGenerated, initializeForParagraphs, loadFromSession: loadBatchFromSession } = useBatchGeneration()
   const { showSettings, showBatchGenerator, showExportImport, toggleSettings, openBatchGenerator, closeBatchGenerator, openExportImport, closeExportImport } = useModalState()
   
@@ -72,7 +86,10 @@ function BookReader() {
     isServerConnected,
     preGeneratedAudio,
     isPreGenerated,
-    currentSession
+    currentSession,
+    // Advanced settings (Phase 5)
+    temperature,
+    repetitionPenalty,
   })
 
   // Buffered playback mode
@@ -92,7 +109,10 @@ function BookReader() {
     speed,
     pitch,
     language,
-    isServerConnected
+    isServerConnected,
+    // Advanced settings (Phase 5)
+    temperature,
+    repetitionPenalty,
   })
 
   // Track if we're showing buffer settings
@@ -255,6 +275,47 @@ function BookReader() {
     }
   }
 
+  // Advanced settings handlers (Phase 5)
+  const handleTemperatureChange = (newTemperature: number) => {
+    updateTemperature(newTemperature, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
+    }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
+    }
+  }
+
+  const handleRepetitionPenaltyChange = (newPenalty: number) => {
+    updateRepetitionPenalty(newPenalty, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
+    }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
+    }
+  }
+
+  const handleRvcVoiceChange = (voice: string | null) => {
+    updateRvcVoice(voice, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
+    }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
+    }
+  }
+
+  const handleRvcPitchChange = (newPitch: number) => {
+    updateRvcPitch(newPitch, resetPreGenerated)
+    if (isPlaying) {
+      resetAudio()
+    }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
+    }
+  }
+
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-4 text-white">AllTalk Book Reader</h1>
@@ -276,6 +337,10 @@ function BookReader() {
         Click the green "Reload alltalk configuration" to load voices.
       </p>
       <SettingsMonitor onConnectionStatusChange={updateConnectionStatus} />
+      {/* Advanced AllTalk Server Settings (Phase 5) */}
+      {advancedSettingsEnabled && isServerConnected && (
+        <AllTalkServerSettings className="mb-4" />
+      )}
       <SessionStorageConfig onConfigChange={refreshSessionManager} />
       {/* Session Manager Modal */}
       {showSessionManager && (
@@ -401,6 +466,16 @@ function BookReader() {
                   onSpeedChange={handleSpeedChange}
                   onPitchChange={handlePitchChange}
                   onLanguageChange={handleLanguageChange}
+                  // Advanced settings (Phase 5)
+                  temperature={temperature}
+                  repetitionPenalty={repetitionPenalty}
+                  selectedRvcVoice={selectedRvcVoice}
+                  rvcPitch={rvcPitch}
+                  onTemperatureChange={handleTemperatureChange}
+                  onRepetitionPenaltyChange={handleRepetitionPenaltyChange}
+                  onRvcVoiceChange={handleRvcVoiceChange}
+                  onRvcPitchChange={handleRvcPitchChange}
+                  advancedDefaults={ttsDefaults}
                 />
               </div>
             )}
@@ -583,6 +658,8 @@ function BookReader() {
               language={language}
               onComplete={handleBatchComplete}
               onCancel={closeBatchGenerator}
+              temperature={temperature}
+              repetitionPenalty={repetitionPenalty}
             />
           )}
 
@@ -629,6 +706,16 @@ function BookReader() {
                 onSpeedChange={handleSpeedChange}
                 onPitchChange={handlePitchChange}
                 onLanguageChange={handleLanguageChange}
+                // Advanced settings (Phase 5)
+                temperature={temperature}
+                repetitionPenalty={repetitionPenalty}
+                selectedRvcVoice={selectedRvcVoice}
+                rvcPitch={rvcPitch}
+                onTemperatureChange={handleTemperatureChange}
+                onRepetitionPenaltyChange={handleRepetitionPenaltyChange}
+                onRvcVoiceChange={handleRvcVoiceChange}
+                onRvcPitchChange={handleRvcPitchChange}
+                advancedDefaults={ttsDefaults}
               />
             </div>
           )}

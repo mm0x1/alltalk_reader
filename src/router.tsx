@@ -1,28 +1,23 @@
 import * as React from 'react'
-import { QueryClient } from '@tanstack/react-query'
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
-import { routerWithQueryClient } from '@tanstack/react-router-with-query'
 import { routeTree } from './routeTree.gen'
 import { DefaultCatchBoundary } from './components/DefaultCatchBoundary'
 import { NotFound } from './components/NotFound'
 
-// NOTE: Most of the integration code found here is experimental and will
-// definitely end up in a more streamlined API in the future. This is just
-// to show what's possible with the current APIs.
+// Using plain TanStack Router without React Query integration
+// The routerWithQueryClient wrapper was causing SSR serialization errors
+// with ReadableStream objects during dehydration.
+// Since this app doesn't use React Query for data fetching anyway,
+// we don't need the integration.
 
 export function createRouter() {
-  const queryClient = new QueryClient()
-
-  return routerWithQueryClient(
-    createTanStackRouter({
-      routeTree,
-      context: { queryClient },
-      defaultPreload: 'intent',
-      defaultErrorComponent: DefaultCatchBoundary,
-      defaultNotFoundComponent: () => <NotFound />,
-    }),
-    queryClient,
-  )
+  return createTanStackRouter({
+    routeTree,
+    context: {},
+    defaultPreload: 'intent',
+    defaultErrorComponent: DefaultCatchBoundary,
+    defaultNotFoundComponent: () => <NotFound />,
+  })
 }
 
 // Singleton router instance for TanStack Start

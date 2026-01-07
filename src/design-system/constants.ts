@@ -57,4 +57,9 @@ export const API_ENDPOINTS = {
   RVC_VOICES: '/api/rvcvoices',
   RELOAD_CONFIG: '/api/reload_config',
   TTS_GENERATE: '/api/tts-generate',
+  // Advanced API endpoints (Phase 5)
+  MODEL_RELOAD: '/api/reload',
+  DEEPSPEED_TOGGLE: '/api/deepspeed',
+  LOWVRAM_TOGGLE: '/api/lowvramsetting',
+  TTS_GENERATE_STREAMING: '/api/tts-generate-streaming',
 } as const;

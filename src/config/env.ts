@@ -13,6 +13,7 @@ interface ApiConfig {
   port: string;
   connectionTimeout: number;
   maxCharacters: number;
+  advancedApiSettings: boolean;
 }
 
 const STORAGE_KEY = 'alltalk-server-config';
@@ -41,6 +42,7 @@ export const API_CONFIG: ApiConfig = {
   port: storedConfig.port || import.meta.env.VITE_API_PORT || '7851',
   connectionTimeout: Number(import.meta.env.VITE_CONNECTION_TIMEOUT) || 5,
   maxCharacters: Number(import.meta.env.VITE_MAX_CHARACTERS) || 4096,
+  advancedApiSettings: import.meta.env.VITE_ADVANCED_API_SETTINGS === 'true',
 };
 
 export const getBaseUrl = () => `${API_CONFIG.protocol}${API_CONFIG.host}:${API_CONFIG.port}`;

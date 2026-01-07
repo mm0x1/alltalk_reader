@@ -1,5 +1,7 @@
 import React from 'react';
 import { useApiState } from '~/contexts/ApiStateContext';
+import { useAdvancedSettingsEnabled } from '~/hooks/useCapabilities';
+import { AdvancedTtsSettings, RvcVoiceSelector } from '~/components/settings';
 
 interface TtsSettingsProps {
   speed: number;
@@ -8,6 +10,20 @@ interface TtsSettingsProps {
   onSpeedChange: (speed: number) => void;
   onPitchChange: (pitch: number) => void;
   onLanguageChange: (language: string) => void;
+  // Advanced settings (optional, only used when advanced mode is enabled)
+  temperature?: number;
+  repetitionPenalty?: number;
+  selectedRvcVoice?: string | null;
+  rvcPitch?: number;
+  onTemperatureChange?: (value: number) => void;
+  onRepetitionPenaltyChange?: (value: number) => void;
+  onRvcVoiceChange?: (voice: string | null) => void;
+  onRvcPitchChange?: (pitch: number) => void;
+  advancedDefaults?: {
+    temperature: number;
+    repetitionPenalty: number;
+    rvcPitch: number;
+  };
   className?: string;
 }
 
@@ -18,10 +34,21 @@ export default function TtsSettings({
   onSpeedChange,
   onPitchChange,
   onLanguageChange,
+  // Advanced settings
+  temperature,
+  repetitionPenalty,
+  selectedRvcVoice,
+  rvcPitch,
+  onTemperatureChange,
+  onRepetitionPenaltyChange,
+  onRvcVoiceChange,
+  onRvcPitchChange,
+  advancedDefaults,
   className = "",
 }: TtsSettingsProps) {
   const { state } = useApiState();
   const settings = state.serverStatus?.currentSettings;
+  const advancedEnabled = useAdvancedSettingsEnabled();
 
   // Check if features are supported by the current TTS engine
   const speedCapable = settings?.generationspeed_capable ?? true;
@@ -135,6 +162,31 @@ export default function TtsSettings({
         <p className="mt-2 text-xs text-accent-warning">
           Some settings are disabled because they are not supported by the current TTS engine.
         </p>
+      )}
+
+      {/* Advanced TTS Settings (Phase 5) - Only shown when enabled */}
+      {advancedEnabled && temperature !== undefined && repetitionPenalty !== undefined &&
+       onTemperatureChange && onRepetitionPenaltyChange && advancedDefaults && (
+        <AdvancedTtsSettings
+          temperature={temperature}
+          repetitionPenalty={repetitionPenalty}
+          onTemperatureChange={onTemperatureChange}
+          onRepetitionPenaltyChange={onRepetitionPenaltyChange}
+          defaults={advancedDefaults}
+          className="mt-4 pt-4 border-t border-dark-400"
+        />
+      )}
+
+      {/* RVC Voice Selector (Phase 5) - Only shown when enabled and RVC available */}
+      {advancedEnabled && onRvcVoiceChange && onRvcPitchChange && advancedDefaults && (
+        <RvcVoiceSelector
+          selectedRvcVoice={selectedRvcVoice ?? null}
+          rvcPitch={rvcPitch ?? 0}
+          onRvcVoiceChange={onRvcVoiceChange}
+          onRvcPitchChange={onRvcPitchChange}
+          defaultPitch={advancedDefaults.rvcPitch}
+          className="mt-4 pt-4 border-t border-dark-400"
+        />
       )}
     </div>
   );

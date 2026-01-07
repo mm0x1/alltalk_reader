@@ -18,6 +18,9 @@ interface UseAudioPlayerProps {
   preGeneratedAudio: string[]
   isPreGenerated: boolean
   currentSession: AudioSession | null
+  // Advanced settings (Phase 5)
+  temperature?: number
+  repetitionPenalty?: number
 }
 
 export function useAudioPlayer({
@@ -29,7 +32,9 @@ export function useAudioPlayer({
   isServerConnected,
   preGeneratedAudio,
   isPreGenerated,
-  currentSession
+  currentSession,
+  temperature,
+  repetitionPenalty,
 }: UseAudioPlayerProps) {
   const [currentParagraph, setCurrentParagraph] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -185,6 +190,8 @@ export function useAudioPlayer({
           outputFileName: `paragraph_${index}_${Date.now()}`,
           speed,
           pitch,
+          temperature,
+          repetitionPenalty,
         })
 
         if (!result) {

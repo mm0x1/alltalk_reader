@@ -25,6 +25,9 @@ interface UseBufferedPlaybackProps {
   pitch: number;
   language: string;
   isServerConnected: boolean;
+  // Advanced settings (Phase 5)
+  temperature?: number;
+  repetitionPenalty?: number;
 }
 
 interface UseBufferedPlaybackReturn {
@@ -104,6 +107,8 @@ export function useBufferedPlayback({
   pitch,
   language,
   isServerConnected,
+  temperature,
+  repetitionPenalty,
 }: UseBufferedPlaybackProps): UseBufferedPlaybackReturn {
   const [config, setConfig] = useState<BufferedPlaybackConfig>(() => loadStoredConfig());
   const [state, setState] = useState<BufferedPlaybackState>(() =>
@@ -496,6 +501,8 @@ export function useBufferedPlayback({
         language,
         speed,
         pitch,
+        temperature,
+        repetitionPenalty,
       });
 
       // Calculate initial buffer range

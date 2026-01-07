@@ -15,6 +15,9 @@ interface BatchGeneratorProps {
   language: string;
   onComplete: (audioUrls: string[]) => void;
   onCancel: () => void;
+  // Advanced settings (Phase 5)
+  temperature?: number;
+  repetitionPenalty?: number;
 }
 
 export default function BatchGenerator({
@@ -25,7 +28,9 @@ export default function BatchGenerator({
   pitch,
   language,
   onComplete,
-  onCancel
+  onCancel,
+  temperature,
+  repetitionPenalty,
 }: BatchGeneratorProps) {
   const {
     isSaving,
@@ -52,7 +57,6 @@ export default function BatchGenerator({
     progress,
     currentIndex,
     audioUrls,
-    audioBlobs,
     error,
     isGenerating,
     cancel: cancelGeneration
@@ -62,7 +66,9 @@ export default function BatchGenerator({
     speed,
     pitch,
     language,
-    onComplete: handleGenerationComplete
+    onComplete: handleGenerationComplete,
+    temperature,
+    repetitionPenalty,
   });
 
   const handleCancel = () => {
@@ -75,7 +81,7 @@ export default function BatchGenerator({
   return (
     <div className="card">
       <h3 className="font-medium text-lg mb-3 text-gray-200">Pre-generating Audio</h3>
-      
+
       <BatchProgress
         progress={progress}
         currentIndex={currentIndex}
@@ -84,9 +90,9 @@ export default function BatchGenerator({
         error={error}
         isGenerating={isGenerating}
       />
-      
+
       {error && <BatchError error={error} />}
-      
+
       {!isGenerating && !error && (
         <BatchStatus
           isSaving={isSaving}
@@ -94,7 +100,7 @@ export default function BatchGenerator({
           sessionSaved={sessionSaved}
         />
       )}
-      
+
       <div className="flex justify-end">
         <Button
           variant={isGenerating ? 'danger' : error ? 'warning' : 'success'}

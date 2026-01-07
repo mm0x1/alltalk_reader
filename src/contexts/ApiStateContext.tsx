@@ -140,8 +140,11 @@ export function ApiStateProvider({ children }: ApiStateProviderProps) {
     setState(prev => ({ ...prev, error: null }));
   };
 
-  // Initialize on mount
+  // Initialize on mount (client-side only)
   useEffect(() => {
+    // Only run on client side to avoid SSR issues
+    if (typeof window === 'undefined') return;
+
     initializeApi().catch(error => {
       console.error('Failed to initialize API:', error);
     });
