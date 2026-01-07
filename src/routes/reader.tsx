@@ -8,6 +8,7 @@ import { useTextProcessor } from '~/hooks/useTextProcessor'
 import { useModalState } from '~/hooks/useModalState'
 import { useBatchGeneration } from '~/hooks/useBatchGeneration'
 import { useServerConnection } from '~/hooks/useServerConnection'
+import { useBufferedPlayback } from '~/hooks/useBufferedPlayback'
 
 import ProgressBar from '~/components/ProgressBar'
 import ParagraphList from '~/components/ParagraphList'
@@ -20,6 +21,7 @@ import BatchGenerator from '~/components/BatchGenerator'
 import SessionManager from '~/components/SessionManager'
 import SessionStorageConfig from '~/components/SessionStorageConfig'
 import ExportImportManager from '~/components/ExportImportManager'
+import { BufferStatusIndicator, BufferPlayButton, BufferSettings } from '~/components/buffer'
 
 export const Route = createFileRoute('/reader')({
   component: BookReader,
@@ -67,6 +69,29 @@ function BookReader() {
     isPreGenerated,
     currentSession
   })
+
+  // Buffered playback mode
+  const {
+    state: bufferState,
+    config: bufferConfig,
+    start: startBufferedPlayback,
+    pause: pauseBufferedPlayback,
+    resume: resumeBufferedPlayback,
+    stop: stopBufferedPlayback,
+    skipTo: skipToBuffered,
+    updateConfig: updateBufferConfig,
+    isActive: isBufferModeActive
+  } = useBufferedPlayback({
+    paragraphs,
+    voice: selectedVoice,
+    speed,
+    pitch,
+    language,
+    isServerConnected
+  })
+
+  // Track if we're showing buffer settings
+  const [showBufferSettings, setShowBufferSettings] = useState(false)
 
   // Process text and initialize for batch generation
   const handleProcessText = () => {
@@ -126,14 +151,31 @@ function BookReader() {
     resetTts()
     resetPreGenerated()
     resetAudio()
+    stopBufferedPlayback()
     closeBatchGenerator()
+    setShowBufferSettings(false)
   }
+
+  // Handle paragraph click - choose the right mode
+  const handleParagraphClick = (index: number) => {
+    if (isBufferModeActive) {
+      skipToBuffered(index)
+    } else {
+      handlePlayParagraph(index, true)
+    }
+  }
+
+  // Determine the active paragraph (buffer mode or regular mode)
+  const activeParagraph = isBufferModeActive ? bufferState.currentParagraph : currentParagraph
 
   // Handle voice change with pre-generation reset
   const handleVoiceChange = (voice: string) => {
     updateVoice(voice, resetPreGenerated)
     if (isPlaying) {
       resetAudio()
+    }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
     }
   }
 
@@ -143,6 +185,9 @@ function BookReader() {
     if (isPlaying) {
       resetAudio()
     }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
+    }
   }
 
   const handlePitchChange = (newPitch: number) => {
@@ -150,12 +195,18 @@ function BookReader() {
     if (isPlaying) {
       resetAudio()
     }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
+    }
   }
 
   const handleLanguageChange = (newLanguage: string) => {
     updateLanguage(newLanguage, resetPreGenerated)
     if (isPlaying) {
       resetAudio()
+    }
+    if (isBufferModeActive) {
+      stopBufferedPlayback()
     }
   }
 
@@ -369,12 +420,38 @@ function BookReader() {
             />
 
             <div className="flex gap-2">
+              {/* Buffer Play Button */}
+              <BufferPlayButton
+                status={bufferState.status}
+                isServerConnected={isServerConnected}
+                hasParagraphs={paragraphs.length > 0}
+                onStart={() => startBufferedPlayback(activeParagraph ?? 0)}
+                onPause={pauseBufferedPlayback}
+                onResume={resumeBufferedPlayback}
+                onStop={stopBufferedPlayback}
+              />
+
+              {/* Buffer Settings Toggle */}
+              <button
+                onClick={() => setShowBufferSettings(!showBufferSettings)}
+                className={`px-2 py-1.5 text-sm rounded transition-colors ${
+                  showBufferSettings
+                    ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary'
+                    : 'bg-dark-400 hover:bg-dark-500 text-gray-300'
+                }`}
+                title="Buffer settings"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                </svg>
+              </button>
+
               <button
                 onClick={openBatchGenerator}
-                disabled={showBatchGenerator || isPreGenerated || !isServerConnected}
+                disabled={showBatchGenerator || isPreGenerated || !isServerConnected || isBufferModeActive}
                 className={`px-3 py-1.5 text-sm rounded flex items-center ${isPreGenerated
                   ? 'bg-accent-success/20 text-accent-success border border-accent-success'
-                  : showBatchGenerator || !isServerConnected
+                  : showBatchGenerator || !isServerConnected || isBufferModeActive
                     ? 'bg-dark-200 text-gray-500 cursor-not-allowed'
                     : 'bg-dark-400 text-accent-primary hover:bg-dark-500 border border-accent-primary'
                   }`}
@@ -407,6 +484,26 @@ function BookReader() {
               </button>
             </div>
           </div>
+
+          {/* Buffer Settings */}
+          {showBufferSettings && (
+            <BufferSettings
+              config={bufferConfig}
+              onConfigChange={updateBufferConfig}
+              disabled={isBufferModeActive}
+            />
+          )}
+
+          {/* Buffer Status Indicator */}
+          {isBufferModeActive && (
+            <BufferStatusIndicator
+              status={bufferState.status}
+              currentParagraph={bufferState.currentParagraph}
+              totalParagraphs={paragraphs.length}
+              bufferStatus={bufferState.bufferStatus}
+              error={bufferState.error}
+            />
+          )}
 
           {/* Batch generator */}
           {showBatchGenerator && (
@@ -469,8 +566,8 @@ function BookReader() {
             </div>
           )}
 
-          {/* Status indicator */}
-          {currentParagraph !== null && (
+          {/* Status indicator (only show when not in buffer mode) */}
+          {!isBufferModeActive && currentParagraph !== null && (
             <AudioCacheStatus
               status={
                 errorMessage
@@ -502,16 +599,16 @@ function BookReader() {
             </div>
 
             <ProgressBar
-              currentIndex={currentParagraph}
+              currentIndex={activeParagraph}
               totalParagraphs={paragraphs.length}
-              onSelectParagraph={(index) => handlePlayParagraph(index, true)}
+              onSelectParagraph={handleParagraphClick}
             />
 
             <ParagraphList
               paragraphs={paragraphs}
-              currentParagraphIndex={currentParagraph}
-              onPlayParagraph={(index) => handlePlayParagraph(index, true)}
-              isLoading={isLoadingAudio}
+              currentParagraphIndex={activeParagraph}
+              onPlayParagraph={handleParagraphClick}
+              isLoading={isBufferModeActive ? (bufferState.status === 'initial-buffering' || bufferState.status === 'buffering') : isLoadingAudio}
               preGeneratedStatus={isPreGenerated ? preGeneratedAudio.map(url => url !== null) : undefined}
               isOfflineSession={isOfflineSession}
             />

@@ -147,15 +147,17 @@ export function ApiStateProvider({ children }: ApiStateProviderProps) {
     });
   }, []);
 
-  const contextValue: ApiStateContextType = {
+  const actions = React.useMemo(() => ({
+    checkConnection,
+    initializeApi,
+    reloadConfig,
+    clearError,
+  }), []);
+
+  const contextValue: ApiStateContextType = React.useMemo(() => ({
     state,
-    actions: {
-      checkConnection,
-      initializeApi,
-      reloadConfig,
-      clearError,
-    },
-  };
+    actions,
+  }), [state, actions]);
 
   return (
     <ApiStateContext.Provider value={contextValue}>
