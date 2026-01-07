@@ -1,10 +1,38 @@
 # Phase 5: AllTalk API Integration
 
-This phase expands AllTalk API integration to expose more features and improve the user experience.
+**STATUS: IMPLEMENTED**
+
+This phase expands AllTalk API integration to expose more features and improve the user experience. All of these new settings should be toggled based on a environment variable VITE_ADVANCED_API_SETTINGS that is set to true. Leave the old settings enabled always.
+
+## Implementation Summary
+
+The following features have been implemented:
+
+### Configuration
+- Added `VITE_ADVANCED_API_SETTINGS` environment variable (defaults to `false`)
+- When set to `true`, exposes advanced settings in the UI
+
+### API Layer
+- Added new API endpoints: `/api/reload`, `/api/deepspeed`, `/api/lowvramsetting`
+- Extended `AllTalkSettings` type with capability flags and server info
+- Added `switchModel()`, `toggleDeepSpeed()`, `toggleLowVram()` to StatusService
+
+### Hooks
+- Created `useCapabilities` hook for deriving server capabilities
+- Extended `useTtsSettings` with temperature, repetitionPenalty, RVC voice settings
+
+### UI Components (in `src/components/settings/`)
+- `AdvancedTtsSettings` - Temperature and repetition penalty sliders
+- `RvcVoiceSelector` - RVC voice selection with pitch adjustment
+- `AllTalkServerSettings` - DeepSpeed toggle, Low VRAM toggle, model switching
+
+### TTS Generation
+- All generation paths (live, batch, buffered) now pass advanced parameters
 
 ## Current API Usage
 
 Currently used endpoints:
+
 - `GET /api/ready` - Server health check
 - `GET /api/currentsettings` - Get current configuration
 - `GET /api/voices` - List available voices
@@ -17,29 +45,34 @@ Currently used endpoints:
 Based on the AllTalk API documentation:
 
 ### Configuration Endpoints
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/reload` | POST | Switch TTS models |
-| `/api/deepspeed` | POST | Toggle DeepSpeed acceleration |
-| `/api/lowvramsetting` | POST | Toggle Low VRAM mode |
-| `/api/openai-voicemap` | PUT | Remap OpenAI voices |
+
+| Endpoint               | Method | Purpose                       |
+| ---------------------- | ------ | ----------------------------- |
+| `/api/reload`          | POST   | Switch TTS models             |
+| `/api/deepspeed`       | POST   | Toggle DeepSpeed acceleration |
+| `/api/lowvramsetting`  | POST   | Toggle Low VRAM mode          |
+| `/api/openai-voicemap` | PUT    | Remap OpenAI voices           |
 
 ### Advanced TTS Parameters
-| Parameter | Range | Description |
-|-----------|-------|-------------|
-| `temperature` | 0.1 - 1.0 | Generation temperature |
-| `repetition_penalty` | 1.0 - 20.0 | Repetition penalty |
-| `narrator_enabled` | boolean | Enable narrator mode |
-| `narrator_voice_gen` | string | Narrator voice |
-| `text_not_inside` | string | Handle text outside quotes |
+
+| Parameter            | Range      | Description                |
+| -------------------- | ---------- | -------------------------- |
+| `temperature`        | 0.1 - 1.0  | Generation temperature     |
+| `repetition_penalty` | 1.0 - 20.0 | Repetition penalty         |
+| `narrator_enabled`   | boolean    | Enable narrator mode       |
+| `narrator_voice_gen` | string     | Narrator voice             |
+| `text_not_inside`    | string     | Handle text outside quotes |
 
 ### Streaming Endpoint
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/tts-generate-streaming` | POST | Streaming TTS (limited support) |
+
+| Endpoint                      | Method | Purpose                         |
+| ----------------------------- | ------ | ------------------------------- |
+| `/api/tts-generate-streaming` | POST   | Streaming TTS (limited support) |
 
 ### Server Capabilities
+
 The `/api/currentsettings` response includes capability flags:
+
 - `streaming_capable`
 - `multivoice_capable`
 - `deepspeed_available`
@@ -56,6 +89,7 @@ The `/api/currentsettings` response includes capability flags:
 #### Current Settings Display
 
 Expand `SettingsMonitor` to show:
+
 ```tsx
 function AllTalkSettings({ settings }: { settings: CurrentSettings }) {
   return (
@@ -75,11 +109,17 @@ function AllTalkSettings({ settings }: { settings: CurrentSettings }) {
 
         <div className="setting-item">
           <label>DeepSpeed</label>
-          <span className={settings.deepspeed_enabled ? 'text-green-500' : 'text-gray-500'}>
-            {settings.deepspeed_enabled ? 'Enabled' : 'Disabled'}
+          <span
+            className={
+              settings.deepspeed_enabled ? "text-green-500" : "text-gray-500"
+            }
+          >
+            {settings.deepspeed_enabled ? "Enabled" : "Disabled"}
           </span>
           {settings.deepspeed_available && (
-            <button onClick={() => toggleDeepSpeed(!settings.deepspeed_enabled)}>
+            <button
+              onClick={() => toggleDeepSpeed(!settings.deepspeed_enabled)}
+            >
               Toggle
             </button>
           )}
@@ -87,8 +127,12 @@ function AllTalkSettings({ settings }: { settings: CurrentSettings }) {
 
         <div className="setting-item">
           <label>Low VRAM Mode</label>
-          <span className={settings.lowvram_enabled ? 'text-green-500' : 'text-gray-500'}>
-            {settings.lowvram_enabled ? 'Enabled' : 'Disabled'}
+          <span
+            className={
+              settings.lowvram_enabled ? "text-green-500" : "text-gray-500"
+            }
+          >
+            {settings.lowvram_enabled ? "Enabled" : "Disabled"}
           </span>
           {settings.lowvram_capable && (
             <button onClick={() => toggleLowVram(!settings.lowvram_enabled)}>
@@ -104,7 +148,9 @@ function AllTalkSettings({ settings }: { settings: CurrentSettings }) {
 
         <div className="setting-item">
           <label>Streaming</label>
-          <span>{settings.streaming_capable ? 'Available' : 'Not Available'}</span>
+          <span>
+            {settings.streaming_capable ? "Available" : "Not Available"}
+          </span>
         </div>
       </div>
     </div>
@@ -123,8 +169,10 @@ function ModelSelector({ models, currentModel, onModelChange }) {
         value={currentModel}
         onChange={(e) => onModelChange(e.target.value)}
       >
-        {models.map(model => (
-          <option key={model} value={model}>{model}</option>
+        {models.map((model) => (
+          <option key={model} value={model}>
+            {model}
+          </option>
         ))}
       </select>
       <p className="help-text">
@@ -147,7 +195,7 @@ function AdvancedTtsSettings({
   repetitionPenalty,
   onTemperatureChange,
   onRepetitionPenaltyChange,
-  capabilities
+  capabilities,
 }) {
   return (
     <div className="advanced-settings">
@@ -166,7 +214,8 @@ function AdvancedTtsSettings({
           />
           <span>{temperature}</span>
           <p className="help-text">
-            Higher values produce more varied output. Lower values are more consistent.
+            Higher values produce more varied output. Lower values are more
+            consistent.
           </p>
         </div>
       )}
@@ -201,24 +250,24 @@ interface TtsOptions {
   outputFileName: string;
   speed: number;
   pitch: number;
-  temperature?: number;         // New
-  repetitionPenalty?: number;   // New
+  temperature?: number; // New
+  repetitionPenalty?: number; // New
 }
 
 async function generateTTS(text: string, options: TtsOptions) {
   const formData = new FormData();
-  formData.append('text_input', text);
-  formData.append('character_voice_gen', options.characterVoice);
-  formData.append('language', options.language);
-  formData.append('output_file_name', options.outputFileName);
-  formData.append('speed', String(options.speed));
-  formData.append('pitch', String(options.pitch));
+  formData.append("text_input", text);
+  formData.append("character_voice_gen", options.characterVoice);
+  formData.append("language", options.language);
+  formData.append("output_file_name", options.outputFileName);
+  formData.append("speed", String(options.speed));
+  formData.append("pitch", String(options.pitch));
 
   if (options.temperature !== undefined) {
-    formData.append('temperature', String(options.temperature));
+    formData.append("temperature", String(options.temperature));
   }
   if (options.repetitionPenalty !== undefined) {
-    formData.append('repetition_penalty', String(options.repetitionPenalty));
+    formData.append("repetition_penalty", String(options.repetitionPenalty));
   }
 
   // ... rest of implementation
@@ -230,6 +279,7 @@ async function generateTTS(text: string, options: TtsOptions) {
 **Goal**: Support dual-voice narration for audiobooks with dialogue.
 
 **AllTalk Narrator Feature**:
+
 - Text in `*asterisks*` = narrator voice
 - Text in `"quotes"` = character voice
 - `text_not_inside` controls text outside both
@@ -237,6 +287,7 @@ async function generateTTS(text: string, options: TtsOptions) {
 #### Implementation Considerations
 
 This is a significant feature that would require:
+
 1. UI for selecting narrator voice separately
 2. Text parsing preview to show what will be narrated
 3. Settings for `text_not_inside` behavior
@@ -255,19 +306,21 @@ function RvcVoiceSelector({
   selectedRvcVoice,
   onRvcVoiceChange,
   rvcPitch,
-  onRvcPitchChange
+  onRvcPitchChange,
 }) {
   return (
     <div className="rvc-settings">
       <div className="setting-row">
         <label>RVC Voice</label>
         <select
-          value={selectedRvcVoice || ''}
+          value={selectedRvcVoice || ""}
           onChange={(e) => onRvcVoiceChange(e.target.value || null)}
         >
           <option value="">None (use base voice)</option>
-          {rvcVoices.map(voice => (
-            <option key={voice} value={voice}>{voice}</option>
+          {rvcVoices.map((voice) => (
+            <option key={voice} value={voice}>
+              {voice}
+            </option>
           ))}
         </select>
       </div>
@@ -368,6 +421,7 @@ function TtsSettings() {
 ### 5.6 Streaming TTS (Experimental)
 
 **Note**: AllTalk streaming has limitations:
+
 - No narrator support
 - No RVC support
 - Browser compatibility issues (Firefox)
@@ -376,12 +430,15 @@ function TtsSettings() {
 
 ```typescript
 // Only use if capabilities.streaming is true
-async function generateTTSStreaming(text: string, options: TtsOptions): Promise<string> {
+async function generateTTSStreaming(
+  text: string,
+  options: TtsOptions
+): Promise<string> {
   const params = new URLSearchParams({
     text: text,
     voice: options.characterVoice,
     language: options.language,
-    output_file: options.outputFileName
+    output_file: options.outputFileName,
   });
 
   // Returns a URL that streams audio
@@ -394,6 +451,7 @@ async function generateTTSStreaming(text: string, options: TtsOptions): Promise<
 ### Step 5.1: Expand API Services
 
 **Tasks**:
+
 1. Add `switchModel()` to `src/services/api/status.ts`
 2. Add `toggleDeepSpeed()` to `src/services/api/status.ts`
 3. Add `toggleLowVram()` to `src/services/api/status.ts`
@@ -403,6 +461,7 @@ async function generateTTSStreaming(text: string, options: TtsOptions): Promise<
 ### Step 5.2: Create Capabilities Context
 
 **Tasks**:
+
 1. Create `src/contexts/CapabilitiesContext.tsx`
 2. Parse capabilities from `/api/currentsettings`
 3. Provide hook `useCapabilities()`
@@ -411,6 +470,7 @@ async function generateTTSStreaming(text: string, options: TtsOptions): Promise<
 ### Step 5.3: Update Settings UI
 
 **Tasks**:
+
 1. Expand `SettingsMonitor` with AllTalk settings
 2. Add model selector (if multiple models available)
 3. Add DeepSpeed/LowVRAM toggles
@@ -419,6 +479,7 @@ async function generateTTSStreaming(text: string, options: TtsOptions): Promise<
 ### Step 5.4: Update TTS Settings
 
 **Tasks**:
+
 1. Add temperature control (if capable)
 2. Add repetition penalty control
 3. Add RVC voice selector (if available)
@@ -427,6 +488,7 @@ async function generateTTSStreaming(text: string, options: TtsOptions): Promise<
 ### Step 5.5: Capability-Aware Rendering
 
 **Tasks**:
+
 1. Wrap feature sections in capability checks
 2. Add loading state while capabilities load
 3. Add graceful degradation for missing features

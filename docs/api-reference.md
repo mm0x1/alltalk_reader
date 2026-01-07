@@ -147,11 +147,19 @@ export const API_CONFIG = {
 
 ### User Editable Configuration
 
-The `SettingsMonitor` component allows runtime editing of connection settings, which are stored in browser localStorage. Users can modify:
+The `SettingsMonitor` and `ServerConfigModal` components allow runtime editing of connection settings, stored in browser localStorage.
+
+**Components**:
+- `SettingsMonitor.tsx` - Displays connection status, has gear icon to open config
+- `ServerConfigModal.tsx` - Modal for editing server configuration
+
+**Editable Settings**:
 - Protocol (http:// or https://)
 - Host (IP or hostname)
 - Port
 - Connection timeout
+
+**Storage**: Settings are persisted in localStorage and override environment variables
 
 ## External Documentation
 

@@ -1,6 +1,6 @@
 # Playback Modes
 
-The application supports three distinct playback modes, each with different characteristics and use cases.
+The application supports four distinct playback modes, each with different characteristics and use cases.
 
 ## Mode 1: Live Generation (Default)
 
@@ -126,7 +126,63 @@ On completion (all paragraphs done):
   8. Close modal  [BatchGenerator.tsx:42]
 ```
 
-## Mode 3: Offline Mode (Export/Import)
+## Mode 3: Buffered Playback
+
+**User Flow**: User clicks buffer play → generates audio ahead while playing → seamless continuous playback
+
+### Implementation Details
+
+- **Hook**: `src/hooks/useBufferedPlayback.ts`
+- **Controller**: `src/services/generation/controller.ts`
+- **Components**: `src/components/buffer/*`
+
+### Process Flow
+
+1. User clicks the buffer play button (lightning bolt icon)
+2. `useBufferedPlayback` initializes with target buffer size
+3. Starts generating audio for upcoming paragraphs in background
+4. Waits for minimum buffer before starting playback
+5. As audio plays, continues generating ahead to maintain buffer
+6. On audio ended, immediately plays next buffered audio
+7. Continues until all paragraphs complete
+
+### Key Features
+
+- **Buffer-Ahead**: Generates multiple paragraphs ahead of current playback
+- **Configurable Buffer**: Target and minimum buffer sizes adjustable
+- **Seamless Playback**: No wait between paragraphs once buffer is ready
+- **Progress Indicator**: Shows buffer status and current position
+
+### Files
+- `src/hooks/useBufferedPlayback.ts` - Main hook orchestrating buffer logic
+- `src/services/generation/controller.ts` - GenerationController class
+- `src/services/generation/types.ts` - Buffer state types
+- `src/components/buffer/BufferPlayButton.tsx` - Start button
+- `src/components/buffer/BufferStatusIndicator.tsx` - Progress display
+- `src/components/buffer/BufferSettings.tsx` - Configuration UI
+
+### Flow Diagram
+```
+User clicks buffer play button
+  ↓
+useBufferedPlayback initializes  [useBufferedPlayback.ts]
+  ↓
+GenerationController starts  [controller.ts]
+  ↓
+Generate initial buffer (configurable count)
+  ↓
+Wait for minimum buffer ready
+  ↓
+Start playing first buffered audio
+  ↓
+Continue generating ahead while playing
+  ↓
+On audio ended → play next buffered
+  ↓
+Repeat until all paragraphs complete
+```
+
+## Mode 4: Offline Mode (Export/Import)
 
 **User Flow**: Export pre-generated session → download JSON with embedded audio → import later (no server needed)
 
@@ -215,11 +271,14 @@ When playing paragraph from offline session:
 
 ## Mode Transitions & Detection
 
+- **Live → Buffered**: Click buffer play button (lightning bolt icon)
 - **Live → Pre-Generation**: Click "Pre-Generate All Audio" button
 - **Pre-Generation → Offline**: Click "Export/Import" → "Export Session"
 - **Import Offline**: Click "Export/Import" → "Import Session" → select JSON file
+- **Buffered → Live**: Stop buffered playback and use regular controls
 
 ### Mode Detection Logic
+- `isBufferMode` flag: Indicates buffered playback is active (useBufferedPlayback.ts)
 - `isPreGenerated` flag: Indicates batch generation completed (useBatchGeneration.ts)
 - `currentSession.isOfflineSession` flag: Indicates imported offline session
 - `hasLocalAudio`: Indicates cached blobs in sessionStorage

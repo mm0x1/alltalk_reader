@@ -158,22 +158,48 @@ const getOfflineAudioUrl = (base64String: string): string => {
 - Currently not implemented (potential memory leak for long sessions)
 - Consider adding cleanup on component unmount or session change
 
-## 4. Text Processing Pipeline
+## 4. Text Processing Pipeline with AO3 Detection
 
-**Files**: `src/routes/reader.tsx`, `src/hooks/useTextProcessor.ts`, `src/services/api/tts.ts`
+**Files**: `src/routes/reader.tsx`, `src/hooks/useTextProcessor.ts`, `src/services/textProcessing/*`
 
 ### Complete Flow
 
 ```
-User pastes text into textarea (reader.tsx:284)
+User pastes text into textarea (reader.tsx)
   ↓
 User clicks "Process Text" button
   ↓
-handleProcessText() (reader.tsx:72)
+handleProcessText() (reader.tsx)
   ↓
-useTextProcessor.processText(text) (line 74)
+useTextProcessor.processText() (useTextProcessor.ts)
   ↓
-splitIntoParagraphs(text, maxLength) (tts.ts:168)
+textProcessor.processInput(text) (textProcessor.ts)
+  ↓
+AO3 Detection:
+  ↓
+ao3Parser.isAo3Page(text) (ao3Parser.ts)
+  - Match against detectionPatterns from ao3Config.ts
+  - Requires 2+ pattern matches to be considered AO3
+  ↓
+If AO3 detected:
+  ↓
+  ao3Parser.parse(text) (ao3Parser.ts)
+    ↓
+  State Machine Processing:
+    - state = 'seeking' → look for chapter title or Summary
+    - state = 'in_summary' → collect summary content
+    - state = 'in_notes' → collect notes content
+    - state = 'in_chapter' → collect chapter text
+    - End on 'Actions' marker
+    ↓
+  Return: Ao3ParseResult {
+    isAo3: true,
+    success: true,
+    text: extractedContent,
+    metadata: { chapterTitle, hasSummary, hasNotes }
+  }
+  ↓
+textProcessor.splitIntoParagraphs(processedText)
   ↓
 Splits by double newlines (\n\n)
   ↓
@@ -181,19 +207,48 @@ For each paragraph:
   - If ≤ 4096 chars → keep as-is
   - If > 4096 chars → call splitTextIntoChunks(text, 4096)
   ↓
-splitTextIntoChunks() algorithm (lines 119-166):
-  - Search for sentence breaks (period, semicolon, comma, space)
-  - Prefer breaks in latter 80% of character limit
-  - Fallback: hard break at maxLength if no punctuation found
-  ↓
 Returns array of manageable paragraphs
   ↓
 State Updates:
-  - useTextProcessor stores paragraphs (useTextProcessor.ts:22)
-  - useBatchGeneration initializes empty audio array (useBatchGeneration.ts:17)
-  - useAudioPlayer resets playback state (useAudioPlayer.ts:273)
+  - useTextProcessor stores paragraphs
+  - wasAo3Parsed flag set if AO3 detected
+  - ao3Metadata available (chapterTitle, etc.)
   ↓
-UI Update: Reader switches to paragraph view (reader.tsx:356-520)
+UI Update:
+  - Reader switches to paragraph view
+  - If AO3 detected: Shows green notification with chapter title
+```
+
+### AO3 Config Structure
+
+The parser behavior is controlled by `ao3Config.ts`:
+
+```typescript
+// Detection patterns - need 2+ matches
+detectionPatterns: [
+  /Chapter \d+ of \d+/i,    // "Chapter 1 of 10"
+  /Kudos:/i,                 // AO3 kudos section
+  /Bookmarks:/i,             // AO3 bookmarks
+  ...
+]
+
+// Content section markers
+includeStartMarkers: {
+  chapterTitle: /^Chapter\s+\d+(?::\s*.+)?$/im,
+  summary: 'Summary:',
+  notes: 'Notes:',
+  chapterText: 'Chapter Text',
+}
+
+// End marker
+endMarkers: { actions: 'Actions' }
+
+// Lines to exclude
+excludePatterns: [
+  /^Share$/,
+  /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,  // Dates
+  ...
+]
 ```
 
 ## 5. State Flow: Changing Voice
@@ -272,31 +327,112 @@ safariAudioRef.play()
 - Consistent playback behavior across browsers
 - Single Audio element means single user interaction approval
 
-## 7. Error Handling Patterns
+## 7. Buffered Playback Logic
+
+**Files**: `src/hooks/useBufferedPlayback.ts`, `src/services/generation/controller.ts`
+
+**This enables seamless playback by generating audio ahead of current position.**
+
+### Implementation
+
+```typescript
+// Hook manages playback state and coordinates with controller
+const useBufferedPlayback = (paragraphs, settings) => {
+  const [bufferState, setBufferState] = useState<BufferState>({
+    generatedIndices: new Set(),
+    currentIndex: 0,
+    isGenerating: false,
+    audioUrls: {},
+  })
+
+  // Controller handles generation logic
+  const controller = useMemo(() => new GenerationController(...), [])
+
+  const startBufferedPlayback = async (startIndex = 0) => {
+    // 1. Start generating from startIndex
+    controller.start(startIndex)
+
+    // 2. Wait for minimum buffer to be ready
+    await waitForMinBuffer()
+
+    // 3. Start playback
+    playBuffered(startIndex)
+  }
+
+  const playBuffered = (index) => {
+    // Get pre-generated audio URL
+    const url = bufferState.audioUrls[index]
+
+    // Play audio
+    audioRef.current.src = url
+    audioRef.current.play()
+
+    // On ended, play next
+    audioRef.current.onended = () => {
+      if (index + 1 < paragraphs.length) {
+        playBuffered(index + 1)
+      }
+    }
+  }
+}
+```
+
+### Key Design Decisions
+
+- **Ref-based Callbacks**: Uses `handleAudioEndedRef` to avoid stale closures
+- **GenerationController**: Separate class manages generation queue
+- **Buffer Size Config**: Target and minimum buffer sizes are configurable
+- **Integration**: Calls `resetAudio()` from useAudioPlayer when buffer mode starts
+
+### Flow Diagram
+
+```
+User clicks buffer play
+  ↓
+useBufferedPlayback.startBufferedPlayback(0)
+  ↓
+GenerationController.start()
+  ↓
+Generate paragraphs 0, 1, 2... (up to target buffer)
+  ↓
+Wait for minBuffer paragraphs ready
+  ↓
+Start playing paragraph 0
+  ↓
+Audio ends → handleAudioEndedRef.current()
+  ↓
+Play next buffered paragraph
+  ↓
+Controller continues generating ahead
+  ↓
+Repeat until all paragraphs complete
+```
+
+## 8. Error Handling Patterns
 
 ### Connection Errors
 
 **File**: `src/components/SettingsMonitor.tsx`
 
-- **Periodic Health Checks**: Every 30 seconds (line 38)
-- **Visual Feedback**: Status badge changes color (line 99)
-- **Graceful Degradation**: Disable features when offline (reader.tsx:319)
-- **User Control**: Manual configuration editing (SettingsMonitor:39-61)
+- **Periodic Health Checks**: Every 30 seconds
+- **Visual Feedback**: Status badge changes color
+- **Graceful Degradation**: Disable features when offline
+- **User Control**: Manual configuration editing via ServerConfigModal
 
 ### Audio Playback Errors
 
 **File**: `src/hooks/useAudioPlayer.ts`
 
-- **Autoplay Blocking** (line 196): Detect browser autoplay policy violations
-- **Network Failures** (line 254): Timeout guards and retry logic
-- **Missing Audio** (line 224): Graceful fallback for offline sessions
-- **Auto-Progression Timeout** (line 75): 15-second guard to prevent infinite waiting
+- **Autoplay Blocking**: Detect browser autoplay policy violations
+- **Network Failures**: Timeout guards and retry logic
+- **Missing Audio**: Graceful fallback for offline sessions
+- **Auto-Progression Timeout**: 15-second guard to prevent infinite waiting
 
 ### Session Validation
 
 **File**: `src/services/sessionStorage.ts`
 
-**Import Validation** (lines 348-365):
+**Import Validation**:
 
 1. Check required fields: id, name, text, paragraphs, settings
 2. Validate audio data: must have either `audioUrls` OR `audioBlobData`
@@ -308,7 +444,7 @@ safariAudioRef.play()
 - "Session must have audioUrls or audioBlobData"
 - "Number of paragraphs does not match number of audio files"
 
-## 8. Active Migrations (Important Context)
+## 9. Active Migrations (Important Context)
 
 ### Global State → React Context
 
@@ -356,3 +492,33 @@ const { isConnected, voices } = useApiState()
 1. Replace `generateTTS()` calls → use `tts.generateTTS()`
 2. Replace `getAvailableVoices()` → use `voices.getAvailableVoices()`
 3. Replace `checkReady()` → use `status.checkReady()`
+
+### SSR/React Query Removal (Completed)
+
+**Status**: Complete
+
+**Problem**: ReadableStream serialization errors on page refresh caused by `routerWithQueryClient` trying to dehydrate data during SSR.
+
+**Resolution**:
+- Removed React Query integration (app doesn't use queries)
+- Changed from `createRootRouteWithContext<{ queryClient: QueryClient }>()` to `createRootRoute()`
+- Removed `routerWithQueryClient` wrapper
+- Added `ssr: false` to reader route as safeguard
+
+**Files Changed**:
+- `src/router.tsx` - Removed React Query wrapper
+- `src/routes/__root.tsx` - Simplified root route
+- `src/routes/reader.tsx` - Added `ssr: false`
+
+### Text Processing Centralization (Completed)
+
+**Status**: Complete
+
+**Change**: Text processing logic moved to dedicated service.
+
+**New Structure**: `src/services/textProcessing/`
+- `textProcessor.ts` - Main entry point
+- `ao3Parser.ts` - AO3 page detection and parsing
+- `ao3Config.ts` - Configurable markers (update when AO3 changes)
+
+**Hook Integration**: `useTextProcessor.ts` now uses `textProcessor.processInput()` which auto-detects and parses AO3 content.

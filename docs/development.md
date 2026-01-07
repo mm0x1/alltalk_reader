@@ -115,12 +115,26 @@ kill $SERVER_PID
 - [ ] Pause/resume works correctly
 - [ ] Safari/iOS playback works without autoplay issues
 
+#### AO3 Parsing
+- [ ] AO3 page text is auto-detected
+- [ ] Chapter content is extracted correctly
+- [ ] Navigation/UI elements are removed
+- [ ] Green notification shows with chapter title
+- [ ] Non-AO3 text is passed through unchanged
+
 #### Batch Mode
 - [ ] Pre-generate all audio completes successfully
 - [ ] Progress UI updates correctly
 - [ ] Session auto-saves after generation
 - [ ] Cached audio plays instantly
 - [ ] Settings changes reset pre-generated status
+
+#### Buffered Playback Mode
+- [ ] Buffer play button starts buffered generation
+- [ ] Buffer status indicator shows progress
+- [ ] Playback starts after minimum buffer is ready
+- [ ] Seamless transitions between paragraphs
+- [ ] Buffer continues generating ahead while playing
 
 #### Offline Mode
 - [ ] Export with cached blobs works (offline)
@@ -217,6 +231,30 @@ const { isConnected, voices } = useApiState()
 2. Replace `getAvailableVoices()` → use `voices.getAvailableVoices()`
 3. Replace `checkReady()` → use `status.checkReady()`
 
+### Completed Migrations
+
+#### SSR/React Query Removal
+
+**Problem**: ReadableStream serialization errors on page refresh caused by `routerWithQueryClient`.
+
+**Resolution**: Removed React Query integration entirely (app doesn't use queries).
+
+**Changes Made**:
+- `src/router.tsx` - Removed `routerWithQueryClient` wrapper
+- `src/routes/__root.tsx` - Changed to `createRootRoute()`
+- `src/routes/reader.tsx` - Added `ssr: false`
+
+#### Text Processing Centralization
+
+**Change**: Text processing moved to dedicated service with AO3 auto-parsing.
+
+**New Structure**: `src/services/textProcessing/`
+- `textProcessor.ts` - Main entry point
+- `ao3Parser.ts` - AO3 page detection and parsing
+- `ao3Config.ts` - Configurable markers
+
+**Integration**: `useTextProcessor.ts` now uses `textProcessor.processInput()`
+
 ## Best Practices
 
 ### When Making Changes
@@ -225,8 +263,9 @@ const { isConnected, voices } = useApiState()
 2. Prefer modular API services over deprecated `alltalkApi.ts`
 3. Add new state via custom hooks (co-located with `reader.tsx`)
 4. Follow existing Tailwind CSS patterns from `design-system/constants.ts`
-5. Test all three playback modes after changes
+5. Test all four playback modes after changes (live, buffered, batch, offline)
 6. Ensure TypeScript compilation passes (`tsc --noEmit`)
+7. Test AO3 parsing with sample AO3 page content
 
 ### Code Style
 
@@ -259,26 +298,36 @@ const { isConnected, voices } = useApiState()
 - `src/services/api/status.ts` - Server health checks
 - `src/services/api/voices.ts` - Voice management
 - `src/services/api/tts.ts` - **CRITICAL** TTS generation & text splitting
+- `src/services/textProcessing/textProcessor.ts` - Main text processing entry point
+- `src/services/textProcessing/ao3Parser.ts` - AO3 page detection & parsing
+- `src/services/textProcessing/ao3Config.ts` - Configurable AO3 markers
+- `src/services/generation/controller.ts` - Buffered playback controller
 - `src/services/sessionStorage.ts` - Session CRUD, export/import, offline audio
 
 ### State Management
 - `src/hooks/useAudioPlayer.ts` - **CRITICAL** Playback logic & auto-progression
+- `src/hooks/useBufferedPlayback.ts` - Buffer-ahead playback mode
 - `src/hooks/useBatchAudioGeneration.ts` - Batch generation orchestration
 - `src/hooks/useSessionSaver.ts` - Auto-save after batch
-- `src/hooks/useTextProcessor.ts` - Text input & splitting
+- `src/hooks/useTextProcessor.ts` - Text input, splitting, AO3 detection
 - `src/hooks/useTtsSettings.ts` - TTS configuration
 - `src/hooks/useBatchGeneration.ts` - Pre-generated audio state
 - `src/hooks/useModalState.ts` - UI modal visibility
+- `src/hooks/useServerConnection.ts` - API connection status
 - `src/hooks/useSessionManager.ts` - Session loading
 
 ### UI Components
-- `src/routes/reader.tsx` - **MAIN ROUTE** UI orchestrator (520 lines)
+- `src/routes/reader.tsx` - **MAIN ROUTE** UI orchestrator
 - `src/components/BatchGenerator.tsx` - Pre-generation UI
 - `src/components/ExportImportManager.tsx` - Export/import UI
 - `src/components/SessionManager.tsx` - Session modal wrapper
 - `src/components/SessionList.tsx` - Session browser
 - `src/components/ParagraphList.tsx` - Paragraph display
-- `src/components/SettingsMonitor.tsx` - Connection status & config
+- `src/components/SettingsMonitor.tsx` - Connection status display
+- `src/components/ServerConfigModal.tsx` - Server configuration editor
+- `src/components/buffer/BufferPlayButton.tsx` - Start buffered playback
+- `src/components/buffer/BufferStatusIndicator.tsx` - Buffer progress display
+- `src/components/buffer/BufferSettings.tsx` - Buffer configuration
 
 ### Configuration & Server
 - `src/config/env.ts` - Environment variable handling
