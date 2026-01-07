@@ -4,10 +4,12 @@
  * Main entry point for text processing. Handles:
  * - Auto-detection and parsing of AO3 pages
  * - General text splitting into paragraphs
+ * - Smart paragraph detection (BETA)
  * - Chunk splitting for TTS limits
  */
 
 import { ao3Parser, type Ao3ParseResult } from './ao3Parser';
+import { paragraphDetector, type ParagraphStrategy } from './paragraphDetector';
 import { API_CONFIG } from '~/config/env';
 
 export interface ProcessedText {
@@ -17,6 +19,15 @@ export interface ProcessedText {
   wasAo3Parsed: boolean;
   /** AO3 parse result details (if applicable) */
   ao3Result?: Ao3ParseResult;
+}
+
+export interface SplitOptions {
+  /** Maximum length per paragraph (default: API_CONFIG.maxCharacters) */
+  maxLength?: number;
+  /** Enable smart paragraph detection (BETA) */
+  enableSmartDetection?: boolean;
+  /** Force a specific strategy (only when enableSmartDetection is true) */
+  strategy?: ParagraphStrategy;
 }
 
 export class TextProcessor {
@@ -35,20 +46,44 @@ export class TextProcessor {
 
   /**
    * Split text into paragraphs, respecting character limits
+   *
+   * @param text - The text to split
+   * @param options - Split options (or just maxLength for backward compat)
    */
   splitIntoParagraphs(
     text: string,
-    maxLength = API_CONFIG.maxCharacters
+    options: SplitOptions | number = {}
   ): string[] {
+    // Handle backward compatibility (passing just maxLength as number)
+    const opts: SplitOptions =
+      typeof options === 'number' ? { maxLength: options } : options;
+
+    const {
+      maxLength = API_CONFIG.maxCharacters,
+      enableSmartDetection = false,
+      strategy = 'auto',
+    } = opts;
+
     if (!text || typeof text !== 'string') return [];
 
-    // First split by double newlines (common paragraph separator)
-    const paragraphs = text
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
+    let paragraphs: string[];
 
-    // Then ensure each paragraph respects the character limit
+    if (enableSmartDetection) {
+      // Use smart paragraph detection (BETA)
+      const result = paragraphDetector.split(text, strategy);
+      console.log(
+        `[SmartSplit] Strategy: ${result.strategy}, Confidence: ${(result.confidence * 100).toFixed(0)}%, Paragraphs: ${result.paragraphs.length}`
+      );
+      paragraphs = result.paragraphs;
+    } else {
+      // Legacy behavior: split by double newlines only
+      paragraphs = text
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+    }
+
+    // Post-process: ensure each paragraph respects the character limit
     return paragraphs.flatMap((paragraph) => {
       if (paragraph.length <= maxLength) {
         return [paragraph];

@@ -118,10 +118,13 @@ function BookReader() {
   // Track if we're showing buffer settings
   const [showBufferSettings, setShowBufferSettings] = useState(false)
 
+  // Smart Split (BETA) toggle state
+  const [useSmartSplit, setUseSmartSplit] = useState(false)
+
   // Process text and initialize for batch generation
   const handleProcessText = () => {
     try {
-      const newParagraphs = processText()
+      const newParagraphs = processText({ enableSmartDetection: useSmartSplit })
       initializeForParagraphs(newParagraphs.length)
       resetAudio()
     } catch (error) {
@@ -484,8 +487,28 @@ function BookReader() {
             )}
 
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-400">
-                {text ? `${text.length} characters in ${text.trim().split(/\s+/).length} words` : 'No text entered'}
+              <div className="flex flex-col gap-2">
+                <div className="text-sm text-gray-400">
+                  {text ? `${text.length} characters in ${text.trim().split(/\s+/).length} words` : 'No text entered'}
+                </div>
+                {/* Smart Split Toggle */}
+                <label className="flex items-center gap-2 cursor-pointer group" title="Enable smart paragraph detection for PDFs, ebooks, and wall-of-text content">
+                  <input
+                    type="checkbox"
+                    checked={useSmartSplit}
+                    onChange={(e) => setUseSmartSplit(e.target.checked)}
+                    className="w-4 h-4 rounded border-dark-500 bg-dark-400 text-accent-primary focus:ring-accent-primary focus:ring-offset-dark-300"
+                  />
+                  <span className="text-sm text-gray-300 group-hover:text-gray-200">
+                    Smart Split
+                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-accent-primary/20 text-accent-primary rounded">BETA</span>
+                  </span>
+                  <span title="Detects indentation, PDF formats, and fixes 'wall of text' issues">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                </label>
               </div>
               <button
                 className="btn-primary"

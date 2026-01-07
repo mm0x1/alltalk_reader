@@ -4,4 +4,16 @@ export {
   textProcessor,
   TextProcessor,
   type ProcessedText,
+  type SplitOptions,
 } from './textProcessor';
+export {
+  paragraphDetector,
+  ParagraphDetector,
+  type ParagraphStrategy,
+  type DetectionResult,
+  type AnalysisResult,
+} from './paragraphDetector';
+export {
+  DEFAULT_PARAGRAPH_CONFIG,
+  type ParagraphConfig,
+} from './paragraphConfig';

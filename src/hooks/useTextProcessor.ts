@@ -1,48 +1,64 @@
 import { useState, useCallback } from 'react';
 import { textProcessor, type ProcessedText } from '~/services/textProcessing';
 
+export interface ProcessTextOptions {
+  /** Enable smart paragraph detection (BETA) */
+  enableSmartDetection?: boolean;
+}
+
 export function useTextProcessor() {
   const [text, setText] = useState('');
   const [paragraphs, setParagraphs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastProcessResult, setLastProcessResult] = useState<ProcessedText | null>(null);
+  const [lastProcessResult, setLastProcessResult] =
+    useState<ProcessedText | null>(null);
 
   const handleTextChange = (newText: string) => {
     setText(newText);
   };
 
-  const processText = useCallback((): string[] => {
-    if (!text.trim()) {
-      throw new Error('No text to process');
-    }
+  const processText = useCallback(
+    (options: ProcessTextOptions = {}): string[] => {
+      const { enableSmartDetection = false } = options;
 
-    setIsProcessing(true);
-
-    try {
-      // Process input (auto-detects and parses AO3)
-      const processResult = textProcessor.processInput(text);
-      setLastProcessResult(processResult);
-
-      if (processResult.wasAo3Parsed) {
-        console.log('AO3 page detected and parsed');
-        if (processResult.ao3Result?.metadata?.chapterTitle) {
-          console.log(`Chapter: ${processResult.ao3Result.metadata.chapterTitle}`);
-        }
+      if (!text.trim()) {
+        throw new Error('No text to process');
       }
 
-      // Split into paragraphs
-      const newParagraphs = textProcessor.splitIntoParagraphs(processResult.text);
-      setParagraphs(newParagraphs);
-      setIsProcessing(false);
+      setIsProcessing(true);
 
-      console.log(`Text processed into ${newParagraphs.length} paragraphs`);
-      return newParagraphs;
-    } catch (error) {
-      console.error('Error processing text:', error);
-      setIsProcessing(false);
-      throw new Error('Failed to process text. Please try again.');
-    }
-  }, [text]);
+      try {
+        // Process input (auto-detects and parses AO3)
+        const processResult = textProcessor.processInput(text);
+        setLastProcessResult(processResult);
+
+        if (processResult.wasAo3Parsed) {
+          console.log('AO3 page detected and parsed');
+          if (processResult.ao3Result?.metadata?.chapterTitle) {
+            console.log(
+              `Chapter: ${processResult.ao3Result.metadata.chapterTitle}`
+            );
+          }
+        }
+
+        // Split into paragraphs (with optional smart detection)
+        const newParagraphs = textProcessor.splitIntoParagraphs(
+          processResult.text,
+          { enableSmartDetection }
+        );
+        setParagraphs(newParagraphs);
+        setIsProcessing(false);
+
+        console.log(`Text processed into ${newParagraphs.length} paragraphs`);
+        return newParagraphs;
+      } catch (error) {
+        console.error('Error processing text:', error);
+        setIsProcessing(false);
+        throw new Error('Failed to process text. Please try again.');
+      }
+    },
+    [text]
+  );
 
   const loadFromSession = (sessionText: string, sessionParagraphs: string[]) => {
     setText(sessionText);
