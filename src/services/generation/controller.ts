@@ -203,12 +203,28 @@ export class GenerationController {
    * Extend the generation range (for buffer replenishment)
    */
   extendRange(newEndIndex: number): void {
+    const oldEndIndex = this.targetEndIndex;
     if (newEndIndex > this.targetEndIndex) {
       this.targetEndIndex = Math.min(newEndIndex, this.paragraphs.length - 1);
+      console.log(`[GenerationController] Extended range from ${oldEndIndex} to ${this.targetEndIndex}`);
 
-      // If we were idle but still running, kick off generation
-      if (this.isRunning && !this.isPaused && this.pendingGeneration === null) {
-        this.generateNext();
+      // Restart generation if we have more to generate
+      // Even if we previously completed, we need to restart for the new range
+      if (!this.isPaused && this.pendingGeneration === null && this.callbacks) {
+        // Check if there are actually paragraphs to generate in the new range
+        let hasUngenerated = false;
+        for (let i = this.currentIndex; i <= this.targetEndIndex; i++) {
+          if (!this.generatedUrls.has(i)) {
+            hasUngenerated = true;
+            break;
+          }
+        }
+
+        if (hasUngenerated) {
+          console.log('[GenerationController] Restarting generation for extended range');
+          this.isRunning = true;
+          this.generateNext();
+        }
       }
     }
   }

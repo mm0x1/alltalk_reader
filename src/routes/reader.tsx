@@ -407,16 +407,34 @@ function BookReader() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 justify-between bg-dark-300 p-4 rounded-lg mb-1">
             <PlaybackControls
-              isPlaying={isPlaying}
+              isPlaying={isBufferModeActive ? (bufferState.status === 'playing') : isPlaying}
               selectedVoice={selectedVoice}
-              onPlayPause={togglePlayback}
+              onPlayPause={isBufferModeActive
+                ? (bufferState.status === 'playing' ? pauseBufferedPlayback : resumeBufferedPlayback)
+                : togglePlayback}
               onVoiceChange={handleVoiceChange}
               onReset={handleReset}
-              canSkipPrevious={currentParagraph !== null && currentParagraph > 0}
-              canSkipNext={currentParagraph !== null && currentParagraph < paragraphs.length - 1}
-              onSkipPrevious={() => currentParagraph !== null && currentParagraph > 0 && handlePlayParagraph(currentParagraph - 1, true)}
-              onSkipNext={() => currentParagraph !== null && currentParagraph < paragraphs.length - 1 && handlePlayParagraph(currentParagraph + 1, true)}
-              isLoading={isLoadingAudio}
+              canSkipPrevious={activeParagraph !== null && activeParagraph > 0}
+              canSkipNext={activeParagraph !== null && activeParagraph < paragraphs.length - 1}
+              onSkipPrevious={() => {
+                if (activeParagraph !== null && activeParagraph > 0) {
+                  if (isBufferModeActive) {
+                    skipToBuffered(activeParagraph - 1)
+                  } else {
+                    handlePlayParagraph(activeParagraph - 1, true)
+                  }
+                }
+              }}
+              onSkipNext={() => {
+                if (activeParagraph !== null && activeParagraph < paragraphs.length - 1) {
+                  if (isBufferModeActive) {
+                    skipToBuffered(activeParagraph + 1)
+                  } else {
+                    handlePlayParagraph(activeParagraph + 1, true)
+                  }
+                }
+              }}
+              isLoading={isBufferModeActive ? (bufferState.status === 'initial-buffering' || bufferState.status === 'buffering') : isLoadingAudio}
             />
 
             <div className="flex gap-2">
@@ -425,7 +443,11 @@ function BookReader() {
                 status={bufferState.status}
                 isServerConnected={isServerConnected}
                 hasParagraphs={paragraphs.length > 0}
-                onStart={() => startBufferedPlayback(activeParagraph ?? 0)}
+                onStart={() => {
+                  // Stop regular audio player before starting buffer mode
+                  resetAudio()
+                  startBufferedPlayback(activeParagraph ?? 0)
+                }}
                 onPause={pauseBufferedPlayback}
                 onResume={resumeBufferedPlayback}
                 onStop={stopBufferedPlayback}

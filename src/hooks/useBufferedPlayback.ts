@@ -220,14 +220,91 @@ export function useBufferedPlayback({
     updateBufferStatus({ isGenerating: false, generatingIndex: -1 });
   }, [updateBufferStatus]);
 
+  // Ref to hold the latest handleAudioEnded callback (avoids stale closure)
+  const handleAudioEndedRef = useRef<(index: number) => void>(() => {});
+
+  // Handle audio ended - progress to next paragraph
+  const handleAudioEnded = useCallback(
+    (index: number) => {
+      const nextIndex = index + 1;
+      console.log(`[BufferedPlayback] Audio ended for paragraph ${index + 1}, progressing to ${nextIndex + 1}`);
+
+      if (nextIndex >= paragraphs.length) {
+        console.log('[BufferedPlayback] Reached end of content');
+        setState((prev) => ({
+          ...prev,
+          status: 'completed',
+          bufferStatus: {
+            ...prev.bufferStatus,
+            isGenerating: false,
+          },
+        }));
+        return;
+      }
+
+      setState((prev) => {
+        // Check if next paragraph is ready
+        const isNextReady = prev.bufferStatus.generated.has(nextIndex);
+        const newBufferSize = calculateBufferAhead(nextIndex, prev.bufferStatus.generated);
+
+        // Check if all remaining paragraphs are already generated
+        let allRemainingGenerated = true;
+        for (let i = nextIndex; i < paragraphs.length; i++) {
+          if (!prev.bufferStatus.generated.has(i)) {
+            allRemainingGenerated = false;
+            break;
+          }
+        }
+
+        console.log(`[BufferedPlayback] Next paragraph ${nextIndex + 1} ready: ${isNextReady}, buffer size: ${newBufferSize}, all remaining generated: ${allRemainingGenerated}`);
+
+        // Only pause for refill if next isn't ready AND we don't have all remaining paragraphs
+        // If we're near the end and all remaining are generated, continue playing
+        const needsBuffering = !isNextReady || (newBufferSize < config.minBufferSize && !allRemainingGenerated);
+
+        if (needsBuffering) {
+          console.log('[BufferedPlayback] Buffer depleted, pausing for refill');
+          return {
+            ...prev,
+            status: 'buffering',
+            currentParagraph: nextIndex,
+            bufferStatus: {
+              ...prev.bufferStatus,
+              bufferSize: newBufferSize,
+            },
+          };
+        }
+
+        // Stay in playing status, just update the paragraph
+        console.log(`[BufferedPlayback] Continuing to paragraph ${nextIndex + 1}`);
+        return {
+          ...prev,
+          currentParagraph: nextIndex,
+          bufferStatus: {
+            ...prev.bufferStatus,
+            bufferSize: newBufferSize,
+          },
+        };
+      });
+    },
+    [paragraphs.length, calculateBufferAhead, config.minBufferSize]
+  );
+
+  // Keep ref updated with latest handleAudioEnded
+  useEffect(() => {
+    handleAudioEndedRef.current = handleAudioEnded;
+  }, [handleAudioEnded]);
+
   // Play audio for a specific paragraph
   const playParagraph = useCallback(
     async (index: number) => {
+      console.log(`[BufferedPlayback] playParagraph called for index ${index + 1}`);
       const url = controllerRef.current.getUrl(index);
       if (!url) {
         console.warn(`[BufferedPlayback] No audio URL for paragraph ${index + 1}`);
         return false;
       }
+      console.log(`[BufferedPlayback] Playing URL: ${url}`);
 
       // Revoke previous blob URL
       if (currentAudioUrlRef.current) {
@@ -272,7 +349,8 @@ export function useBufferedPlayback({
 
         audio.onended = () => {
           console.log(`[BufferedPlayback] Paragraph ${index + 1} ended`);
-          handleAudioEnded(index);
+          // Use ref to always get the latest handleAudioEnded (avoids stale closure)
+          handleAudioEndedRef.current(index);
         };
 
         audio.onerror = (e) => {
@@ -286,64 +364,23 @@ export function useBufferedPlayback({
         audio.load();
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [] // handleAudioEnded is defined below
+    [] // Safe to have empty deps since we use handleAudioEndedRef
   );
 
-  // Handle audio ended - progress to next paragraph
-  const handleAudioEnded = useCallback(
-    (index: number) => {
-      const nextIndex = index + 1;
-
-      if (nextIndex >= paragraphs.length) {
-        console.log('[BufferedPlayback] Reached end of content');
-        setState((prev) => ({
-          ...prev,
-          status: 'completed',
-          bufferStatus: {
-            ...prev.bufferStatus,
-            isGenerating: false,
-          },
-        }));
-        return;
-      }
-
-      setState((prev) => {
-        // Check if next paragraph is ready
-        const isNextReady = prev.bufferStatus.generated.has(nextIndex);
-        const newBufferSize = calculateBufferAhead(nextIndex, prev.bufferStatus.generated);
-
-        if (!isNextReady || newBufferSize < config.minBufferSize) {
-          console.log('[BufferedPlayback] Buffer depleted, pausing for refill');
-          return {
-            ...prev,
-            status: 'buffering',
-            currentParagraph: nextIndex,
-            bufferStatus: {
-              ...prev.bufferStatus,
-              bufferSize: newBufferSize,
-            },
-          };
-        }
-
-        return {
-          ...prev,
-          currentParagraph: nextIndex,
-          bufferStatus: {
-            ...prev.bufferStatus,
-            bufferSize: newBufferSize,
-          },
-        };
-      });
-    },
-    [paragraphs.length, calculateBufferAhead, config.minBufferSize]
-  );
+  // Track if we've started playback for the current paragraph to avoid duplicate plays
+  const playbackStartedForRef = useRef<number>(-1);
 
   // Effect to handle state changes that trigger playback
   useEffect(() => {
     if (state.status === 'playing') {
       const url = controllerRef.current.getUrl(state.currentParagraph);
-      if (url && (!audioRef.current || audioRef.current.paused)) {
+      const audioIsPaused = !audioRef.current || audioRef.current.paused || audioRef.current.ended;
+      const alreadyStarted = playbackStartedForRef.current === state.currentParagraph;
+
+      console.log(`[BufferedPlayback] Play effect - paragraph: ${state.currentParagraph + 1}, url: ${!!url}, audioIsPaused: ${audioIsPaused}, alreadyStarted: ${alreadyStarted}`);
+
+      if (url && audioIsPaused && !alreadyStarted) {
+        playbackStartedForRef.current = state.currentParagraph;
         playParagraph(state.currentParagraph);
       }
 
@@ -354,20 +391,26 @@ export function useBufferedPlayback({
       );
       controllerRef.current.extendRange(targetEnd);
       controllerRef.current.updatePlaybackPosition(state.currentParagraph);
+    } else if (state.status === 'idle' || state.status === 'completed') {
+      // Reset playback tracking when stopped
+      playbackStartedForRef.current = -1;
     }
   }, [state.status, state.currentParagraph, config.targetBufferSize, paragraphs.length, playParagraph]);
 
   // Effect to resume playback when buffer is replenished
   useEffect(() => {
-    if (
-      state.status === 'buffering' &&
-      state.bufferStatus.bufferSize >= config.minBufferSize
-    ) {
-      playParagraph(state.currentParagraph).then((success) => {
-        if (success) {
-          setState((prev) => ({ ...prev, status: 'playing' }));
-        }
-      });
+    if (state.status === 'buffering') {
+      console.log(`[BufferedPlayback] Buffering check - buffer size: ${state.bufferStatus.bufferSize}, min required: ${config.minBufferSize}`);
+
+      if (state.bufferStatus.bufferSize >= config.minBufferSize) {
+        console.log('[BufferedPlayback] Buffer replenished, resuming playback');
+        playbackStartedForRef.current = -1; // Reset so we can play the current paragraph
+        playParagraph(state.currentParagraph).then((success) => {
+          if (success) {
+            setState((prev) => ({ ...prev, status: 'playing' }));
+          }
+        });
+      }
     }
   }, [state.status, state.bufferStatus.bufferSize, config.minBufferSize, state.currentParagraph, playParagraph]);
 
