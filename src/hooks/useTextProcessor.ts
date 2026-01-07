@@ -1,46 +1,60 @@
-import { useState } from 'react'
-import { ttsService } from '~/services/api'
+import { useState, useCallback } from 'react';
+import { textProcessor, type ProcessedText } from '~/services/textProcessing';
 
 export function useTextProcessor() {
-  const [text, setText] = useState('')
-  const [paragraphs, setParagraphs] = useState<string[]>([])
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [text, setText] = useState('');
+  const [paragraphs, setParagraphs] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastProcessResult, setLastProcessResult] = useState<ProcessedText | null>(null);
 
   const handleTextChange = (newText: string) => {
-    setText(newText)
-  }
+    setText(newText);
+  };
 
-  const processText = (): string[] => {
+  const processText = useCallback((): string[] => {
     if (!text.trim()) {
-      throw new Error('No text to process')
+      throw new Error('No text to process');
     }
 
-    setIsProcessing(true)
+    setIsProcessing(true);
 
     try {
-      const newParagraphs = ttsService.splitIntoParagraphs(text)
-      setParagraphs(newParagraphs)
-      setIsProcessing(false)
-      
-      console.log(`Text processed into ${newParagraphs.length} paragraphs`)
-      return newParagraphs
+      // Process input (auto-detects and parses AO3)
+      const processResult = textProcessor.processInput(text);
+      setLastProcessResult(processResult);
+
+      if (processResult.wasAo3Parsed) {
+        console.log('AO3 page detected and parsed');
+        if (processResult.ao3Result?.metadata?.chapterTitle) {
+          console.log(`Chapter: ${processResult.ao3Result.metadata.chapterTitle}`);
+        }
+      }
+
+      // Split into paragraphs
+      const newParagraphs = textProcessor.splitIntoParagraphs(processResult.text);
+      setParagraphs(newParagraphs);
+      setIsProcessing(false);
+
+      console.log(`Text processed into ${newParagraphs.length} paragraphs`);
+      return newParagraphs;
     } catch (error) {
-      console.error('Error processing text:', error)
-      setIsProcessing(false)
-      throw new Error('Failed to process text. Please try again.')
+      console.error('Error processing text:', error);
+      setIsProcessing(false);
+      throw new Error('Failed to process text. Please try again.');
     }
-  }
+  }, [text]);
 
   const loadFromSession = (sessionText: string, sessionParagraphs: string[]) => {
-    setText(sessionText)
-    setParagraphs(sessionParagraphs)
-  }
+    setText(sessionText);
+    setParagraphs(sessionParagraphs);
+  };
 
   const reset = () => {
-    setText('')
-    setParagraphs([])
-    setIsProcessing(false)
-  }
+    setText('');
+    setParagraphs([]);
+    setIsProcessing(false);
+    setLastProcessResult(null);
+  };
 
   return {
     text,
@@ -49,6 +63,9 @@ export function useTextProcessor() {
     handleTextChange,
     processText,
     loadFromSession,
-    reset
-  }
+    reset,
+    // AO3 parsing info
+    wasAo3Parsed: lastProcessResult?.wasAo3Parsed ?? false,
+    ao3Metadata: lastProcessResult?.ao3Result?.metadata,
+  };
 }

@@ -44,7 +44,7 @@ function BookReader() {
 
   // Custom hooks
   const { isServerConnected, updateConnectionStatus } = useServerConnection()
-  const { text, paragraphs, isProcessing, handleTextChange, processText, loadFromSession: loadTextFromSession, reset: resetText } = useTextProcessor()
+  const { text, paragraphs, isProcessing, handleTextChange, processText, loadFromSession: loadTextFromSession, reset: resetText, wasAo3Parsed, ao3Metadata } = useTextProcessor()
   const {
     selectedVoice, speed, pitch, language,
     updateVoice, updateSpeed, updatePitch, updateLanguage,
@@ -447,8 +447,11 @@ function BookReader() {
                 className="input-field h-64"
                 value={text}
                 onChange={(e) => handleTextChange(e.target.value)}
-                placeholder="Paste your book text here..."
+                placeholder="Paste your book text here... (AO3 full pages are automatically parsed)"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Tip: You can paste full AO3 pages - chapter content will be automatically extracted.
+              </p>
             </div>
 
             {showSettings && (
@@ -525,6 +528,21 @@ function BookReader() {
         </div>
       ) : (
         <div className="space-y-4">
+          {/* AO3 parsing notification */}
+          {wasAo3Parsed && (
+            <div className="p-3 bg-accent-success/20 text-accent-success rounded-lg border border-accent-success/30 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <span className="font-medium">AO3 page detected and parsed</span>
+                {ao3Metadata?.chapterTitle && (
+                  <span className="ml-2 text-sm opacity-80">— {ao3Metadata.chapterTitle}</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2 justify-between bg-dark-300 p-4 rounded-lg mb-1">
             <PlaybackControls
               isPlaying={isBufferModeActive ? (bufferState.status === 'playing') : isPlaying}
