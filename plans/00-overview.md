@@ -116,9 +116,9 @@ A new fourth playback mode that:
 - [ ] Smooth transition between paragraphs
 
 ### Phase 4
-- [ ] Resume position saved per session
-- [ ] Visual indicator of current position
-- [ ] Optional paragraph generation tracking
+- [x] Resume position saved per session
+- [x] Visual indicator of current position
+- [ ] Optional paragraph generation tracking (deferred - nice to have)
 
 ### Phase 5
 - [ ] AllTalk config options visible in UI

@@ -279,52 +279,53 @@ The buffer mode should coexist with existing modes:
 
 ## Implementation Steps
 
-### Step 3.1: Create Core Hook
+### Step 3.1: Create Core Hook [COMPLETED]
 
 **File**: `src/hooks/useBufferedPlayback.ts`
 
 **Tasks**:
-1. Define state interface
-2. Implement state machine
-3. Add generation controller
-4. Handle audio playback
-5. Implement buffer replenishment
-6. Add visibility handling
+1. [x] Define state interface
+2. [x] Implement state machine
+3. [x] Add generation controller
+4. [x] Handle audio playback
+5. [x] Implement buffer replenishment
+6. [x] Add visibility handling
 
-### Step 3.2: Create Generation Controller
+### Step 3.2: Create Generation Controller [COMPLETED]
 
 **File**: `src/services/generation/controller.ts`
 
 **Tasks**:
-1. Implement AbortController pattern
-2. Add URL caching
-3. Handle generation queue
-4. Add pause/resume capability
-5. Integrate with IndexedDB storage
+1. [x] Implement AbortController pattern
+2. [x] Add URL caching
+3. [x] Handle generation queue
+4. [x] Add pause/resume capability
+5. [ ] Integrate with IndexedDB storage (deferred - not critical for MVP)
 
-### Step 3.3: Create UI Components
+### Step 3.3: Create UI Components [COMPLETED]
 
 **Files**:
-- `src/components/buffer/BufferStatusIndicator.tsx`
-- `src/components/buffer/BufferPlayButton.tsx`
-- `src/components/buffer/BufferSettings.tsx`
+- [x] `src/components/buffer/BufferStatusIndicator.tsx`
+- [x] `src/components/buffer/BufferPlayButton.tsx`
+- [x] `src/components/buffer/BufferSettings.tsx`
+- [x] `src/components/buffer/index.ts`
 
-### Step 3.4: Integrate with Reader
+### Step 3.4: Integrate with Reader [COMPLETED]
 
-**File**: `src/routes/reader.tsx` (or `src/components/reader/ReaderView.tsx` after Phase 1)
-
-**Tasks**:
-1. Add buffer mode state
-2. Connect buffer play button
-3. Show buffer status indicator
-4. Handle mode switching
-
-### Step 3.5: Add Settings
+**File**: `src/routes/reader.tsx`
 
 **Tasks**:
-1. Add buffer size preference
-2. Persist to localStorage
-3. Add to settings panel
+1. [x] Add buffer mode state
+2. [x] Connect buffer play button
+3. [x] Show buffer status indicator
+4. [x] Handle mode switching
+
+### Step 3.5: Add Settings [COMPLETED]
+
+**Tasks**:
+1. [x] Add buffer size preference
+2. [x] Persist to localStorage
+3. [x] Add to settings panel
 
 ## Edge Cases
 

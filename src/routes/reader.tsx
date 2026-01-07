@@ -22,6 +22,7 @@ import SessionManager from '~/components/SessionManager'
 import SessionStorageConfig from '~/components/SessionStorageConfig'
 import ExportImportManager from '~/components/ExportImportManager'
 import { BufferStatusIndicator, BufferPlayButton, BufferSettings } from '~/components/buffer'
+import { ResumePrompt } from '~/components/session'
 
 export const Route = createFileRoute('/reader')({
   component: BookReader,
@@ -30,6 +31,10 @@ export const Route = createFileRoute('/reader')({
 function BookReader() {
   // Import/export state (kept local as it's specific to UI flow)
   const [importError, setImportError] = useState<string | null>(null)
+
+  // Resume position state
+  const [showResumePrompt, setShowResumePrompt] = useState(false)
+  const [lastPlaybackPositionIndex, setLastPlaybackPositionIndex] = useState<number | null>(null)
 
   // Custom hooks
   const { isServerConnected, updateConnectionStatus } = useServerConnection()
@@ -111,19 +116,57 @@ function BookReader() {
       if (sessionData) {
         loadTextFromSession(sessionData.text, sessionData.paragraphs)
         loadTtsFromSession(sessionData.voice, sessionData.speed, sessionData.pitch, sessionData.language)
-        
+
         if (session.isOfflineSession) {
           resetPreGenerated()
         } else {
           loadBatchFromSession(sessionData.preGeneratedAudio)
         }
-        
+
+        // Stop both playback modes to ensure clean state
         resetAudio()
+        stopBufferedPlayback()
+
+        // Check for saved playback position
+        if (session.lastPlaybackPosition) {
+          const { paragraphIndex, timestamp } = session.lastPlaybackPosition
+          // Show resume prompt if position is recent (within 30 days) and not at the start
+          const isRecent = Date.now() - timestamp < 30 * 24 * 60 * 60 * 1000
+          if (isRecent && paragraphIndex > 0 && paragraphIndex < session.paragraphs.length) {
+            setLastPlaybackPositionIndex(paragraphIndex)
+            setShowResumePrompt(true)
+          } else {
+            setLastPlaybackPositionIndex(null)
+          }
+        } else {
+          setLastPlaybackPositionIndex(null)
+        }
       }
     } catch (error) {
       console.error('Error loading session:', error)
     }
     closeSessionManager()
+  }
+
+  // Handle resume from saved position
+  const handleResumeFromPosition = (index: number) => {
+    setShowResumePrompt(false)
+    if (isBufferModeActive) {
+      skipToBuffered(index)
+    } else {
+      handlePlayParagraph(index, true)
+    }
+  }
+
+  // Handle start over (dismiss position)
+  const handleStartOver = () => {
+    setShowResumePrompt(false)
+    setLastPlaybackPositionIndex(null)
+  }
+
+  // Handle dismiss resume prompt (keep position marker visible)
+  const handleDismissResumePrompt = () => {
+    setShowResumePrompt(false)
   }
 
   // Handle file selection for import
@@ -154,6 +197,8 @@ function BookReader() {
     stopBufferedPlayback()
     closeBatchGenerator()
     setShowBufferSettings(false)
+    setShowResumePrompt(false)
+    setLastPlaybackPositionIndex(null)
   }
 
   // Handle paragraph click - choose the right mode
@@ -633,9 +678,21 @@ function BookReader() {
               isLoading={isBufferModeActive ? (bufferState.status === 'initial-buffering' || bufferState.status === 'buffering') : isLoadingAudio}
               preGeneratedStatus={isPreGenerated ? preGeneratedAudio.map(url => url !== null) : undefined}
               isOfflineSession={isOfflineSession}
+              lastPlaybackPositionIndex={lastPlaybackPositionIndex}
             />
           </div>
         </div>
+      )}
+
+      {/* Resume Prompt Modal */}
+      {showResumePrompt && lastPlaybackPositionIndex !== null && (
+        <ResumePrompt
+          paragraphIndex={lastPlaybackPositionIndex}
+          totalParagraphs={paragraphs.length}
+          onResume={handleResumeFromPosition}
+          onStartOver={handleStartOver}
+          onDismiss={handleDismissResumePrompt}
+        />
       )}
     </div>
   )

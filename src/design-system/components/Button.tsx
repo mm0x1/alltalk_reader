@@ -6,14 +6,14 @@
  */
 
 import React from 'react';
-import { Icon, ICONS } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { type ButtonVariant, type Size, type IconPosition } from '../types';
 import { cn } from '../utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: Size;
-  icon?: keyof typeof ICONS;
+  icon?: IconName;
   iconPosition?: IconPosition;
   loading?: boolean;
 }

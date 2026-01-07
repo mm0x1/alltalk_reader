@@ -130,3 +130,66 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Update a session's playback position
+ */
+export async function updateSessionPosition(
+  sessionId: string,
+  paragraphIndex: number
+): Promise<boolean> {
+  try {
+    const apiUrl = getSessionApiUrl();
+    const response = await fetch(`${apiUrl}/sessions/${sessionId}/position`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        lastPlaybackPosition: {
+          paragraphIndex,
+          timestamp: Date.now()
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error(`Failed to update session position ${sessionId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Update a session's name
+ */
+export async function updateSessionName(
+  sessionId: string,
+  name: string
+): Promise<boolean> {
+  try {
+    const apiUrl = getSessionApiUrl();
+    const response = await fetch(`${apiUrl}/sessions/${sessionId}/name`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error(`Failed to update session name ${sessionId}:`, error);
+    return false;
+  }
+}

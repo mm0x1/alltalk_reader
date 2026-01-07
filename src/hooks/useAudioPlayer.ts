@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { ttsService } from '~/services/api'
 import {
   type AudioSession,
   getAudioUrlForPlayback,
   revokeAudioObjectUrl,
-  revokeAllAudioObjectUrls
+  revokeAllAudioObjectUrls,
+  updateSessionPosition
 } from '~/services/session'
 
 interface UseAudioPlayerProps {
@@ -47,7 +48,7 @@ export function useAudioPlayer({
     const isSafariUA = /safari/.test(userAgent) && !/chrome/.test(userAgent)
     const isIOS = /iphone|ipad|ipod/.test(userAgent)
     setIsSafari(isSafariUA || isIOS)
-    
+
     if (isSafariUA || isIOS) {
       console.log('🍎 Safari/iOS detected - using compatible audio handling')
       if (!audioRef.current) {
@@ -56,6 +57,34 @@ export function useAudioPlayer({
       }
     }
   }, [])
+
+  // Auto-save playback position (debounced)
+  const savePositionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    // Only save position for saved sessions with a valid paragraph index
+    if (currentSession?.id && currentParagraph !== null && currentParagraph >= 0) {
+      // Clear any existing debounce
+      if (savePositionTimeoutRef.current) {
+        clearTimeout(savePositionTimeoutRef.current)
+      }
+
+      // Debounce position save (1 second delay)
+      savePositionTimeoutRef.current = setTimeout(() => {
+        updateSessionPosition(currentSession.id, currentParagraph).then(success => {
+          if (success) {
+            console.log(`📍 Saved playback position: paragraph ${currentParagraph + 1}`)
+          }
+        })
+      }, 1000)
+    }
+
+    return () => {
+      if (savePositionTimeoutRef.current) {
+        clearTimeout(savePositionTimeoutRef.current)
+      }
+    }
+  }, [currentParagraph, currentSession?.id])
 
   // Handle auto-progression to next paragraph with error handling
   const handleAutoProgression = async (currentIndex: number) => {

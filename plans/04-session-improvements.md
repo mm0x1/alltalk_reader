@@ -376,20 +376,20 @@ src/services/session/
 ## Testing Checklist
 
 **Resume Position**:
-- [ ] Position saved during playback
-- [ ] Position restored on session load
-- [ ] Resume prompt shows for recent positions
-- [ ] "Start Over" works correctly
-- [ ] Position marker visible in paragraph list
-- [ ] Works across browser sessions
+- [x] Position saved during playback (debounced 1 second)
+- [x] Position restored on session load
+- [x] Resume prompt shows for recent positions (within 30 days)
+- [x] "Start Over" works correctly
+- [x] Position marker visible in paragraph list (amber bookmark indicator)
+- [x] Works across browser sessions (saved to server)
 
 **Session List**:
-- [ ] Search filters correctly
-- [ ] Sort by date works
-- [ ] Sort by name works
-- [ ] Sort by progress works
-- [ ] Progress indicator accurate
-- [ ] Quick actions work
+- [x] Search filters correctly (by name and voice)
+- [x] Sort by date works
+- [x] Sort by name works
+- [x] Sort by progress works
+- [x] Progress indicator accurate (progress bar with percentage)
+- [x] Quick actions work (play, export, rename, delete)
 
 **Generation Tracking (if implemented)**:
 - [ ] Generated paragraphs marked
@@ -399,11 +399,11 @@ src/services/session/
 
 ## Success Criteria
 
-- [ ] Users can resume from last position with one click
-- [ ] Position saved automatically during playback
-- [ ] Session list is searchable and sortable
-- [ ] Progress visible at a glance
-- [ ] Session names editable
+- [x] Users can resume from last position with one click
+- [x] Position saved automatically during playback
+- [x] Session list is searchable and sortable
+- [x] Progress visible at a glance
+- [x] Session names editable
 
 ## Estimated Scope
 

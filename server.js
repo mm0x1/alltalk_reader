@@ -120,6 +120,72 @@ app.post('/api/sessions', (req, res) => {
   }
 });
 
+// API Route: Update session playback position
+app.patch('/api/sessions/:id/position', (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const { lastPlaybackPosition } = req.body;
+
+    if (!lastPlaybackPosition || typeof lastPlaybackPosition.paragraphIndex !== 'number') {
+      return res.status(400).json({ success: false, error: 'Invalid position data' });
+    }
+
+    let sessions = getSessions();
+    const existingIndex = sessions.findIndex(s => s.id === sessionId);
+
+    if (existingIndex < 0) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
+    }
+
+    sessions[existingIndex].lastPlaybackPosition = lastPlaybackPosition;
+    sessions[existingIndex].updatedAt = Date.now();
+
+    const saved = saveSessions(sessions);
+
+    if (saved) {
+      res.json({ success: true });
+    } else {
+      throw new Error('Failed to update session position');
+    }
+  } catch (error) {
+    console.error('Error updating session position:', error);
+    res.status(500).json({ success: false, error: 'Failed to update session position' });
+  }
+});
+
+// API Route: Update session name
+app.patch('/api/sessions/:id/name', (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid name' });
+    }
+
+    let sessions = getSessions();
+    const existingIndex = sessions.findIndex(s => s.id === sessionId);
+
+    if (existingIndex < 0) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
+    }
+
+    sessions[existingIndex].name = name;
+    sessions[existingIndex].updatedAt = Date.now();
+
+    const saved = saveSessions(sessions);
+
+    if (saved) {
+      res.json({ success: true });
+    } else {
+      throw new Error('Failed to update session name');
+    }
+  } catch (error) {
+    console.error('Error updating session name:', error);
+    res.status(500).json({ success: false, error: 'Failed to update session name' });
+  }
+});
+
 // API Route: Delete session
 app.delete('/api/sessions/:id', (req, res) => {
   try {

@@ -5,7 +5,7 @@
  */
 
 // Types
-export type { AudioSession, SessionStorageConfig } from './types';
+export type { AudioSession, SessionStorageConfig, LastPlaybackPosition } from './types';
 
 // API (CRUD operations)
 export {
@@ -15,6 +15,8 @@ export {
   getSessionById,
   saveSession,
   deleteSession,
+  updateSessionPosition,
+  updateSessionName,
 } from './api';
 
 // Validation

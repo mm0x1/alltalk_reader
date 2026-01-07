@@ -10,6 +10,7 @@ interface ParagraphListProps {
   isLoading?: boolean;
   preGeneratedStatus?: boolean[];
   isOfflineSession?: boolean;
+  lastPlaybackPositionIndex?: number | null;
 }
 
 export default function ParagraphList({
@@ -19,6 +20,7 @@ export default function ParagraphList({
   isLoading = false,
   preGeneratedStatus,
   isOfflineSession = false,
+  lastPlaybackPositionIndex = null,
 }: ParagraphListProps) {
   const [showControls, setShowControls] = useState(true);
   const { paragraphRefs } = useParagraphScrolling(currentParagraphIndex);
@@ -43,6 +45,7 @@ export default function ParagraphList({
             showControls={showControls}
             isOfflineSession={isOfflineSession}
             isPreGenerated={preGeneratedStatus?.[index]}
+            isLastPosition={lastPlaybackPositionIndex === index}
             onPlay={() => onPlayParagraph(index)}
             paragraphRef={(el) => { paragraphRefs.current[index] = el }}
           />

@@ -4,6 +4,11 @@
  * Type definitions for audio sessions and storage configuration.
  */
 
+export interface LastPlaybackPosition {
+  paragraphIndex: number;
+  timestamp: number;
+}
+
 export interface AudioSession {
   id: string;
   name: string;
@@ -22,6 +27,7 @@ export interface AudioSession {
   };
   isOfflineSession?: boolean;
   hasLocalAudio?: boolean;
+  lastPlaybackPosition?: LastPlaybackPosition;
 }
 
 export interface SessionStorageConfig {

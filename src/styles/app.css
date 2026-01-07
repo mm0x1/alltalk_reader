@@ -72,6 +72,10 @@
     @apply bg-accent-primary/10 border-l-4 border-l-accent-primary pl-4;
   }
 
+  .book-paragraph-last-position {
+    @apply bg-amber-500/5 border-l-4 border-l-amber-500/50 pl-4;
+  }
+
   .book-text {
     @apply text-xl leading-relaxed font-serif text-gray-100 mb-3;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
