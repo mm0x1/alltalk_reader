@@ -28,7 +28,8 @@ export interface AllTalkSettings {
   current_model_loaded?: string;
   current_engine_loaded?: string;
   audio_format?: string;
-  available_models?: string[];
+  // models_available is an array of objects with 'name' property
+  models_available?: Array<{ name: string }>;
 
   // Additional settings that may be returned by the API
   [key: string]: unknown;

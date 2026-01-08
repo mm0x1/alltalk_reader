@@ -88,7 +88,8 @@ export function useCapabilities(): AllTalkCapabilities {
       currentModel: settings?.current_model_loaded ?? null,
       currentEngine: settings?.current_engine_loaded ?? null,
       audioFormat: settings?.audio_format ?? null,
-      availableModels: (settings?.available_models as string[]) ?? [],
+      // models_available is an array of objects with 'name' property
+      availableModels: (settings?.models_available as Array<{ name: string }> | undefined)?.map(m => m.name) ?? [],
     };
   }, [settings, state.availableRvcVoices, isClient]);
 }

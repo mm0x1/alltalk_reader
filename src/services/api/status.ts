@@ -79,12 +79,9 @@ export class StatusService {
    */
   async switchModel(modelName: string): Promise<ModelReloadResponse> {
     try {
-      const url = `${getBaseUrl()}${API_ENDPOINTS.MODEL_RELOAD}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ tts_method: modelName }),
-      });
+      const params = new URLSearchParams({ tts_method: modelName });
+      const url = `${getBaseUrl()}${API_ENDPOINTS.MODEL_RELOAD}?${params}`;
+      const response = await fetch(url, { method: 'POST' });
 
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);

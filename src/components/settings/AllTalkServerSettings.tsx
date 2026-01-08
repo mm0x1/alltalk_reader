@@ -130,12 +130,6 @@ export default function AllTalkServerSettings({
               <span className="ml-2 text-gray-200">{capabilities.audioFormat}</span>
             </div>
           )}
-          {capabilities.streaming && (
-            <div>
-              <span className="text-gray-400">Streaming:</span>
-              <span className="ml-2 text-green-400">Available</span>
-            </div>
-          )}
         </div>
 
         {/* DeepSpeed Toggle */}
