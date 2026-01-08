@@ -103,12 +103,9 @@ export class StatusService {
    */
   async toggleDeepSpeed(enable: boolean): Promise<DeepSpeedToggleResponse> {
     try {
-      const url = `${getBaseUrl()}${API_ENDPOINTS.DEEPSPEED_TOGGLE}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ new_deepspeed_value: enable ? 'True' : 'False' }),
-      });
+      const params = new URLSearchParams({ new_deepspeed_value: enable ? 'True' : 'False' });
+      const url = `${getBaseUrl()}${API_ENDPOINTS.DEEPSPEED_TOGGLE}?${params}`;
+      const response = await fetch(url, { method: 'POST' });
 
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
@@ -127,12 +124,9 @@ export class StatusService {
    */
   async toggleLowVram(enable: boolean): Promise<LowVramToggleResponse> {
     try {
-      const url = `${getBaseUrl()}${API_ENDPOINTS.LOWVRAM_TOGGLE}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ new_low_vram_value: enable ? 'True' : 'False' }),
-      });
+      const params = new URLSearchParams({ new_low_vram_value: enable ? 'True' : 'False' });
+      const url = `${getBaseUrl()}${API_ENDPOINTS.LOWVRAM_TOGGLE}?${params}`;
+      const response = await fetch(url, { method: 'POST' });
 
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
