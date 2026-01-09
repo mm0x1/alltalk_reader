@@ -247,52 +247,55 @@ export function useBufferedPlayback({
         return;
       }
 
-      setState((prev) => {
-        // Check if next paragraph is ready
-        const isNextReady = prev.bufferStatus.generated.has(nextIndex);
-        const newBufferSize = calculateBufferAhead(nextIndex, prev.bufferStatus.generated);
+      // IMPORTANT: Check the controller directly instead of React state to avoid race conditions.
+      // The controller's generatedUrls is the source of truth - React state may be stale
+      // due to batched updates when handleGenerationProgress and handleAudioEnded race.
+      const isNextReady = controllerRef.current.isReady(nextIndex);
+      const newBufferSize = controllerRef.current.getBufferAhead(nextIndex);
 
-        // Check if all remaining paragraphs are already generated
-        let allRemainingGenerated = true;
-        for (let i = nextIndex; i < paragraphs.length; i++) {
-          if (!prev.bufferStatus.generated.has(i)) {
-            allRemainingGenerated = false;
-            break;
-          }
+      // Check if all remaining paragraphs are already generated (using controller)
+      let allRemainingGenerated = true;
+      for (let i = nextIndex; i < paragraphs.length; i++) {
+        if (!controllerRef.current.isReady(i)) {
+          allRemainingGenerated = false;
+          break;
         }
+      }
 
-        console.log(`[BufferedPlayback] Next paragraph ${nextIndex + 1} ready: ${isNextReady}, buffer size: ${newBufferSize}, all remaining generated: ${allRemainingGenerated}`);
+      console.log(`[BufferedPlayback] Next paragraph ${nextIndex + 1} ready: ${isNextReady}, buffer size: ${newBufferSize}, all remaining generated: ${allRemainingGenerated}`);
 
-        // Only pause for refill if next isn't ready AND we don't have all remaining paragraphs
-        // If we're near the end and all remaining are generated, continue playing
-        const needsBuffering = !isNextReady || (newBufferSize < config.minBufferSize && !allRemainingGenerated);
+      // Only pause for refill if next isn't ready AND we don't have all remaining paragraphs
+      // If we're near the end and all remaining are generated, continue playing
+      const needsBuffering = !isNextReady || (newBufferSize < config.minBufferSize && !allRemainingGenerated);
 
-        if (needsBuffering) {
-          console.log('[BufferedPlayback] Buffer depleted, pausing for refill');
-          return {
-            ...prev,
-            status: 'buffering',
-            currentParagraph: nextIndex,
-            bufferStatus: {
-              ...prev.bufferStatus,
-              bufferSize: newBufferSize,
-            },
-          };
-        }
-
-        // Stay in playing status, just update the paragraph
-        console.log(`[BufferedPlayback] Continuing to paragraph ${nextIndex + 1}`);
-        return {
+      if (needsBuffering) {
+        console.log('[BufferedPlayback] Buffer depleted, pausing for refill');
+        setState((prev) => ({
           ...prev,
+          status: 'buffering',
           currentParagraph: nextIndex,
           bufferStatus: {
             ...prev.bufferStatus,
             bufferSize: newBufferSize,
+            generated: new Set([...prev.bufferStatus.generated, ...Array.from(controllerRef.current.getAllUrls().keys())]),
           },
-        };
-      });
+        }));
+        return;
+      }
+
+      // Stay in playing status, just update the paragraph
+      console.log(`[BufferedPlayback] Continuing to paragraph ${nextIndex + 1}`);
+      setState((prev) => ({
+        ...prev,
+        currentParagraph: nextIndex,
+        bufferStatus: {
+          ...prev.bufferStatus,
+          bufferSize: newBufferSize,
+          generated: new Set([...prev.bufferStatus.generated, ...Array.from(controllerRef.current.getAllUrls().keys())]),
+        },
+      }));
     },
-    [paragraphs.length, calculateBufferAhead, config.minBufferSize]
+    [paragraphs.length, config.minBufferSize]
   );
 
   // Keep ref updated with latest handleAudioEnded
