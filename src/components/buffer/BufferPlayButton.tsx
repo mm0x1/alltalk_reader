@@ -137,29 +137,23 @@ export function BufferPlayButton({
     return 'bg-accent-primary hover:bg-accent-primary/80 text-white';
   };
 
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleClick}
-        disabled={isDisabled}
-        className={`px-3 py-1.5 text-sm rounded flex items-center gap-1.5 transition-colors ${getButtonStyle()}`}
-        title={
-          !isServerConnected
-            ? 'Server not connected'
-            : !hasParagraphs
-            ? 'No paragraphs to play'
-            : 'Start buffered playback'
-        }
-      >
-        {getIcon()}
-        <span>{getButtonText()}</span>
-      </button>
+  // When active, show play/pause button and stop button side by side
+  if (isActive) {
+    return (
+      <div className="flex gap-1.5">
+        <button
+          onClick={handleClick}
+          disabled={isDisabled}
+          className={`flex-1 px-3 py-2 text-sm rounded flex items-center justify-center gap-1.5 transition-colors ${getButtonStyle()}`}
+          title={isPlaying ? 'Pause playback' : isPaused ? 'Resume playback' : 'Buffering...'}
+        >
+          {getIcon()}
+          <span className="truncate">{getButtonText()}</span>
+        </button>
 
-      {/* Stop button - only visible when active */}
-      {isActive && (
         <button
           onClick={onStop}
-          className="px-2 py-1.5 text-sm rounded bg-dark-400 hover:bg-dark-500 text-gray-300 transition-colors"
+          className="px-2.5 py-2 text-sm rounded bg-dark-400 hover:bg-dark-500 text-gray-300 transition-colors border border-dark-500"
           title="Stop playback"
         >
           <svg
@@ -175,8 +169,27 @@ export function BufferPlayButton({
             />
           </svg>
         </button>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  // Idle/completed/error state - single button
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isDisabled}
+      className={`w-full px-3 py-2 text-sm rounded flex items-center justify-center gap-1.5 transition-colors ${getButtonStyle()}`}
+      title={
+        !isServerConnected
+          ? 'Server not connected'
+          : !hasParagraphs
+          ? 'No paragraphs to play'
+          : 'Start buffered playback'
+      }
+    >
+      {getIcon()}
+      <span className="truncate">{getButtonText()}</span>
+    </button>
   );
 }
 
