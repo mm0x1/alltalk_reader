@@ -11,6 +11,10 @@ yarn.lock
 /api/
 /server/build
 /public/build
+release/
+.tanstack
+.nitro
+dist/
 # Sentry Config File
 .env.sentry-build-plugin
 /test-results/
@@ -21,3 +25,5 @@ yarn.lock
 # Session data
 /data/
 *.db
+.aider*
+CLAUDE.md

@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 
-export function NotFound({ children }: { children?: any }) {
+export function NotFound({ children }: { children?: ReactNode }) {
   return (
     <div className="space-y-4 p-4 card my-8 max-w-lg mx-auto">
       <div className="text-gray-300">

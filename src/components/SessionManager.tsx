@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SessionList from './SessionList';
-import { AudioSession } from '~/services/sessionStorage';
+import { type AudioSession } from '~/services/session';
 
 interface SessionManagerProps {
   onLoadSession: (session: AudioSession) => void;
@@ -25,7 +25,7 @@ export default function SessionManager({ onLoadSession, onClose }: SessionManage
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-200">Saved Sessions</h2>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={handleRefresh}
             className="p-1.5 hover:bg-dark-400 rounded"
             title="Refresh Sessions"
@@ -34,7 +34,7 @@ export default function SessionManager({ onLoadSession, onClose }: SessionManage
               <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
             </svg>
           </button>
-          <button 
+          <button
             onClick={onClose}
             className="p-1.5 hover:bg-dark-400 rounded"
             title="Close"
@@ -50,10 +50,15 @@ export default function SessionManager({ onLoadSession, onClose }: SessionManage
         Select a previously generated session to load its audio files.
         These sessions persist even if you refresh or close the browser.
       </p>
-      
-      <SessionList 
+
+      <p className="text-gray-400 mb-4">Note: Audio files on the AllTalk server will not be deleted automatically.
+        To free up disk space, manually clear the AllTalk outputs folder.
+      </p>
+
+
+      <SessionList
         key={refreshKey}
-        onLoadSession={handleSelectSession} 
+        onLoadSession={handleSelectSession}
       />
     </div>
   );
