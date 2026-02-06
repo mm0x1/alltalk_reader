@@ -120,6 +120,8 @@ export function useBufferedPlayback({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentAudioUrlRef = useRef<string | null>(null);
   const isSafariRef = useRef(false);
+  const isAudioPrimedRef = useRef(false); // Track if audio has been primed for iOS Safari
+  const preloadedAudioRef = useRef<{ index: number; audio: HTMLAudioElement } | null>(null); // Preloaded next audio
 
   // Detect Safari/iOS
   useEffect(() => {
@@ -303,6 +305,27 @@ export function useBufferedPlayback({
     handleAudioEndedRef.current = handleAudioEnded;
   }, [handleAudioEnded]);
 
+  // Preload the next paragraph's audio for seamless playback
+  const preloadNextParagraph = useCallback((currentIndex: number) => {
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= paragraphs.length) return;
+
+    const nextUrl = controllerRef.current.getUrl(nextIndex);
+    if (!nextUrl) return;
+
+    // Don't preload if already preloaded for this index
+    if (preloadedAudioRef.current?.index === nextIndex) return;
+
+    console.log(`[BufferedPlayback] Preloading paragraph ${nextIndex + 1}`);
+
+    const preloadAudio = new Audio();
+    preloadAudio.preload = 'auto';
+    preloadAudio.src = nextUrl;
+    preloadAudio.load();
+
+    preloadedAudioRef.current = { index: nextIndex, audio: preloadAudio };
+  }, [paragraphs.length]);
+
   // Play audio for a specific paragraph
   const playParagraph = useCallback(
     async (index: number) => {
@@ -322,8 +345,35 @@ export function useBufferedPlayback({
 
       return new Promise<boolean>((resolve) => {
         let audio: HTMLAudioElement;
+        let usePreloaded = false;
 
-        if (isSafariRef.current && audioRef.current) {
+        // Check if we have this audio preloaded
+        if (preloadedAudioRef.current?.index === index) {
+          const preloaded = preloadedAudioRef.current.audio;
+          // Check if preloaded audio is actually ready (readyState >= 3 means HAVE_FUTURE_DATA)
+          if (preloaded.readyState >= 3) {
+            console.log(`[BufferedPlayback] Using preloaded audio for paragraph ${index + 1} (readyState: ${preloaded.readyState})`);
+            audio = preloaded;
+            preloadedAudioRef.current = null;
+            usePreloaded = true;
+          } else {
+            console.log(`[BufferedPlayback] Preloaded audio not ready for paragraph ${index + 1} (readyState: ${preloaded.readyState}), loading fresh`);
+            preloaded.src = ''; // Release it
+            preloadedAudioRef.current = null;
+            // Fall through to load fresh
+            if (isSafariRef.current && audioRef.current) {
+              audio = audioRef.current;
+              audio.oncanplaythrough = null;
+              audio.oncanplay = null;
+              audio.onended = null;
+              audio.onerror = null;
+              audio.src = url;
+            } else {
+              audio = new Audio(url);
+            }
+          }
+        } else if (isSafariRef.current && audioRef.current) {
+          // Safari: reuse the primed audio element
           audio = audioRef.current;
           audio.oncanplaythrough = null;
           audio.oncanplay = null;
@@ -344,6 +394,8 @@ export function useBufferedPlayback({
             .play()
             .then(() => {
               console.log(`[BufferedPlayback] Playing paragraph ${index + 1}`);
+              // Start preloading the next paragraph while this one plays
+              preloadNextParagraph(index);
               resolve(true);
             })
             .catch((err) => {
@@ -368,11 +420,21 @@ export function useBufferedPlayback({
 
         audioRef.current = audio;
         currentAudioUrlRef.current = url;
-        audio.preload = 'auto';
-        audio.load();
+
+        // If using preloaded audio, it should already be loaded
+        // If not preloaded, we need to load it
+        if (!usePreloaded) {
+          audio.preload = 'auto';
+          audio.load();
+        }
+
+        // If preloaded audio is already ready, start immediately
+        if (usePreloaded && audio.readyState >= 3) {
+          startPlayback();
+        }
       });
     },
-    [] // Safe to have empty deps since we use handleAudioEndedRef
+    [preloadNextParagraph] // Safe to have minimal deps since we use handleAudioEndedRef
   );
 
   // Track if we've started playback for the current paragraph to avoid duplicate plays
@@ -382,14 +444,36 @@ export function useBufferedPlayback({
   useEffect(() => {
     if (state.status === 'playing') {
       const url = controllerRef.current.getUrl(state.currentParagraph);
-      const audioIsPaused = !audioRef.current || audioRef.current.paused || audioRef.current.ended;
       const alreadyStarted = playbackStartedForRef.current === state.currentParagraph;
 
-      console.log(`[BufferedPlayback] Play effect - paragraph: ${state.currentParagraph + 1}, url: ${!!url}, audioIsPaused: ${audioIsPaused}, alreadyStarted: ${alreadyStarted}`);
+      // Check if audio is paused/ended and ready for new playback.
+      // On Safari, if we just primed the audio (playing silent audio), we should still
+      // attempt playback - playParagraph will set a new src which interrupts the primer.
+      const audioElement = audioRef.current;
+      const audioIsPaused = !audioElement || audioElement.paused || audioElement.ended;
 
-      if (url && audioIsPaused && !alreadyStarted) {
+      // On Safari, also consider audio "ready" if we're playing the primer (silent audio)
+      // which we detect by checking if the src is a data URL
+      const isPlayingPrimer = audioElement &&
+        !audioElement.paused &&
+        audioElement.src.startsWith('data:');
+      const isReadyForPlayback = audioIsPaused || isPlayingPrimer;
+
+      console.log(`[BufferedPlayback] Play effect - paragraph: ${state.currentParagraph + 1}, url: ${!!url}, audioIsPaused: ${audioIsPaused}, isPlayingPrimer: ${isPlayingPrimer}, alreadyStarted: ${alreadyStarted}`);
+
+      if (url && isReadyForPlayback && !alreadyStarted) {
+        // Mark as started BEFORE attempting play to prevent duplicate calls
         playbackStartedForRef.current = state.currentParagraph;
-        playParagraph(state.currentParagraph);
+
+        // Attempt playback and handle failure
+        playParagraph(state.currentParagraph).then((success) => {
+          if (!success) {
+            console.warn(`[BufferedPlayback] Playback failed for paragraph ${state.currentParagraph + 1}, will retry on next user interaction`);
+            // Reset so we can retry - the user will need to interact (pause/resume) to trigger playback
+            // This is necessary because iOS Safari blocks autoplay without user gesture
+            playbackStartedForRef.current = -1;
+          }
+        });
       }
 
       // Extend generation range as we play
@@ -421,6 +505,20 @@ export function useBufferedPlayback({
       }
     }
   }, [state.status, state.bufferStatus.bufferSize, config.minBufferSize, state.currentParagraph, playParagraph]);
+
+  // Effect to proactively preload next paragraph when it becomes available
+  useEffect(() => {
+    if (state.status === 'playing' || state.status === 'buffering') {
+      const nextIndex = state.currentParagraph + 1;
+      // Check if next paragraph is generated and not already preloaded
+      if (
+        state.bufferStatus.generated.has(nextIndex) &&
+        preloadedAudioRef.current?.index !== nextIndex
+      ) {
+        preloadNextParagraph(state.currentParagraph);
+      }
+    }
+  }, [state.status, state.currentParagraph, state.bufferStatus.generated, preloadNextParagraph]);
 
   // Page visibility handling
   useEffect(() => {
@@ -498,6 +596,30 @@ export function useBufferedPlayback({
 
       console.log(`[BufferedPlayback] Starting from paragraph ${fromIndex + 1}`);
 
+      // IMPORTANT: Prime audio for iOS Safari by playing silent audio immediately.
+      // iOS Safari requires audio.play() to be called synchronously within a user gesture.
+      // We prime the MAIN audio element so it becomes "blessed" for future programmatic playback.
+      // The isAudioPrimedRef flag tracks completion so the playback effect knows when it's safe.
+      if (isSafariRef.current && !isAudioPrimedRef.current) {
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+        }
+        // Minimal valid WAV file (44 bytes) - silent audio
+        const silentWav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+        audioRef.current.src = silentWav;
+        audioRef.current.play()
+          .then(() => {
+            console.log('[BufferedPlayback] iOS Safari audio primed successfully');
+            audioRef.current?.pause();
+            isAudioPrimedRef.current = true;
+          })
+          .catch((err) => {
+            console.warn('[BufferedPlayback] Failed to prime audio:', err);
+            // Even on failure, mark as primed to avoid repeated attempts
+            isAudioPrimedRef.current = true;
+          });
+      }
+
       // Initialize controller
       controllerRef.current.initialize(paragraphs, {
         characterVoice: voice,
@@ -572,8 +694,15 @@ export function useBufferedPlayback({
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    // Clean up preloaded audio
+    if (preloadedAudioRef.current) {
+      preloadedAudioRef.current.audio.src = '';
+      preloadedAudioRef.current = null;
+    }
     controllerRef.current.stop();
     setState(createInitialState(config.targetBufferSize));
+    // Reset primed flag so next start() will prime audio again (important for iOS Safari)
+    isAudioPrimedRef.current = false;
   }, [config.targetBufferSize]);
 
   const skipTo = useCallback(
