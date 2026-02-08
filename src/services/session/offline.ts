@@ -11,6 +11,20 @@ import {
   getAudioBlob as getIndexedDbAudioBlob,
   isIndexedDbAvailable,
 } from '../storage';
+import { getBaseUrl } from '~/config/env';
+
+/**
+ * Resolve a stored audio URL against the currently configured AllTalk server.
+ * Sessions may store URLs with 'localhost' from the machine that generated them,
+ * so we discard the stored origin and use the configured API base URL instead.
+ */
+function resolveAudioUrl(url: string): string {
+  try {
+    return `${getBaseUrl()}${new URL(url).pathname}`;
+  } catch {
+    return url;
+  }
+}
 
 /**
  * Track created Object URLs for cleanup to prevent memory leaks
@@ -87,14 +101,15 @@ export function getAudioUrlForPlayback(
     return createTrackedObjectUrl(cachedBlobs[key]);
   }
 
-  // Third priority: Original URL (may require server)
+  // Third priority: Original URL (may require server) — rewrite host to current server
+  // so that sessions saved with 'localhost' still work when accessed from other devices.
   if (session.audioUrls[index]) {
-    return session.audioUrls[index];
+    return resolveAudioUrl(session.audioUrls[index]);
   }
 
   // Fourth priority: Fallback URL
   if (fallbackUrl) {
-    return fallbackUrl;
+    return resolveAudioUrl(fallbackUrl);
   }
 
   return null;
@@ -134,14 +149,14 @@ export async function getAudioUrlForPlaybackAsync(
     return createTrackedObjectUrl(cachedBlobs[key]);
   }
 
-  // Fourth priority: Original URL (may require server)
+  // Fourth priority: Original URL (may require server) — rewrite host to current server
   if (session.audioUrls[index]) {
-    return session.audioUrls[index];
+    return resolveAudioUrl(session.audioUrls[index]);
   }
 
   // Fifth priority: Fallback URL
   if (fallbackUrl) {
-    return fallbackUrl;
+    return resolveAudioUrl(fallbackUrl);
   }
 
   return null;
