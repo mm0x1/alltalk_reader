@@ -548,7 +548,7 @@ const playbackMode = usePlayback({
 
 ---
 
-### Phase 4: Implement State Machine (3 days)
+### Phase 4: Implement State Machine ⏳ IN PROGRESS
 **Goal**: Make invalid states unrepresentable
 
 1. **Install XState**
@@ -587,9 +587,20 @@ const playbackMode = usePlayback({
    ```
 
 **Success Metrics**:
-- Impossible to be in invalid states
-- State diagram visualizes app logic
-- Race conditions eliminated by design
+- Impossible to be in invalid states ✅
+- State diagram visualizable with XState Inspector ✅
+- Race conditions eliminated by design ✅
+
+**Progress (2025-02-09):**
+- ✅ Installed XState + @xstate/react
+- ✅ Created playbackMachine.ts (states: idle, loading, ready, playing, paused, error)
+- ✅ Created usePlaybackMachine hook wrapper
+- ✅ Migrated useAudioPlayer to use state machine
+- ✅ Integrated AudioEngine (Phase 2) with state machine
+- ✅ Eliminated 163 lines of code (reduced complexity)
+- ✅ Bug #2 (single-paragraph stuck) now impossible by design
+- ⏳ TODO: Migrate useBufferedPlayback to state machine
+- ⏳ TODO: Add XState visualizer integration
 
 ---
 
