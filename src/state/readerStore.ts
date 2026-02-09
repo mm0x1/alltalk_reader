@@ -203,10 +203,28 @@ const defaultTtsSettings: TtsSettings = {
   rvcPitch: DEFAULT_RVC_PITCH,
 }
 
-const defaultPlaybackSettings: PlaybackSettings = {
-  speed: 1.0,
-  preservesPitch: true,
+// Load playback settings from localStorage
+const loadPlaybackSettings = (): PlaybackSettings => {
+  if (typeof window === 'undefined') {
+    return { speed: 1.0, preservesPitch: true }
+  }
+
+  try {
+    const stored = localStorage.getItem('alltalk-playback-settings')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return {
+        speed: parsed.speed ?? 1.0,
+        preservesPitch: parsed.preservesPitch ?? true,
+      }
+    }
+  } catch (e) {
+    console.warn('[PlaybackSettings] Failed to load from localStorage:', e)
+  }
+  return { speed: 1.0, preservesPitch: true }
 }
+
+const defaultPlaybackSettings: PlaybackSettings = loadPlaybackSettings()
 
 const defaultTextState: TextState = {
   text: '',
@@ -376,8 +394,18 @@ export const useReaderStore = create<ReaderStore>()(
           'updatePreservesPitch'
         ),
 
-      resetPlaybackSettings: () =>
-        set({ playbackSettings: defaultPlaybackSettings }, false, 'resetPlaybackSettings'),
+      resetPlaybackSettings: () => {
+        const defaults = { speed: 1.0, preservesPitch: true }
+        set({ playbackSettings: defaults }, false, 'resetPlaybackSettings')
+        // Persist reset to localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('alltalk-playback-settings', JSON.stringify(defaults))
+          } catch (e) {
+            console.warn('[PlaybackSettings] Failed to save to localStorage:', e)
+          }
+        }
+      },
 
       // Text State Actions
       updateText: (text) =>
@@ -711,3 +739,17 @@ export const useReaderStore = create<ReaderStore>()(
     { name: 'ReaderStore' }
   )
 )
+
+// Subscribe to playback settings changes and persist to localStorage
+if (typeof window !== 'undefined') {
+  useReaderStore.subscribe(
+    (state) => state.playbackSettings,
+    (playbackSettings) => {
+      try {
+        localStorage.setItem('alltalk-playback-settings', JSON.stringify(playbackSettings))
+      } catch (e) {
+        console.warn('[PlaybackSettings] Failed to save to localStorage:', e)
+      }
+    }
+  )
+}
