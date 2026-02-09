@@ -136,12 +136,11 @@ export const playbackMachine = setup({
         }
 
         // Generate audio via API
-        const { generateTTS } = await import('~/services/api/tts')
+        const { ttsService } = await import('~/services/api/tts')
         const text = context.paragraphs[paragraphIndex]
 
-        const result = await generateTTS({
-          text,
-          voice: context.voice,
+        const result = await ttsService.generateTTS(text, {
+          characterVoice: context.voice,
           language: context.language,
           speed: context.speed,
           pitch: context.pitch,
@@ -149,7 +148,11 @@ export const playbackMachine = setup({
           repetitionPenalty: context.repetitionPenalty,
         })
 
-        return { audioUrl: result.audioUrl, paragraphIndex }
+        if (!result) {
+          throw new Error('Failed to generate audio')
+        }
+
+        return { audioUrl: result.fullAudioUrl, paragraphIndex }
       }
     ),
   },
@@ -178,14 +181,18 @@ export const playbackMachine = setup({
     }),
     assignAudioData: assign({
       audioUrl: ({ event }) => {
-        if (event.type === 'xstate.done.actor.loadAudioActor') {
-          return (event as any).output.audioUrl
+        // XState invokes completion events
+        const anyEvent = event as any
+        if (anyEvent.output?.audioUrl) {
+          return anyEvent.output.audioUrl
         }
         return null
       },
       currentParagraph: ({ event }) => {
-        if (event.type === 'xstate.done.actor.loadAudioActor') {
-          return (event as any).output.paragraphIndex
+        // XState invokes completion events
+        const anyEvent = event as any
+        if (anyEvent.output?.paragraphIndex !== undefined) {
+          return anyEvent.output.paragraphIndex
         }
         return 0
       },
@@ -193,11 +200,10 @@ export const playbackMachine = setup({
     }),
     assignError: assign({
       errorMessage: ({ event }) => {
-        if (event.type === 'xstate.error.actor.loadAudioActor') {
-          const error = (event as any).error
-          return error?.message || 'Failed to load audio'
-        }
-        return 'An error occurred'
+        // XState invokes error events
+        const anyEvent = event as any
+        const error = anyEvent.error
+        return error?.message || 'Failed to load audio'
       },
     }),
     clearError: assign({
