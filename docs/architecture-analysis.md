@@ -505,7 +505,7 @@ const playbackMode = usePlayback({
 
 ---
 
-### Phase 3: Consolidate State (5 days)
+### Phase 3: Consolidate State ✅ COMPLETE
 **Goal**: Single source of truth
 
 1. **Create `state/readerStore.ts` (Zustand)**
@@ -533,9 +533,18 @@ const playbackMode = usePlayback({
    - ~200 lines deleted
 
 **Success Metrics**:
-- Single `useReaderStore()` call
-- DevTools show entire state tree
-- No more "what is the current state?" questions
+- Single `useReaderStore()` call ✅
+- DevTools show entire state tree ✅
+- No more "what is the current state?" questions ✅
+
+**Completed 2025-02-09:**
+- ✅ Created `state/readerStore.ts` with Zustand + Redux DevTools
+- ✅ Migrated 9 state slices: TTS, playback, text, session, batch, modals, resume, import/export, smart split
+- ✅ Migrated 6 hooks: useModalState, usePlaybackSettings, useSessionManager, useTtsSettings, useBatchGeneration, useTextProcessor
+- ✅ Added localStorage persistence for playback settings
+- ✅ Simplified reader.tsx: handleReset (10→5 lines), TTS handlers (60→20 lines via shared helper)
+- ✅ Reduced code duplication by ~90 lines
+- ✅ Made handleReset orthogonal (atomic state reset)
 
 ---
 
