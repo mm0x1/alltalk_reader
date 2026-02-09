@@ -355,13 +355,38 @@ export function useBufferedPlayback({
       console.log(`[BufferedPlayback] Playing URL: ${fullUrl}`);
 
       // Check if we have preloaded audio that's ready to use
-      let usePreloadedAudio = false;
       if (preloadedAudioRef.current?.index === index) {
         const preloaded = preloadedAudioRef.current.audio;
         // Check if preloaded audio is ready (readyState >= 3 means HAVE_FUTURE_DATA)
         if (preloaded.readyState >= 3) {
           console.log(`[BufferedPlayback] Using preloaded audio for paragraph ${index + 1} (readyState: ${preloaded.readyState})`);
-          usePreloadedAudio = true;
+
+          // Use preloaded audio directly for instant playback
+          return new Promise<boolean>((resolve) => {
+            preloaded.onended = () => {
+              console.log(`[BufferedPlayback] Paragraph ${index + 1} ended`);
+              handleAudioEndedRef.current(index);
+            };
+
+            preloaded.onerror = (err) => {
+              console.error(`[BufferedPlayback] Audio error for paragraph ${index + 1}:`, err);
+              resolve(false);
+            };
+
+            preloaded.play()
+              .then(() => {
+                console.log(`[BufferedPlayback] Playing paragraph ${index + 1} (preloaded)`);
+                preloadedAudioRef.current = null; // Clear after use
+                // Start preloading the next paragraph while this one plays
+                preloadNextParagraph(index);
+                resolve(true);
+              })
+              .catch((err) => {
+                console.error(`[BufferedPlayback] Play failed for paragraph ${index + 1}:`, err);
+                preloadedAudioRef.current = null;
+                resolve(false);
+              });
+          });
         } else {
           console.log(`[BufferedPlayback] Preloaded audio not ready for paragraph ${index + 1} (readyState: ${preloaded.readyState}), loading fresh`);
           preloaded.src = ''; // Release it
@@ -369,7 +394,8 @@ export function useBufferedPlayback({
         }
       }
 
-      // Use AudioEngine to play audio
+      // Fallback: Use AudioEngine to play audio (no preloaded audio available)
+      console.log(`[BufferedPlayback] No preloaded audio, using AudioEngine for paragraph ${index + 1}`);
       const success = await audioEngineRef.current!.play(fullUrl, {
         onCanPlay: () => {
           console.log(`[BufferedPlayback] Playing paragraph ${index + 1}`);
@@ -385,11 +411,6 @@ export function useBufferedPlayback({
           console.error(`[BufferedPlayback] Audio error for paragraph ${index + 1}:`, err);
         }
       });
-
-      // Clear used preloaded audio
-      if (usePreloadedAudio && preloadedAudioRef.current) {
-        preloadedAudioRef.current = null;
-      }
 
       return success;
     },
