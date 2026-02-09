@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useMachine } from '@xstate/react'
 import { playbackMachine, type PlaybackInput } from '~/state/playbackMachine'
 
 /**
  * React hook wrapper for playback state machine (Phase 4)
  *
- * Manages audio playback lifecycle with explicit state transitions.
+ * Manages playback state transitions (NOT audio playback itself).
+ * Audio playback is handled by AudioEngine in useAudioPlayer.
+ *
  * Eliminates race conditions by making invalid states unrepresentable.
  *
  * @example
@@ -23,7 +25,6 @@ import { playbackMachine, type PlaybackInput } from '~/state/playbackMachine'
  */
 export function usePlaybackMachine(input: PlaybackInput) {
   const [state, send] = useMachine(playbackMachine, { input })
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Derive convenient flags from state
   const isIdle = state.matches('idle')
@@ -32,63 +33,6 @@ export function usePlaybackMachine(input: PlaybackInput) {
   const isPlaying = state.matches('playing')
   const isPaused = state.matches('paused')
   const isError = state.matches('error')
-
-  // Initialize audio element
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio()
-    }
-
-    const audio = audioRef.current
-
-    // Configure audio element with playback settings
-    audio.playbackRate = state.context.playbackSpeed
-    audio.preservesPitch = state.context.preservesPitch
-
-    // Handle audio ended event
-    const handleEnded = () => {
-      console.log('🎵 Audio ended, transitioning to next paragraph')
-      send({ type: 'AUDIO_ENDED' })
-    }
-
-    audio.addEventListener('ended', handleEnded)
-
-    return () => {
-      audio.removeEventListener('ended', handleEnded)
-    }
-  }, [state.context.playbackSpeed, state.context.preservesPitch, send])
-
-  // Handle state transitions that require audio element control
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    // State: ready → Load audio URL
-    if (isReady && state.context.audioUrl) {
-      audio.src = state.context.audioUrl
-      console.log(`🎵 [Playback Machine] Audio ready for paragraph ${state.context.currentParagraph + 1}`)
-    }
-
-    // State: playing → Play audio
-    if (isPlaying && state.context.audioUrl) {
-      audio.play().catch((error) => {
-        console.error('Failed to play audio:', error)
-        send({ type: 'STOP' })
-      })
-    }
-
-    // State: paused → Pause audio
-    if (isPaused) {
-      audio.pause()
-    }
-
-    // State: idle/error → Stop and clear audio
-    if (isIdle || isError) {
-      audio.pause()
-      audio.currentTime = 0
-      audio.src = ''
-    }
-  }, [isIdle, isReady, isPlaying, isPaused, isError, state.context.audioUrl, state.context.currentParagraph, send])
 
   // Update machine context when input props change
   useEffect(() => {
@@ -136,9 +80,6 @@ export function usePlaybackMachine(input: PlaybackInput) {
     // State machine
     state,
     send,
-
-    // Audio element
-    audioRef,
 
     // Derived state flags
     isIdle,
