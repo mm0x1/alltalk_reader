@@ -45,6 +45,9 @@ function BookReader() {
   const setLastPlaybackPosition = useReaderStore((state) => state.setLastPlaybackPosition)
   const handleResumePosition = useReaderStore((state) => state.handleResumePosition)
 
+  // Global reset action from store
+  const resetAll = useReaderStore((state) => state.resetAll)
+
   // Advanced settings flag (Phase 5)
   const advancedSettingsEnabled = useAdvancedSettingsEnabled()
 
@@ -224,18 +227,14 @@ function BookReader() {
     e.target.value = ''
   }
 
-  // Reset everything
+  // Reset everything (orthogonal reset - Phase 3 improvement)
   const handleReset = () => {
-    resetText()
-    resetTts()
-    resetPreGenerated()
+    // Reset all Zustand store state atomically
+    resetAll()
+
+    // Reset audio playback hooks (not yet in store - Phase 4)
     resetAudio()
     stopBufferedPlayback()
-    clearSession()
-    closeBatchGenerator()
-    setShowBufferSettings(false)
-    setShowResumePrompt(false)
-    setLastPlaybackPosition(null)
   }
 
   // Handle paragraph click - choose the right mode
@@ -250,96 +249,40 @@ function BookReader() {
   // Determine the active paragraph (buffer mode or regular mode)
   const activeParagraph = isBufferModeActive ? bufferState.currentParagraph : currentParagraph
 
-  // Handle voice change with pre-generation reset
-  const handleVoiceChange = (voice: string) => {
-    updateVoice(voice, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
+  // Helper: Stop playback and invalidate cache when TTS settings change
+  // DRY improvement (Phase 3) - was duplicated across 8 handlers
+  const handleTtsSettingChange = (updateFn: () => void) => {
+    updateFn() // Update the specific setting (includes resetPreGenerated callback)
+    clearSession() // Invalidate current session
+    if (isPlaying) resetAudio() // Stop live playback
+    if (isBufferModeActive) stopBufferedPlayback() // Stop buffered playback
   }
 
-  // Handle settings changes with pre-generation reset
-  const handleSpeedChange = (newSpeed: number) => {
-    updateSpeed(newSpeed, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  // TTS settings handlers (now using shared helper)
+  const handleVoiceChange = (voice: string) =>
+    handleTtsSettingChange(() => updateVoice(voice, resetPreGenerated))
 
-  const handlePitchChange = (newPitch: number) => {
-    updatePitch(newPitch, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  const handleSpeedChange = (newSpeed: number) =>
+    handleTtsSettingChange(() => updateSpeed(newSpeed, resetPreGenerated))
 
-  const handleLanguageChange = (newLanguage: string) => {
-    updateLanguage(newLanguage, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  const handlePitchChange = (newPitch: number) =>
+    handleTtsSettingChange(() => updatePitch(newPitch, resetPreGenerated))
+
+  const handleLanguageChange = (newLanguage: string) =>
+    handleTtsSettingChange(() => updateLanguage(newLanguage, resetPreGenerated))
 
   // Advanced settings handlers (Phase 5)
-  const handleTemperatureChange = (newTemperature: number) => {
-    updateTemperature(newTemperature, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  const handleTemperatureChange = (newTemperature: number) =>
+    handleTtsSettingChange(() => updateTemperature(newTemperature, resetPreGenerated))
 
-  const handleRepetitionPenaltyChange = (newPenalty: number) => {
-    updateRepetitionPenalty(newPenalty, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  const handleRepetitionPenaltyChange = (newPenalty: number) =>
+    handleTtsSettingChange(() => updateRepetitionPenalty(newPenalty, resetPreGenerated))
 
-  const handleRvcVoiceChange = (voice: string | null) => {
-    updateRvcVoice(voice, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  const handleRvcVoiceChange = (voice: string | null) =>
+    handleTtsSettingChange(() => updateRvcVoice(voice, resetPreGenerated))
 
-  const handleRvcPitchChange = (newPitch: number) => {
-    updateRvcPitch(newPitch, resetPreGenerated)
-    clearSession()
-    if (isPlaying) {
-      resetAudio()
-    }
-    if (isBufferModeActive) {
-      stopBufferedPlayback()
-    }
-  }
+  const handleRvcPitchChange = (newPitch: number) =>
+    handleTtsSettingChange(() => updateRvcPitch(newPitch, resetPreGenerated))
 
   return (
     <div className="p-4 max-w-6xl mx-auto">

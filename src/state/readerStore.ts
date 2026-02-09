@@ -719,7 +719,7 @@ export const useReaderStore = create<ReaderStore>()(
         set({ smartSplitState: { useSmartSplit: use } }, false, 'setUseSmartSplit'),
 
       // Global Actions
-      resetAll: () =>
+      resetAll: () => {
         set(
           {
             ttsSettings: defaultTtsSettings,
@@ -734,7 +734,9 @@ export const useReaderStore = create<ReaderStore>()(
           },
           false,
           'resetAll'
-        ),
+        )
+        console.log('🔄 [ReaderStore] Complete state reset (New Book)')
+      },
     }),
     { name: 'ReaderStore' }
   )
