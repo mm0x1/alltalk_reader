@@ -17,6 +17,7 @@ import {
   revokeAudioObjectUrl,
   revokeAllAudioObjectUrls,
 } from '~/services/session';
+import { getBaseUrl } from '~/config/env';
 
 interface UseBufferedPlaybackProps {
   paragraphs: string[];
@@ -25,6 +26,9 @@ interface UseBufferedPlaybackProps {
   pitch: number;
   language: string;
   isServerConnected: boolean;
+  // Playback settings (client-side)
+  playbackSpeed: number;
+  preservesPitch: boolean;
   // Advanced settings (Phase 5)
   temperature?: number;
   repetitionPenalty?: number;
@@ -107,6 +111,8 @@ export function useBufferedPlayback({
   pitch,
   language,
   isServerConnected,
+  playbackSpeed,
+  preservesPitch,
   temperature,
   repetitionPenalty,
 }: UseBufferedPlaybackProps): UseBufferedPlaybackReturn {
@@ -123,6 +129,10 @@ export function useBufferedPlayback({
   const isAudioPrimedRef = useRef(false); // Track if audio has been primed for iOS Safari
   const preloadedAudioRef = useRef<{ index: number; audio: HTMLAudioElement } | null>(null); // Preloaded next audio
 
+  // Store playback settings in refs to avoid stale closures in event handlers
+  const playbackSpeedRef = useRef(playbackSpeed);
+  const preservesPitchRef = useRef(preservesPitch);
+
   // Detect Safari/iOS
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -138,6 +148,36 @@ export function useBufferedPlayback({
       }
     }
   }, []);
+
+  // Keep playback setting refs in sync with props
+  useEffect(() => {
+    playbackSpeedRef.current = playbackSpeed;
+    preservesPitchRef.current = preservesPitch;
+  }, [playbackSpeed, preservesPitch]);
+
+  // Helper function to configure audio playback settings
+  // Uses refs to access current values, avoiding stale closures in event handlers
+  const configureAudioPlayback = (audio: HTMLAudioElement) => {
+    audio.playbackRate = playbackSpeedRef.current;
+
+    // Set preservesPitch with cross-browser support
+    if ('preservesPitch' in audio) {
+      audio.preservesPitch = preservesPitchRef.current;
+    } else if ('mozPreservesPitch' in audio) {
+      (audio as any).mozPreservesPitch = preservesPitchRef.current;
+    } else if ('webkitPreservesPitch' in audio) {
+      (audio as any).webkitPreservesPitch = preservesPitchRef.current;
+    }
+
+    console.log(`[BufferedPlayback] Configured playback: ${playbackSpeedRef.current}x, preservesPitch: ${preservesPitchRef.current}`);
+  };
+
+  // Update playback rate on existing audio when settings change
+  useEffect(() => {
+    if (audioRef.current && !audioRef.current.paused) {
+      configureAudioPlayback(audioRef.current);
+    }
+  }, [playbackSpeed, preservesPitch]);
 
   // Calculate buffer ahead of current playback
   const calculateBufferAhead = useCallback(
@@ -310,17 +350,20 @@ export function useBufferedPlayback({
     const nextIndex = currentIndex + 1;
     if (nextIndex >= paragraphs.length) return;
 
-    const nextUrl = controllerRef.current.getUrl(nextIndex);
-    if (!nextUrl) return;
+    const nextPath = controllerRef.current.getUrl(nextIndex);
+    if (!nextPath) return;
 
     // Don't preload if already preloaded for this index
     if (preloadedAudioRef.current?.index === nextIndex) return;
 
     console.log(`[BufferedPlayback] Preloading paragraph ${nextIndex + 1}`);
 
+    // Resolve relative path to full URL
+    const fullUrl = `${getBaseUrl()}${nextPath}`;
     const preloadAudio = new Audio();
     preloadAudio.preload = 'auto';
-    preloadAudio.src = nextUrl;
+    preloadAudio.src = fullUrl;
+    configureAudioPlayback(preloadAudio);
     preloadAudio.load();
 
     preloadedAudioRef.current = { index: nextIndex, audio: preloadAudio };
@@ -330,12 +373,14 @@ export function useBufferedPlayback({
   const playParagraph = useCallback(
     async (index: number) => {
       console.log(`[BufferedPlayback] playParagraph called for index ${index + 1}`);
-      const url = controllerRef.current.getUrl(index);
-      if (!url) {
+      const path = controllerRef.current.getUrl(index);
+      if (!path) {
         console.warn(`[BufferedPlayback] No audio URL for paragraph ${index + 1}`);
         return false;
       }
-      console.log(`[BufferedPlayback] Playing URL: ${url}`);
+      // Resolve relative path to full URL
+      const fullUrl = `${getBaseUrl()}${path}`;
+      console.log(`[BufferedPlayback] Playing URL: ${fullUrl}`);
 
       // Revoke previous blob URL
       if (currentAudioUrlRef.current) {
@@ -367,9 +412,11 @@ export function useBufferedPlayback({
               audio.oncanplay = null;
               audio.onended = null;
               audio.onerror = null;
-              audio.src = url;
+              audio.src = fullUrl;
+              configureAudioPlayback(audio);
             } else {
-              audio = new Audio(url);
+              audio = new Audio(fullUrl);
+              configureAudioPlayback(audio);
             }
           }
         } else if (isSafariRef.current && audioRef.current) {
@@ -379,9 +426,11 @@ export function useBufferedPlayback({
           audio.oncanplay = null;
           audio.onended = null;
           audio.onerror = null;
-          audio.src = url;
+          audio.src = fullUrl;
+          configureAudioPlayback(audio);
         } else {
-          audio = new Audio(url);
+          audio = new Audio(fullUrl);
+          configureAudioPlayback(audio);
         }
 
         let hasStarted = false;
@@ -389,6 +438,9 @@ export function useBufferedPlayback({
         const startPlayback = () => {
           if (hasStarted) return;
           hasStarted = true;
+
+          // Re-apply playback settings right before play to ensure they haven't been reset by load()
+          configureAudioPlayback(audio);
 
           audio
             .play()
@@ -419,7 +471,7 @@ export function useBufferedPlayback({
         };
 
         audioRef.current = audio;
-        currentAudioUrlRef.current = url;
+        currentAudioUrlRef.current = fullUrl;
 
         // If using preloaded audio, it should already be loaded
         // If not preloaded, we need to load it
@@ -443,7 +495,8 @@ export function useBufferedPlayback({
   // Effect to handle state changes that trigger playback
   useEffect(() => {
     if (state.status === 'playing') {
-      const url = controllerRef.current.getUrl(state.currentParagraph);
+      const path = controllerRef.current.getUrl(state.currentParagraph);
+      const url = path ? `${getBaseUrl()}${path}` : null;
       const alreadyStarted = playbackStartedForRef.current === state.currentParagraph;
 
       // Check if audio is paused/ended and ready for new playback.
@@ -624,7 +677,7 @@ export function useBufferedPlayback({
       controllerRef.current.initialize(paragraphs, {
         characterVoice: voice,
         language,
-        speed,
+        // speed removed - now handled client-side via playbackRate
         pitch,
         temperature,
         repetitionPenalty,
@@ -680,7 +733,8 @@ export function useBufferedPlayback({
 
     console.log('[BufferedPlayback] Resuming');
 
-    const url = controllerRef.current.getUrl(state.currentParagraph);
+    const path = controllerRef.current.getUrl(state.currentParagraph);
+    const url = path ? `${getBaseUrl()}${path}` : null;
     if (url && audioRef.current) {
       audioRef.current.play().catch(console.error);
     }
@@ -754,7 +808,8 @@ export function useBufferedPlayback({
   }, []);
 
   const getAudioUrl = useCallback((index: number): string | null => {
-    return controllerRef.current.getUrl(index);
+    const path = controllerRef.current.getUrl(index);
+    return path ? `${getBaseUrl()}${path}` : null;
   }, []);
 
   const isActive =

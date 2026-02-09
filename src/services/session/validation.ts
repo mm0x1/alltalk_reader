@@ -35,9 +35,9 @@ export function isSessionValid(session: AudioSession): boolean {
     return true;
   }
 
-  // For online sessions, check URL pattern
+  // For online sessions, check URL pattern (accept both full URLs and relative paths)
   for (const url of session.audioUrls) {
-    if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+    if (!url || typeof url !== 'string' || (!url.startsWith('http') && !url.startsWith('/'))) {
       return false;
     }
   }

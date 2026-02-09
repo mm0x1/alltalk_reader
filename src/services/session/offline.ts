@@ -15,14 +15,21 @@ import { getBaseUrl } from '~/config/env';
 
 /**
  * Resolve a stored audio URL against the currently configured AllTalk server.
+ * Handles both relative paths (new format) and full URLs (legacy format).
  * Sessions may store URLs with 'localhost' from the machine that generated them,
  * so we discard the stored origin and use the configured API base URL instead.
  */
-function resolveAudioUrl(url: string): string {
+function resolveAudioUrl(urlOrPath: string): string {
+  // Fast path: new sessions with relative paths
+  if (urlOrPath.startsWith("/")) {
+    return `${getBaseUrl()}${urlOrPath}`;
+  }
+  // Backwards compatibility: old sessions with full URLs
   try {
-    return `${getBaseUrl()}${new URL(url).pathname}`;
+    return `${getBaseUrl()}${new URL(urlOrPath).pathname}`;
   } catch {
-    return url;
+    // Malformed: return as-is
+    return urlOrPath;
   }
 }
 

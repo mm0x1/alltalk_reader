@@ -63,7 +63,7 @@ export function useBatchAudioGeneration({
           const result = await ttsService.generateTTS(paragraphs[i], {
             characterVoice: voice,
             language,
-            speed,
+            // speed removed - now handled client-side via playbackRate
             pitch,
             temperature,
             repetitionPenalty,
@@ -73,8 +73,9 @@ export function useBatchAudioGeneration({
           if (!result) {
             throw new Error(`Failed to generate audio for paragraph ${i+1}`);
           }
-          
-          urls[i] = result.fullAudioUrl;
+
+          // Store relative path for server-agnostic sessions
+          urls[i] = result.output_file_url;
           setAudioUrls([...urls]);
           
           // Download and cache the audio blob for offline use

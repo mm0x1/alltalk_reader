@@ -4,10 +4,10 @@ import { useAdvancedSettingsEnabled } from '~/hooks/useCapabilities';
 import { AdvancedTtsSettings, RvcVoiceSelector } from '~/components/settings';
 
 interface TtsSettingsProps {
-  speed: number;
+  // speed removed - now handled by PlaybackSettings component
   pitch: number;
   language: string;
-  onSpeedChange: (speed: number) => void;
+  // onSpeedChange removed - now handled by PlaybackSettings component
   onPitchChange: (pitch: number) => void;
   onLanguageChange: (language: string) => void;
   // Advanced settings (optional, only used when advanced mode is enabled)
@@ -28,10 +28,10 @@ interface TtsSettingsProps {
 }
 
 export default function TtsSettings({
-  speed,
+  // speed removed - now handled by PlaybackSettings component
   pitch,
   language,
-  onSpeedChange,
+  // onSpeedChange removed - now handled by PlaybackSettings component
   onPitchChange,
   onLanguageChange,
   // Advanced settings
@@ -51,7 +51,7 @@ export default function TtsSettings({
   const advancedEnabled = useAdvancedSettingsEnabled();
 
   // Check if features are supported by the current TTS engine
-  const speedCapable = settings?.generationspeed_capable ?? true;
+  // speedCapable removed - speed is now a playback setting, not generation
   const pitchCapable = settings?.pitch_capable ?? true;
   const languageCapable = settings?.languages_capable ?? true;
 
@@ -82,34 +82,7 @@ export default function TtsSettings({
       <h3 className="text-sm font-medium mb-2 text-gray-200">TTS Generation Settings</h3>
 
       <div className="space-y-3">
-        {/* Speed setting */}
-        <div className={`${!speedCapable ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div className="flex justify-between">
-            <label className="block text-sm text-gray-300">Speed: {speed.toFixed(2)}x</label>
-            <button
-              onClick={() => onSpeedChange(1.0)}
-              className="text-xs text-accent-primary hover:text-accent-hover"
-              disabled={!speedCapable}
-            >
-              Reset
-            </button>
-          </div>
-          <input
-            type="range"
-            min="0.25"
-            max="2.0"
-            step="0.05"
-            value={speed}
-            onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-            className="w-full accent-accent-primary bg-dark-400"
-            disabled={!speedCapable}
-          />
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>0.25x</span>
-            <span>1.0x</span>
-            <span>2.0x</span>
-          </div>
-        </div>
+        {/* Speed slider removed - now in PlaybackSettings component */}
 
         {/* Pitch setting */}
         <div className={`${!pitchCapable ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -158,7 +131,7 @@ export default function TtsSettings({
         </div>
       </div>
 
-      {(!speedCapable || !pitchCapable || !languageCapable) && (
+      {(!pitchCapable || !languageCapable) && (
         <p className="mt-2 text-xs text-accent-warning">
           Some settings are disabled because they are not supported by the current TTS engine.
         </p>

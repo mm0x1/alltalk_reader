@@ -9,6 +9,7 @@ import { useModalState } from '~/hooks/useModalState'
 import { useBatchGeneration } from '~/hooks/useBatchGeneration'
 import { useServerConnection } from '~/hooks/useServerConnection'
 import { useBufferedPlayback } from '~/hooks/useBufferedPlayback'
+import { usePlaybackSettings } from '~/hooks/usePlaybackSettings'
 
 import ProgressBar from '~/components/ProgressBar'
 import ParagraphList from '~/components/ParagraphList'
@@ -17,6 +18,7 @@ import AudioCacheStatus from '~/components/AudioCacheStatus'
 import SettingsMonitor from '~/components/SettingsMonitor'
 import VoiceSelector from '~/components/VoiceSelector'
 import TtsSettings from '~/components/TtsSettings'
+import PlaybackSettings from '~/components/PlaybackSettings'
 import BatchGenerator from '~/components/BatchGenerator'
 import SessionManager from '~/components/SessionManager'
 import SessionStorageConfig from '~/components/SessionStorageConfig'
@@ -54,6 +56,15 @@ function BookReader() {
     defaults: ttsDefaults,
     loadFromSession: loadTtsFromSession, reset: resetTts
   } = useTtsSettings()
+
+  // Playback settings (client-side speed control)
+  const {
+    speed: playbackSpeed,
+    preservesPitch,
+    updateSpeed: updatePlaybackSpeed,
+    updatePreservesPitch,
+    reset: resetPlaybackSettings
+  } = usePlaybackSettings()
   const { preGeneratedAudio, isPreGenerated, handleBatchComplete, resetPreGenerated, initializeForParagraphs, loadFromSession: loadBatchFromSession } = useBatchGeneration()
   const { showSettings, showBatchGenerator, showExportImport, toggleSettings, openBatchGenerator, closeBatchGenerator, openExportImport, closeExportImport } = useModalState()
 
@@ -87,6 +98,9 @@ function BookReader() {
     preGeneratedAudio,
     isPreGenerated,
     currentSession,
+    // Playback settings (client-side)
+    playbackSpeed,
+    preservesPitch,
     // Advanced settings (Phase 5)
     temperature,
     repetitionPenalty,
@@ -110,6 +124,9 @@ function BookReader() {
     pitch,
     language,
     isServerConnected,
+    // Playback settings (client-side)
+    playbackSpeed,
+    preservesPitch,
     // Advanced settings (Phase 5)
     temperature,
     repetitionPenalty,
@@ -466,10 +483,8 @@ function BookReader() {
                 />
 
                 <TtsSettings
-                  speed={speed}
                   pitch={pitch}
                   language={language}
-                  onSpeedChange={handleSpeedChange}
                   onPitchChange={handlePitchChange}
                   onLanguageChange={handleLanguageChange}
                   // Advanced settings (Phase 5)
@@ -482,6 +497,13 @@ function BookReader() {
                   onRvcVoiceChange={handleRvcVoiceChange}
                   onRvcPitchChange={handleRvcPitchChange}
                   advancedDefaults={ttsDefaults}
+                />
+
+                <PlaybackSettings
+                  speed={playbackSpeed}
+                  preservesPitch={preservesPitch}
+                  onSpeedChange={updatePlaybackSpeed}
+                  onPreservesPitchChange={updatePreservesPitch}
                 />
               </div>
             )}
@@ -746,10 +768,8 @@ function BookReader() {
               />
 
               <TtsSettings
-                speed={speed}
                 pitch={pitch}
                 language={language}
-                onSpeedChange={handleSpeedChange}
                 onPitchChange={handlePitchChange}
                 onLanguageChange={handleLanguageChange}
                 // Advanced settings (Phase 5)
@@ -762,6 +782,13 @@ function BookReader() {
                 onRvcVoiceChange={handleRvcVoiceChange}
                 onRvcPitchChange={handleRvcPitchChange}
                 advancedDefaults={ttsDefaults}
+              />
+
+              <PlaybackSettings
+                speed={playbackSpeed}
+                preservesPitch={preservesPitch}
+                onSpeedChange={updatePlaybackSpeed}
+                onPreservesPitchChange={updatePreservesPitch}
               />
             </div>
           )}

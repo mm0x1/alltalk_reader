@@ -7,6 +7,7 @@ import {
   revokeAllAudioObjectUrls,
   updateSessionPosition
 } from '~/services/session'
+import { getBaseUrl } from '~/config/env'
 
 interface UseAudioPlayerProps {
   paragraphs: string[]
@@ -18,6 +19,9 @@ interface UseAudioPlayerProps {
   preGeneratedAudio: string[]
   isPreGenerated: boolean
   currentSession: AudioSession | null
+  // Playback settings (client-side)
+  playbackSpeed: number
+  preservesPitch: boolean
   // Advanced settings (Phase 5)
   temperature?: number
   repetitionPenalty?: number
@@ -33,6 +37,8 @@ export function useAudioPlayer({
   preGeneratedAudio,
   isPreGenerated,
   currentSession,
+  playbackSpeed,
+  preservesPitch,
   temperature,
   repetitionPenalty,
 }: UseAudioPlayerProps) {
@@ -46,6 +52,17 @@ export function useAudioPlayer({
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const currentAudioUrlRef = useRef<string | null>(null)
+
+  // Store playback settings in refs to avoid stale closures in event handlers
+  const playbackSpeedRef = useRef(playbackSpeed)
+  const preservesPitchRef = useRef(preservesPitch)
+
+  // Keep playback setting refs in sync with props
+  useEffect(() => {
+    console.log(`[AudioPlayer] Updating refs - playbackSpeed: ${playbackSpeed}, preservesPitch: ${preservesPitch}`)
+    playbackSpeedRef.current = playbackSpeed
+    preservesPitchRef.current = preservesPitch
+  }, [playbackSpeed, preservesPitch])
 
   // Detect Safari/iOS
   useEffect(() => {
@@ -62,6 +79,31 @@ export function useAudioPlayer({
       }
     }
   }, [])
+
+  // Helper function to configure audio playback settings
+  // Uses refs to access current values, avoiding stale closures in event handlers
+  const configureAudioPlayback = (audio: HTMLAudioElement) => {
+    console.log(`[AudioPlayer] configureAudioPlayback called - playbackSpeedRef.current: ${playbackSpeedRef.current}, preservesPitchRef.current: ${preservesPitchRef.current}`)
+    audio.playbackRate = playbackSpeedRef.current;
+
+    // Set preservesPitch with cross-browser support
+    if ('preservesPitch' in audio) {
+      audio.preservesPitch = preservesPitchRef.current;
+    } else if ('mozPreservesPitch' in audio) {
+      (audio as any).mozPreservesPitch = preservesPitchRef.current;
+    } else if ('webkitPreservesPitch' in audio) {
+      (audio as any).webkitPreservesPitch = preservesPitchRef.current;
+    }
+
+    console.log(`[AudioPlayer] Configured playback: ${playbackSpeedRef.current}x, preservesPitch: ${preservesPitchRef.current}, actual audio.playbackRate: ${audio.playbackRate}`);
+  };
+
+  // Update playback rate on existing audio when settings change
+  useEffect(() => {
+    if (audioRef.current && !audioRef.current.paused) {
+      configureAudioPlayback(audioRef.current);
+    }
+  }, [playbackSpeed, preservesPitch]);
 
   // Auto-save playback position (debounced)
   const savePositionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -174,10 +216,11 @@ export function useAudioPlayer({
       let audioUrl: string | null = null
 
       if (currentSession) {
-        audioUrl = getAudioUrlForPlayback(currentSession, index, 
+        audioUrl = getAudioUrlForPlayback(currentSession, index,
           isPreGenerated && preGeneratedAudio[index] ? preGeneratedAudio[index] : undefined)
       } else if (isPreGenerated && preGeneratedAudio[index]) {
-        audioUrl = preGeneratedAudio[index]
+        // Resolve relative path to full URL for no-session playback
+        audioUrl = `${getBaseUrl()}${preGeneratedAudio[index]}`
         console.log(`Using pre-generated audio for paragraph ${index + 1}/${paragraphs.length}`)
       }
 
@@ -188,7 +231,7 @@ export function useAudioPlayer({
           characterVoice: selectedVoice,
           language,
           outputFileName: `paragraph_${index}_${Date.now()}`,
-          speed,
+          // speed removed - now handled client-side via playbackRate
           pitch,
           temperature,
           repetitionPenalty,
@@ -213,9 +256,11 @@ export function useAudioPlayer({
           audio.onended = null
           audio.onerror = null
           audio.src = audioUrl
+          configureAudioPlayback(audio)
           console.log(`🍎 Safari: Updated audio source to ${audioUrl}`)
         } else {
           audio = new Audio(audioUrl)
+          configureAudioPlayback(audio)
         }
         
         let hasPlayStarted = false
@@ -223,17 +268,21 @@ export function useAudioPlayer({
         const startPlayback = () => {
           if (hasPlayStarted) return
           hasPlayStarted = true
-          
+
           console.log(`📻 Audio ready for paragraph ${index + 1}, starting playback`)
+
+          // Re-apply playback settings right before play to ensure they haven't been reset by load()
+          configureAudioPlayback(audio)
+
           setIsLoadingAudio(false)
           setIsPlaying(true)
           setIsAutoProgressing(false)
-          
+
           if (autoProgressTimeoutRef.current) {
             clearTimeout(autoProgressTimeoutRef.current)
             autoProgressTimeoutRef.current = null
           }
-          
+
           audio.play().then(() => {
             console.log(`🔊 Audio playback started successfully for paragraph ${index + 1}`)
           }).catch(err => {

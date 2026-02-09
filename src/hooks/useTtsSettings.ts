@@ -17,6 +17,7 @@ export interface AdvancedTtsSettings {
 export function useTtsSettings() {
   // Basic settings
   const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE)
+  /** @deprecated Speed is now handled client-side via playbackRate. Always 1.0 for generation. */
   const [speed, setSpeed] = useState(1.0)
   const [pitch, setPitch] = useState(0)
   const [language, setLanguage] = useState('en')
@@ -32,9 +33,12 @@ export function useTtsSettings() {
     resetPreGenerated?.()
   }
 
+  /** @deprecated Speed is now handled client-side via playbackRate. This does nothing. */
   const updateSpeed = (newSpeed: number, resetPreGenerated?: () => void) => {
-    setSpeed(newSpeed)
-    resetPreGenerated?.()
+    // Deprecated: Speed changes no longer invalidate cache
+    // Always keep speed at 1.0 for normalized generation
+    console.warn('[useTtsSettings] updateSpeed is deprecated. Use playbackSpeed from usePlaybackSettings instead.')
+    // Do not call resetPreGenerated - speed changes don't require regeneration
   }
 
   const updatePitch = (newPitch: number, resetPreGenerated?: () => void) => {
@@ -70,13 +74,14 @@ export function useTtsSettings() {
 
   const loadFromSession = (
     voice: string,
-    sessionSpeed: number,
+    sessionSpeed: number, // Kept for backwards compatibility, but ignored
     sessionPitch: number,
     sessionLanguage: string,
     advancedSettings?: Partial<AdvancedTtsSettings>
   ) => {
     setSelectedVoice(voice)
-    setSpeed(sessionSpeed)
+    // Always normalize speed to 1.0 (playback speed is handled separately)
+    setSpeed(1.0)
     setPitch(sessionPitch)
     setLanguage(sessionLanguage)
 
@@ -119,10 +124,12 @@ export function useTtsSettings() {
   return {
     // Basic settings
     selectedVoice,
+    /** @deprecated Speed is now handled client-side via playbackRate. Always 1.0. */
     speed,
     pitch,
     language,
     updateVoice,
+    /** @deprecated Use playbackSpeed from usePlaybackSettings instead. */
     updateSpeed,
     updatePitch,
     updateLanguage,

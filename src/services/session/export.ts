@@ -6,6 +6,7 @@
 
 import type { AudioSession } from './types';
 import { blobToBase64 } from './utils';
+import { getBaseUrl } from '~/config/env';
 
 /**
  * Prepare a session for export by downloading audio and converting to base64
@@ -31,7 +32,8 @@ export async function prepareSessionForExport(
         continue;
       }
 
-      const response = await fetch(url);
+      // Resolve relative path to full URL for fetching
+      const response = await fetch(`${getBaseUrl()}${url}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch audio file: ${response.status}`);
       }

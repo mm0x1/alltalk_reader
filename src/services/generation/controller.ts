@@ -106,13 +106,13 @@ export class GenerationController {
         throw new Error(`Failed to generate audio for paragraph ${nextIndex + 1}`);
       }
 
-      // Store the URL and notify progress
-      this.generatedUrls.set(nextIndex, result.fullAudioUrl);
+      // Store relative path (consistent with session storage format)
+      this.generatedUrls.set(nextIndex, result.output_file_url);
       this.retryCount.delete(nextIndex); // Clear retry count on success
 
       this.callbacks?.onProgress({
         index: nextIndex,
-        url: result.fullAudioUrl,
+        url: result.output_file_url,
       });
 
       this.pendingGeneration = null;
