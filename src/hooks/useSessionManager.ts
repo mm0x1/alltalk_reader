@@ -59,6 +59,11 @@ export function useSessionManager() {
     setSessionManagerKey(Date.now())
   }
 
+  const clearSession = () => {
+    setCurrentSession(null)
+    setIsOfflineSession(false)
+  }
+
   return {
     showSessionManager,
     sessionManagerKey,
@@ -68,6 +73,7 @@ export function useSessionManager() {
     closeSessionManager,
     loadSession,
     handleFileImport,
-    refreshSessionManager
+    refreshSessionManager,
+    clearSession
   }
 }
