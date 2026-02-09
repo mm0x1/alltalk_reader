@@ -39,9 +39,9 @@ export interface TextState {
   isProcessing: boolean
   wasAo3Parsed: boolean
   ao3Metadata: {
-    title?: string
-    author?: string
-    summary?: string
+    chapterTitle?: string
+    hasSummary: boolean
+    hasNotes: boolean
   } | null
 }
 
@@ -742,14 +742,19 @@ export const useReaderStore = create<ReaderStore>()(
 
 // Subscribe to playback settings changes and persist to localStorage
 if (typeof window !== 'undefined') {
-  useReaderStore.subscribe(
-    (state) => state.playbackSettings,
-    (playbackSettings) => {
+  let previousPlaybackSettings = useReaderStore.getState().playbackSettings
+
+  useReaderStore.subscribe((state) => {
+    const currentPlaybackSettings = state.playbackSettings
+
+    // Only update if playback settings actually changed
+    if (currentPlaybackSettings !== previousPlaybackSettings) {
+      previousPlaybackSettings = currentPlaybackSettings
       try {
-        localStorage.setItem('alltalk-playback-settings', JSON.stringify(playbackSettings))
+        localStorage.setItem('alltalk-playback-settings', JSON.stringify(currentPlaybackSettings))
       } catch (e) {
         console.warn('[PlaybackSettings] Failed to save to localStorage:', e)
       }
     }
-  )
+  })
 }

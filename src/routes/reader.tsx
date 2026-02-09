@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
 import { generateSessionId, generateSessionName, type AudioSession } from '~/services/session'
+import { useReaderStore } from '~/state/readerStore'
 import { useAudioPlayer } from '~/hooks/useAudioPlayer'
 import { useSessionManager } from '~/hooks/useSessionManager'
 import { useTtsSettings } from '~/hooks/useTtsSettings'
@@ -34,12 +34,16 @@ export const Route = createFileRoute('/reader')({
 })
 
 function BookReader() {
-  // Import/export state (kept local as it's specific to UI flow)
-  const [importError, setImportError] = useState<string | null>(null)
+  // Import/export state (now in Zustand store)
+  const importError = useReaderStore((state) => state.importExportState.importError)
+  const setImportError = useReaderStore((state) => state.setImportError)
 
-  // Resume position state
-  const [showResumePrompt, setShowResumePrompt] = useState(false)
-  const [lastPlaybackPositionIndex, setLastPlaybackPositionIndex] = useState<number | null>(null)
+  // Resume position state (now in Zustand store)
+  const showResumePrompt = useReaderStore((state) => state.resumeState.showResumePrompt)
+  const lastPlaybackPositionIndex = useReaderStore((state) => state.resumeState.lastPlaybackPositionIndex)
+  const setShowResumePrompt = useReaderStore((state) => state.setShowResumePrompt)
+  const setLastPlaybackPosition = useReaderStore((state) => state.setLastPlaybackPosition)
+  const handleResumePosition = useReaderStore((state) => state.handleResumePosition)
 
   // Advanced settings flag (Phase 5)
   const advancedSettingsEnabled = useAdvancedSettingsEnabled()
@@ -133,11 +137,13 @@ function BookReader() {
     repetitionPenalty,
   })
 
-  // Track if we're showing buffer settings
-  const [showBufferSettings, setShowBufferSettings] = useState(false)
+  // Track if we're showing buffer settings (now in Zustand store)
+  const showBufferSettings = useReaderStore((state) => state.modalState.showBufferSettings)
+  const setShowBufferSettings = useReaderStore((state) => state.setShowBufferSettings)
 
-  // Smart Split (BETA) toggle state
-  const [useSmartSplit, setUseSmartSplit] = useState(false)
+  // Smart Split (BETA) toggle state (now in Zustand store)
+  const useSmartSplit = useReaderStore((state) => state.smartSplitState.useSmartSplit)
+  const setUseSmartSplit = useReaderStore((state) => state.setUseSmartSplit)
 
   // Process text and initialize for batch generation
   const handleProcessText = () => {
@@ -169,20 +175,8 @@ function BookReader() {
         resetAudio()
         stopBufferedPlayback()
 
-        // Check for saved playback position
-        if (session.lastPlaybackPosition) {
-          const { paragraphIndex, timestamp } = session.lastPlaybackPosition
-          // Show resume prompt if position is recent (within 30 days) and not at the start
-          const isRecent = Date.now() - timestamp < 30 * 24 * 60 * 60 * 1000
-          if (isRecent && paragraphIndex > 0 && paragraphIndex < session.paragraphs.length) {
-            setLastPlaybackPositionIndex(paragraphIndex)
-            setShowResumePrompt(true)
-          } else {
-            setLastPlaybackPositionIndex(null)
-          }
-        } else {
-          setLastPlaybackPositionIndex(null)
-        }
+        // Check for saved playback position (using store action)
+        handleResumePosition(session)
       }
     } catch (error) {
       console.error('Error loading session:', error)
@@ -203,7 +197,7 @@ function BookReader() {
   // Handle start over (dismiss position)
   const handleStartOver = () => {
     setShowResumePrompt(false)
-    setLastPlaybackPositionIndex(null)
+    setLastPlaybackPosition(null)
   }
 
   // Handle dismiss resume prompt (keep position marker visible)
@@ -241,7 +235,7 @@ function BookReader() {
     closeBatchGenerator()
     setShowBufferSettings(false)
     setShowResumePrompt(false)
-    setLastPlaybackPositionIndex(null)
+    setLastPlaybackPosition(null)
   }
 
   // Handle paragraph click - choose the right mode
