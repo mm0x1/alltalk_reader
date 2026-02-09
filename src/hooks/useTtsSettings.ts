@@ -3,8 +3,10 @@ import { useState } from 'react'
 const DEFAULT_VOICE = 'female_01.wav'
 
 // Default values for advanced settings
-const DEFAULT_TEMPERATURE = 0.75
-const DEFAULT_REPETITION_PENALTY = 5.0
+// Temperature: 0.65 for stability (reduces vocal fry/distortion in longer texts)
+// Repetition Penalty: 3.0 for natural speech patterns (5.0 was too restrictive)
+const DEFAULT_TEMPERATURE = 0.65
+const DEFAULT_REPETITION_PENALTY = 3.0
 const DEFAULT_RVC_PITCH = 0
 
 export interface AdvancedTtsSettings {
