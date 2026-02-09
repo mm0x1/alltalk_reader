@@ -361,6 +361,23 @@ export function useBufferedPlayback({
         if (preloaded.readyState >= 3) {
           console.log(`[BufferedPlayback] Using preloaded audio for paragraph ${index + 1} (readyState: ${preloaded.readyState})`);
 
+          // Re-apply current playback settings (in case they changed after preloading)
+          const settings = audioEngineRef.current?.getSettings();
+          if (settings) {
+            preloaded.playbackRate = settings.speed;
+
+            // Set preservesPitch with cross-browser support
+            if ('preservesPitch' in preloaded) {
+              preloaded.preservesPitch = settings.preservesPitch;
+            } else if ('mozPreservesPitch' in preloaded) {
+              (preloaded as any).mozPreservesPitch = settings.preservesPitch;
+            } else if ('webkitPreservesPitch' in preloaded) {
+              (preloaded as any).webkitPreservesPitch = settings.preservesPitch;
+            }
+
+            console.log(`[BufferedPlayback] Applied settings to preloaded audio: ${settings.speed}x, preservesPitch: ${settings.preservesPitch}`);
+          }
+
           // Use preloaded audio directly for instant playback
           return new Promise<boolean>((resolve) => {
             preloaded.onended = () => {
