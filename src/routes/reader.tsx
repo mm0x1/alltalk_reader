@@ -77,7 +77,8 @@ function BookReader() {
     closeSessionManager,
     loadSession,
     handleFileImport,
-    refreshSessionManager
+    refreshSessionManager,
+    clearSession
   } = useSessionManager()
 
   const {
@@ -144,6 +145,7 @@ function BookReader() {
       const newParagraphs = processText({ enableSmartDetection: useSmartSplit })
       initializeForParagraphs(newParagraphs.length)
       resetAudio()
+      clearSession()
     } catch (error) {
       console.error('Error processing text:', error)
     }
@@ -235,6 +237,7 @@ function BookReader() {
     resetPreGenerated()
     resetAudio()
     stopBufferedPlayback()
+    clearSession()
     closeBatchGenerator()
     setShowBufferSettings(false)
     setShowResumePrompt(false)
@@ -256,6 +259,7 @@ function BookReader() {
   // Handle voice change with pre-generation reset
   const handleVoiceChange = (voice: string) => {
     updateVoice(voice, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -267,6 +271,7 @@ function BookReader() {
   // Handle settings changes with pre-generation reset
   const handleSpeedChange = (newSpeed: number) => {
     updateSpeed(newSpeed, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -277,6 +282,7 @@ function BookReader() {
 
   const handlePitchChange = (newPitch: number) => {
     updatePitch(newPitch, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -287,6 +293,7 @@ function BookReader() {
 
   const handleLanguageChange = (newLanguage: string) => {
     updateLanguage(newLanguage, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -298,6 +305,7 @@ function BookReader() {
   // Advanced settings handlers (Phase 5)
   const handleTemperatureChange = (newTemperature: number) => {
     updateTemperature(newTemperature, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -308,6 +316,7 @@ function BookReader() {
 
   const handleRepetitionPenaltyChange = (newPenalty: number) => {
     updateRepetitionPenalty(newPenalty, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -318,6 +327,7 @@ function BookReader() {
 
   const handleRvcVoiceChange = (voice: string | null) => {
     updateRvcVoice(voice, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
@@ -328,6 +338,7 @@ function BookReader() {
 
   const handleRvcPitchChange = (newPitch: number) => {
     updateRvcPitch(newPitch, resetPreGenerated)
+    clearSession()
     if (isPlaying) {
       resetAudio()
     }
