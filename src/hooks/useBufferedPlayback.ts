@@ -515,14 +515,14 @@ export function useBufferedPlayback({
       console.log(`[BufferedPlayback] Play effect - paragraph: ${state.currentParagraph + 1}, url: ${!!url}, audioIsPaused: ${audioIsPaused}, isPlayingPrimer: ${isPlayingPrimer}, alreadyStarted: ${alreadyStarted}`);
 
       if (url && isReadyForPlayback && !alreadyStarted) {
-        // Mark as started BEFORE attempting play to prevent duplicate calls
-        playbackStartedForRef.current = state.currentParagraph;
-
-        // Attempt playback and handle failure
+        // Attempt playback and handle success/failure
         playParagraph(state.currentParagraph).then((success) => {
-          if (!success) {
+          if (success) {
+            // Mark as started AFTER successful play to avoid race conditions
+            playbackStartedForRef.current = state.currentParagraph;
+          } else {
             console.warn(`[BufferedPlayback] Playback failed for paragraph ${state.currentParagraph + 1}, will retry on next user interaction`);
-            // Reset so we can retry - the user will need to interact (pause/resume) to trigger playback
+            // Keep at -1 so we can retry - the user will need to interact (pause/resume) to trigger playback
             // This is necessary because iOS Safari blocks autoplay without user gesture
             playbackStartedForRef.current = -1;
           }
