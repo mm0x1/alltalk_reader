@@ -158,7 +158,9 @@ export const playbackMachine = setup({
   },
   guards: {
     hasMoreParagraphs: ({ context }) => {
-      return context.currentParagraph < context.paragraphs.length - 1
+      const hasMore = context.currentParagraph < context.paragraphs.length - 1
+      console.log(`🔍 [State Machine] hasMoreParagraphs check: current=${context.currentParagraph}, total=${context.paragraphs.length}, hasMore=${hasMore}`)
+      return hasMore
     },
     isValidParagraphIndex: ({ context, event }) => {
       if (event.type === 'SKIP_TO') {
@@ -210,7 +212,11 @@ export const playbackMachine = setup({
       errorMessage: () => null,
     }),
     incrementParagraph: assign({
-      currentParagraph: ({ context }) => context.currentParagraph + 1,
+      currentParagraph: ({ context }) => {
+        const nextParagraph = context.currentParagraph + 1
+        console.log(`➡️ [State Machine] Incrementing paragraph: ${context.currentParagraph} → ${nextParagraph}`)
+        return nextParagraph
+      },
     }),
     updateParagraphs: assign({
       paragraphs: ({ event }) => {
@@ -267,17 +273,21 @@ export const playbackMachine = setup({
       },
     },
     loading: {
+      entry: ({ context }) => console.log(`⏳ [State Machine] Loading audio for paragraph ${context.currentParagraph + 1}/${context.paragraphs.length}`),
       invoke: {
         id: 'loadAudioActor',
         src: 'loadAudioActor',
-        input: ({ context, event }) => ({
-          context,
-          paragraphIndex:
-            event.type === 'PLAY' && event.paragraphIndex !== undefined
-              ? event.paragraphIndex
-              : context.currentParagraph,
-          forceReload: event.type === 'PLAY' && event.forceReload === true,
-        }),
+        input: ({ context, event }) => {
+          const paragraphIndex = event.type === 'PLAY' && event.paragraphIndex !== undefined
+            ? event.paragraphIndex
+            : context.currentParagraph
+          console.log(`🔄 [State Machine] Load actor input: paragraphIndex=${paragraphIndex}, currentParagraph=${context.currentParagraph}`)
+          return {
+            context,
+            paragraphIndex,
+            forceReload: event.type === 'PLAY' && event.forceReload === true,
+          }
+        },
         onDone: {
           target: 'ready',
           actions: ['assignAudioData'],
@@ -303,6 +313,7 @@ export const playbackMachine = setup({
       },
     },
     playing: {
+      entry: () => console.log('🎵 [State Machine] Entered PLAYING state'),
       on: {
         PAUSE: 'paused',
         STOP: 'idle',
@@ -314,6 +325,7 @@ export const playbackMachine = setup({
           },
           {
             target: 'idle',
+            actions: () => console.log('🏁 [State Machine] No more paragraphs, going to idle'),
           },
         ],
         SKIP_TO: {
