@@ -2,51 +2,61 @@
 
 These are the core mechanisms that you must understand to work effectively with this codebase.
 
-## 1. Auto-Progression Logic
+## 1. Auto-Progression Logic (✨ Refactored with State Machine - Phase 4)
 
-**File**: `src/hooks/useAudioPlayer.ts` (lines 55-97)
+**Files**: `src/state/playbackMachine.ts`, `src/hooks/useAudioPlayer.ts`
 
 **This is the core mechanism that enables continuous audiobook playback.**
 
-### Implementation
+### Implementation (XState Machine)
 
 ```typescript
-// 1. Audio ends, triggers this callback
-audio.onended = () => handleAutoProgression(currentIndex)
-
-// 2. Auto-progression function
-const handleAutoProgression = (index: number) => {
-  // Set 15s timeout guard to prevent infinite waiting
-  const timeoutId = setTimeout(() => {
-    console.error("Auto-progression timeout")
-    // Prompt user to manually click next
-  }, 15000)
-
-  // Calculate next index
-  const nextIndex = index + 1
-
-  if (nextIndex < paragraphs.length) {
-    // Recursively play next paragraph
-    handlePlayParagraph(nextIndex)
-      .then(() => clearTimeout(timeoutId)) // Clear guard on success
-      .catch((error) => {
-        clearTimeout(timeoutId)
-        // Handle error gracefully
-      })
-  } else {
-    // Reached end of audiobook
-    clearTimeout(timeoutId)
-    setIsPlaying(false)
+// State machine handles transitions
+playing: {
+  on: {
+    AUDIO_ENDED: [
+      {
+        target: 'loading',
+        guard: 'hasMoreParagraphs',  // Check if next paragraph exists
+        actions: ['incrementParagraph']
+      },
+      {
+        target: 'idle',  // No more paragraphs, playback complete
+      }
+    ]
   }
 }
 ```
 
+### Integration with AudioEngine
+
+```typescript
+// useAudioPlayer.ts - Syncs AudioEngine with state machine
+useEffect(() => {
+  if (state.matches('ready')) {
+    audioEngine.play(audioUrl, {
+      onEnded: () => {
+        // Trigger state machine transition
+        send({ type: 'AUDIO_ENDED' })
+      }
+    }).then((success) => {
+      if (success) {
+        // Transition to playing state
+        send({ type: 'PLAY' })
+      }
+    })
+  }
+}, [state, audioUrl])
+```
+
 ### Key Design Decisions
 
-- **Timeout Guard**: Prevents infinite waiting if audio fails to load
-- **Recursive Calls**: Enables continuous playback without loops
-- **Error Recovery**: Graceful degradation prompts user action
-- **State Management**: Updates `currentIndex` and `isPlaying` automatically
+- **State Machine**: Invalid states impossible (can't be "playing" without loaded audio)
+- **Explicit Transitions**: `loading → ready → playing → (AUDIO_ENDED) → loading (next paragraph)`
+- **Guards**: Type-safe checks for "hasMoreParagraphs"
+- **Actions**: Atomic state updates (increment paragraph, clear errors)
+- **No Timeout Guards Needed**: State machine prevents infinite waiting by design
+- **Race Condition Eliminated**: Audio can only end when in "playing" state
 
 ## 2. Text-to-Audio Mapping (Text Splitting Algorithm)
 
@@ -286,103 +296,123 @@ User must re-generate audio with new voice
 - Forces regeneration to maintain consistency
 - Similar patterns used for speed/pitch changes
 
-## 6. Safari Compatibility Pattern
+## 6. Safari Compatibility Pattern (✨ Centralized in AudioEngine - Phase 2)
 
-**File**: `src/hooks/useAudioPlayer.ts` (lines 38-52, 161-171)
+**Files**: `src/core/AudioEngine.ts`, `src/core/SafariAdapter.ts`
 
 ### Problem
 
 Safari has strict autoplay policies and resource management for Audio elements. Creating new Audio elements for each paragraph can trigger autoplay blocking.
 
-### Detection
+### Solution (Centralized)
 
+**AudioEngine with SafariAdapter**:
 ```typescript
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-```
+// SafariAdapter.ts
+export class SafariAdapter {
+  private isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
 
-### Solution
+  async prime(audio: HTMLAudioElement): Promise<void> {
+    if (!this.isSafari) return // No-op for non-Safari
 
-**Non-Safari (Standard Pattern)**:
-```typescript
-// Create new Audio element for each paragraph
-const audio = new Audio(audioUrl)
-audio.play()
-```
+    audio.load() // Prime for autoplay
+    // Safari-specific priming logic
+  }
+}
 
-**Safari (Optimized Pattern)**:
-```typescript
-// Create Audio element once on mount
-const [safariAudioRef] = useState(() => new Audio())
+// AudioEngine.ts
+export class AudioEngine {
+  private audio: HTMLAudioElement
 
-// Reuse same element, update src
-safariAudioRef.src = audioUrl
-safariAudioRef.load()
-safariAudioRef.play()
+  constructor(private safariAdapter: SafariAdapter) {
+    this.audio = new Audio() // Single audio element (Safari optimization)
+  }
+
+  async play(url: string, callbacks: AudioCallbacks): Promise<boolean> {
+    this.audio.src = url
+    await this.safariAdapter.prime(this.audio) // Safari handling
+    await this.audio.play()
+    return true
+  }
+}
+
+// Usage in hooks
+const audioEngine = new AudioEngine(new SafariAdapter())
+await audioEngine.play(url, { onEnded: () => {...} })
 ```
 
 ### Benefits
 
-- Bypasses Safari autoplay restrictions
-- Better resource management (no element cleanup needed)
-- Consistent playback behavior across browsers
-- Single Audio element means single user interaction approval
+- ✅ Safari compatibility centralized (not duplicated)
+- ✅ Single Audio element reused (Safari optimization)
+- ✅ Automatic Safari detection
+- ✅ Graceful no-op for non-Safari browsers
+- ✅ Used by both `useAudioPlayer` and `useBufferedPlayback`
+- ✅ Easy to update Safari logic in one place
 
-## 7. Buffered Playback Logic
+## 7. Buffered Playback Logic (✨ Enhanced Phase 5)
 
-**Files**: `src/hooks/useBufferedPlayback.ts`, `src/services/generation/controller.ts`
+**Files**: `src/hooks/useBufferedPlayback.ts`, `src/services/generation/controller.ts`, `src/core/AudioEngine.ts`
 
 **This enables seamless playback by generating audio ahead of current position.**
 
-### Implementation
+### Implementation (with Phase 5 fixes)
 
 ```typescript
-// Hook manages playback state and coordinates with controller
 const useBufferedPlayback = (paragraphs, settings) => {
-  const [bufferState, setBufferState] = useState<BufferState>({
-    generatedIndices: new Set(),
-    currentIndex: 0,
-    isGenerating: false,
-    audioUrls: {},
-  })
+  const audioEngineRef = useRef<AudioEngine | null>(null)
+  const preloadedAudioRef = useRef<{ index: number; audio: HTMLAudioElement } | null>(null)
+  const currentlyPlayingAudioRef = useRef<HTMLAudioElement | null>(null) // ✨ Phase 5
 
-  // Controller handles generation logic
-  const controller = useMemo(() => new GenerationController(...), [])
-
-  const startBufferedPlayback = async (startIndex = 0) => {
-    // 1. Start generating from startIndex
-    controller.start(startIndex)
-
-    // 2. Wait for minimum buffer to be ready
-    await waitForMinBuffer()
-
-    // 3. Start playback
-    playBuffered(startIndex)
+  // AudioEngine integration (Phase 2)
+  if (!audioEngineRef.current) {
+    audioEngineRef.current = new AudioEngine(new SafariAdapter())
   }
 
-  const playBuffered = (index) => {
-    // Get pre-generated audio URL
-    const url = bufferState.audioUrls[index]
+  // Real-time playback settings updates (Phase 5 fix)
+  useEffect(() => {
+    audioEngineRef.current?.updateSettings({ speed: playbackSpeed, preservesPitch })
 
-    // Play audio
-    audioRef.current.src = url
-    audioRef.current.play()
+    // Also update currently playing audio (for preloaded audio)
+    if (currentlyPlayingAudioRef.current) {
+      currentlyPlayingAudioRef.current.playbackRate = playbackSpeed
+      currentlyPlayingAudioRef.current.preservesPitch = preservesPitch
+    }
+  }, [playbackSpeed, preservesPitch])
 
-    // On ended, play next
-    audioRef.current.onended = () => {
-      if (index + 1 < paragraphs.length) {
-        playBuffered(index + 1)
-      }
+  // Pause/Resume (Phase 5 fix - only control active audio source)
+  const pause = () => {
+    if (currentlyPlayingAudioRef.current) {
+      currentlyPlayingAudioRef.current.pause() // Preloaded audio
+    } else {
+      audioEngineRef.current?.pause() // AudioEngine
+    }
+  }
+
+  const resume = () => {
+    if (currentlyPlayingAudioRef.current) {
+      currentlyPlayingAudioRef.current.play() // Preloaded audio
+    } else {
+      audioEngineRef.current?.resume() // AudioEngine
     }
   }
 }
 ```
 
-### Key Design Decisions
+### Key Design Decisions (Updated)
 
+- **currentlyPlayingAudioRef** (Phase 5): Tracks which audio system is active (AudioEngine vs preloaded)
+- **Real-time Settings**: Playback speed changes apply immediately to playing audio
+- **Dual Audio Prevention**: pause/resume only control the active audio source
 - **Ref-based Callbacks**: Uses `handleAudioEndedRef` to avoid stale closures
+- **AudioEngine Integration** (Phase 2): Uses centralized audio infrastructure
 - **GenerationController**: Separate class manages generation queue
 - **Buffer Size Config**: Target and minimum buffer sizes are configurable
-- **Integration**: Calls `resetAudio()` from useAudioPlayer when buffer mode starts
+
+### Critical Bugs Fixed (Phase 5)
+
+1. **Dual Audio Playback**: Fixed by tracking `currentlyPlayingAudioRef` (only resume active source)
+2. **Playback Speed Delayed**: Fixed by updating `currentlyPlayingAudioRef.playbackRate` in real-time
 
 ### Flow Diagram
 
@@ -397,11 +427,15 @@ Generate paragraphs 0, 1, 2... (up to target buffer)
   ↓
 Wait for minBuffer paragraphs ready
   ↓
-Start playing paragraph 0
+Start playing paragraph 0 (via AudioEngine)
+  ↓
+Preload paragraph 1 while playing
   ↓
 Audio ends → handleAudioEndedRef.current()
   ↓
-Play next buffered paragraph
+Play next buffered paragraph (via preloaded audio)
+  ↓
+Track as currentlyPlayingAudioRef ✨
   ↓
 Controller continues generating ahead
   ↓
@@ -444,81 +478,36 @@ Repeat until all paragraphs complete
 - "Session must have audioUrls or audioBlobData"
 - "Number of paragraphs does not match number of audio files"
 
-## 9. Active Migrations (Important Context)
+## 9. Completed Refactoring (2025-02-09)
 
-### Global State → React Context
+### Pragmatic Rewrite (All 5 Phases Complete)
 
-**Status**: In Progress
+All architectural migrations have been completed. See `docs/architecture-analysis.md` for full details.
 
-**Old Pattern** (deprecated):
-```typescript
-// src/services/alltalkApi.ts
-export const LEGACY_SERVER_STATUS = {
-  isConnected: false,
-  voices: [],
-  // ... global state
-}
-```
+**Major Changes**:
 
-**New Pattern**:
-```typescript
-// src/contexts/ApiStateContext.tsx
-<ApiStateProvider>
-  <App />
-</ApiStateProvider>
+1. **Zustand State Management** (Phase 3)
+   - ✅ Centralized state in `state/readerStore.ts`
+   - ✅ Hooks are now thin wrappers around Zustand
+   - ✅ Redux DevTools integration
+   - ✅ localStorage persistence
 
-// In components
-const { isConnected, voices } = useApiState()
-```
+2. **XState Playback Machine** (Phase 4)
+   - ✅ Explicit state transitions (idle → loading → ready → playing)
+   - ✅ Race conditions eliminated by design
+   - ✅ Used by `useAudioPlayer` via `usePlaybackMachine`
 
-**Migration Guide**:
-- Replace `LEGACY_SERVER_STATUS` imports with `useApiState()` hook
-- Remove direct state mutations
-- Use context actions: `checkConnection()`, `initializeApi()`
+3. **AudioEngine Extraction** (Phase 2)
+   - ✅ Centralized audio in `core/AudioEngine.ts`
+   - ✅ Safari compatibility in `core/SafariAdapter.ts`
+   - ✅ Eliminated ~150 lines of duplicate code
+   - ✅ Used by both `useAudioPlayer` and `useBufferedPlayback`
 
-### Monolithic API Service → Modular Services
+4. **Critical Bug Fixes** (Phases 1, 4, 5)
+   - ✅ Stale audio after "New Book" (orthogonality violation fixed)
+   - ✅ Single-paragraph stuck (race condition eliminated by state machine)
+   - ✅ Dual audio playback (currentlyPlayingAudioRef tracking added)
+   - ✅ Playback speed delayed (real-time updates implemented)
+   - ✅ Auto-progression (state machine transition fixed)
 
-**Status**: Partial
-
-**Deprecated**: `src/services/alltalkApi.ts` (all functions have `@deprecated` JSDoc)
-
-**Preferred**: `src/services/api/*` modular services
-- `client.ts`: HTTP client
-- `status.ts`: Health checks
-- `voices.ts`: Voice management
-- `tts.ts`: TTS generation & text splitting
-
-**Migration Priority**:
-1. Replace `generateTTS()` calls → use `tts.generateTTS()`
-2. Replace `getAvailableVoices()` → use `voices.getAvailableVoices()`
-3. Replace `checkReady()` → use `status.checkReady()`
-
-### SSR/React Query Removal (Completed)
-
-**Status**: Complete
-
-**Problem**: ReadableStream serialization errors on page refresh caused by `routerWithQueryClient` trying to dehydrate data during SSR.
-
-**Resolution**:
-- Removed React Query integration (app doesn't use queries)
-- Changed from `createRootRouteWithContext<{ queryClient: QueryClient }>()` to `createRootRoute()`
-- Removed `routerWithQueryClient` wrapper
-- Added `ssr: false` to reader route as safeguard
-
-**Files Changed**:
-- `src/router.tsx` - Removed React Query wrapper
-- `src/routes/__root.tsx` - Simplified root route
-- `src/routes/reader.tsx` - Added `ssr: false`
-
-### Text Processing Centralization (Completed)
-
-**Status**: Complete
-
-**Change**: Text processing logic moved to dedicated service.
-
-**New Structure**: `src/services/textProcessing/`
-- `textProcessor.ts` - Main entry point
-- `ao3Parser.ts` - AO3 page detection and parsing
-- `ao3Config.ts` - Configurable markers (update when AO3 changes)
-
-**Hook Integration**: `useTextProcessor.ts` now uses `textProcessor.processInput()` which auto-detects and parses AO3 content.
+**No Active Migrations**: All refactoring complete, codebase is production-ready.

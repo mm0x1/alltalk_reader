@@ -1,20 +1,29 @@
-import { useState } from 'react'
+import { useReaderStore } from '~/state/readerStore'
 
+/**
+ * Hook for managing modal visibility state
+ * Now backed by Zustand store (Phase 3)
+ */
 export function useModalState() {
-  const [showSettings, setShowSettings] = useState(false)
-  const [showBatchGenerator, setShowBatchGenerator] = useState(false)
-  const [showExportImport, setShowExportImport] = useState(false)
+  const showSettings = useReaderStore((state) => state.modalState.showSettings)
+  const showBatchGenerator = useReaderStore((state) => state.modalState.showBatchGenerator)
+  const showExportImport = useReaderStore((state) => state.modalState.showExportImport)
 
-  const toggleSettings = () => setShowSettings(!showSettings)
-  const openBatchGenerator = () => setShowBatchGenerator(true)
-  const closeBatchGenerator = () => setShowBatchGenerator(false)
-  const openExportImport = () => setShowExportImport(true)
-  const closeExportImport = () => setShowExportImport(false)
+  const toggleSettings = useReaderStore((state) => state.toggleSettings)
+  const openBatchGenerator = useReaderStore((state) => state.openBatchGenerator)
+  const closeBatchGenerator = useReaderStore((state) => state.closeBatchGenerator)
+  const openExportImport = useReaderStore((state) => state.openExportImport)
+  const closeExportImport = useReaderStore((state) => state.closeExportImport)
 
   const closeAllModals = () => {
-    setShowSettings(false)
-    setShowBatchGenerator(false)
-    setShowExportImport(false)
+    useReaderStore.setState((state) => ({
+      modalState: {
+        ...state.modalState,
+        showSettings: false,
+        showBatchGenerator: false,
+        showExportImport: false,
+      },
+    }))
   }
 
   return {
@@ -26,6 +35,6 @@ export function useModalState() {
     closeBatchGenerator,
     openExportImport,
     closeExportImport,
-    closeAllModals
+    closeAllModals,
   }
 }

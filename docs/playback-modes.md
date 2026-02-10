@@ -2,59 +2,75 @@
 
 The application supports four distinct playback modes, each with different characteristics and use cases.
 
-## Mode 1: Live Generation (Default)
+## Mode 1: Live Generation (Default) ✨ Refactored with State Machine (Phase 4)
 
 **User Flow**: User clicks play → on-demand TTS → immediate playback → auto-progress to next paragraph
 
 ### Implementation Details
 
-- **Hook**: `src/hooks/useAudioPlayer.ts` (lines 100-260)
-- **Key Method**: `handlePlayParagraph(index)` at line 100
+- **Hook**: `src/hooks/useAudioPlayer.ts`
+- **State Machine**: `src/state/playbackMachine.ts` (Phase 4)
+- **Audio**: `src/core/AudioEngine.ts` (Phase 2)
 
-### Process Flow
+### Process Flow (State Machine)
 
 1. User clicks play button or clicks a paragraph
-2. Calls `generateTTS(text, settings)` from AllTalk API (line 141)
-3. Receives `{output_file_url, status}` response
-4. Creates HTML5 Audio element with returned URL (line 156)
-5. On `canplaythrough` event → `audio.play()` (line 175)
-6. On `ended` event → `handleAutoProgression(index)` (line 210)
-7. Recursively calls `handlePlayParagraph(nextIndex)` (line 79)
+2. **State Machine**: `idle` → `loading` (send PLAY event)
+3. Calls `generateTTS(text, settings)` via `loadAudioActor`
+4. Receives `{output_file_url, status}` response
+5. **State Machine**: `loading` → `ready` (audio URL loaded)
+6. **AudioEngine**: Plays audio with callbacks
+   - `onCanPlay`: Log playback start
+   - `onEnded`: Send AUDIO_ENDED event to state machine
+7. **State Machine**: `ready` → `playing` (PLAY event sent after AudioEngine.play() succeeds)
+8. Audio ends → **State Machine**: `playing` → `loading` (AUDIO_ENDED event, increment paragraph)
+9. Repeat for next paragraph until no more paragraphs → `playing` → `idle`
 
-### Key Features
+### Key Features (Updated)
 
-- **Safari Compatibility**: Reuses single Audio object instead of creating new ones (lines 38-52, 161-171) to avoid autoplay restrictions
-- **No Persistence**: Audio URLs are temporary, sessions are not saved
-- **Auto-Progression**: 15-second timeout guard (line 70) to prevent infinite waiting
-- **Error Handling**: Network failures, autoplay blocking, missing audio (lines 196-254)
+- **XState Machine**: Invalid states impossible (can't play without loading)
+- **AudioEngine**: Centralized audio playback with Safari compatibility
+- **No Timeout Guards**: State machine prevents infinite waiting by design
+- **Race Conditions Eliminated**: Explicit state transitions
+- **Auto-Progression**: Handled by state machine guards and actions
+- **Error Handling**: State machine has explicit `error` state
 
 ### Files
-- `src/hooks/useAudioPlayer.ts:100-260`
-- `src/services/api/tts.ts:23-117` (generateTTS)
+- `src/hooks/useAudioPlayer.ts` - Syncs AudioEngine with state machine
+- `src/state/playbackMachine.ts` - XState machine definition
+- `src/hooks/usePlaybackMachine.ts` - React wrapper for machine
+- `src/core/AudioEngine.ts` - Audio playback infrastructure
+- `src/services/api/tts.ts` - TTS generation
 
-### Flow Diagram
+### Flow Diagram (State Machine)
 ```
 User clicks paragraph
   ↓
-useAudioPlayer.handlePlayParagraph(index)  [useAudioPlayer.ts:100]
+send({ type: 'PLAY', paragraphIndex })  [usePlaybackMachine]
   ↓
-generateTTS(text, {voice, speed, pitch, language})  [tts.ts:23]
+State Machine: idle → loading
+  ↓
+loadAudioActor: generateTTS(text, settings)  [playbackMachine.ts]
   ↓
 POST /api/tts-generate (AllTalk API)
   ↓
-Response: {output_file_url: "outputs/audio_123.wav", status: "generate-success"}
+Response: {output_file_url, status}
   ↓
-Construct fullAudioUrl = baseUrl + output_file_url  [useAudioPlayer.ts:151]
+State Machine: loading → ready (assignAudioData action)
   ↓
-Create Audio element with fullAudioUrl  [line 156 or 167 for Safari]
+AudioEngine.play(audioUrl, callbacks)  [useAudioPlayer.ts]
   ↓
-Audio.oncanplaythrough → audio.play()  [line 175]
+AudioEngine.play() succeeds → send({ type: 'PLAY' })
   ↓
-Audio.onended → handleAutoProgression(index)  [line 210]
+State Machine: ready → playing
   ↓
-setTimeout 15s guard + handlePlayParagraph(index + 1)  [line 79]
+Audio ends → send({ type: 'AUDIO_ENDED' })
   ↓
-Repeat for next paragraph...
+State Machine: Guard check 'hasMoreParagraphs'
+  ↓
+  YES: playing → loading (incrementParagraph action)
+  ↓
+  NO: playing → idle (playback complete)
 ```
 
 ## Mode 2: Pre-Generation (Cached Playback)
@@ -126,46 +142,72 @@ On completion (all paragraphs done):
   8. Close modal  [BatchGenerator.tsx:42]
 ```
 
-## Mode 3: Buffered Playback
+## Mode 3: Buffered Playback ✨ Enhanced (Phase 2 & 5)
 
 **User Flow**: User clicks buffer play → generates audio ahead while playing → seamless continuous playback
 
 ### Implementation Details
 
 - **Hook**: `src/hooks/useBufferedPlayback.ts`
+- **Audio**: `src/core/AudioEngine.ts` (Phase 2)
 - **Controller**: `src/services/generation/controller.ts`
 - **Components**: `src/components/buffer/*`
 
-### Process Flow
+### Process Flow (with AudioEngine)
 
 1. User clicks the buffer play button (lightning bolt icon)
-2. `useBufferedPlayback` initializes with target buffer size
+2. `useBufferedPlayback` initializes AudioEngine with SafariAdapter
 3. Starts generating audio for upcoming paragraphs in background
 4. Waits for minimum buffer before starting playback
-5. As audio plays, continues generating ahead to maintain buffer
-6. On audio ended, immediately plays next buffered audio
-7. Continues until all paragraphs complete
+5. First paragraph: Plays via AudioEngine
+6. Subsequent paragraphs: Uses preloaded HTMLAudioElement for smooth transitions
+7. Tracks active audio source via `currentlyPlayingAudioRef` (Phase 5 fix)
+8. As audio plays, continues generating ahead to maintain buffer
+9. On audio ended, immediately plays next buffered audio
+10. Continues until all paragraphs complete
 
-### Key Features
+### Key Features (Updated)
 
+- **AudioEngine Integration**: Centralized audio infrastructure (Phase 2)
+- **Real-time Settings**: Playback speed changes apply immediately to playing audio (Phase 5)
+- **Dual Audio Fix**: `currentlyPlayingAudioRef` tracks active source (Phase 5)
+- **Pause/Resume Fix**: Only controls active audio (AudioEngine OR preloaded, not both)
 - **Buffer-Ahead**: Generates multiple paragraphs ahead of current playback
 - **Configurable Buffer**: Target and minimum buffer sizes adjustable
 - **Seamless Playback**: No wait between paragraphs once buffer is ready
 - **Progress Indicator**: Shows buffer status and current position
 
+### Critical Fixes (Phase 5)
+
+1. **Dual Audio Playback**: Fixed by tracking which audio system is active
+   - AudioEngine for first paragraph
+   - Preloaded HTMLAudioElement for paragraphs 2+
+   - `currentlyPlayingAudioRef` tracks the active one
+
+2. **Playback Speed Delayed**: Fixed by updating both AudioEngine and currentlyPlayingAudioRef
+   ```typescript
+   useEffect(() => {
+     audioEngine.updateSettings({ speed, preservesPitch })
+     if (currentlyPlayingAudioRef.current) {
+       currentlyPlayingAudioRef.current.playbackRate = speed
+     }
+   }, [speed, preservesPitch])
+   ```
+
 ### Files
-- `src/hooks/useBufferedPlayback.ts` - Main hook orchestrating buffer logic
+- `src/hooks/useBufferedPlayback.ts` - Main hook with AudioEngine integration
+- `src/core/AudioEngine.ts` - Audio playback infrastructure
 - `src/services/generation/controller.ts` - GenerationController class
 - `src/services/generation/types.ts` - Buffer state types
 - `src/components/buffer/BufferPlayButton.tsx` - Start button
 - `src/components/buffer/BufferStatusIndicator.tsx` - Progress display
 - `src/components/buffer/BufferSettings.tsx` - Configuration UI
 
-### Flow Diagram
+### Flow Diagram (AudioEngine Integration)
 ```
 User clicks buffer play button
   ↓
-useBufferedPlayback initializes  [useBufferedPlayback.ts]
+useBufferedPlayback initializes AudioEngine  [useBufferedPlayback.ts]
   ↓
 GenerationController starts  [controller.ts]
   ↓
@@ -173,11 +215,19 @@ Generate initial buffer (configurable count)
   ↓
 Wait for minimum buffer ready
   ↓
-Start playing first buffered audio
+Play paragraph 1 via AudioEngine  [AudioEngine.ts]
+  ↓
+Preload paragraph 2 while playing
+  ↓
+Paragraph 1 ends → Play paragraph 2 via preloaded audio
+  ↓
+Track as currentlyPlayingAudioRef ✨ (Phase 5)
   ↓
 Continue generating ahead while playing
   ↓
 On audio ended → play next buffered
+  ↓
+Real-time settings update both AudioEngine and currentlyPlayingAudioRef ✨
   ↓
 Repeat until all paragraphs complete
 ```

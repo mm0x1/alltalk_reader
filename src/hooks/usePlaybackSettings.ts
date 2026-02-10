@@ -1,72 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useReaderStore } from '~/state/readerStore'
 
-const PLAYBACK_SETTINGS_KEY = 'alltalk-playback-settings';
-
-interface PlaybackSettings {
-  speed: number;
-  preservesPitch: boolean;
-}
-
-const DEFAULT_SETTINGS: PlaybackSettings = {
-  speed: 1.0,
-  preservesPitch: true,
-};
-
-// Load from localStorage
-const loadSettings = (): PlaybackSettings => {
-  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
-
-  try {
-    const stored = localStorage.getItem(PLAYBACK_SETTINGS_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-      };
-    }
-  } catch (e) {
-    console.warn('[PlaybackSettings] Failed to load from localStorage:', e);
-  }
-  return DEFAULT_SETTINGS;
-};
-
-// Save to localStorage
-const saveSettings = (settings: PlaybackSettings): void => {
-  if (typeof window === 'undefined') return;
-
-  try {
-    localStorage.setItem(PLAYBACK_SETTINGS_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('[PlaybackSettings] Failed to save to localStorage:', e);
-  }
-};
-
+/**
+ * Hook for managing client-side playback settings (speed, preservesPitch)
+ * Now backed by Zustand store with localStorage persistence (Phase 3)
+ */
 export function usePlaybackSettings() {
-  const [settings, setSettings] = useState<PlaybackSettings>(() => loadSettings());
+  const speed = useReaderStore((state) => state.playbackSettings.speed)
+  const preservesPitch = useReaderStore((state) => state.playbackSettings.preservesPitch)
 
-  // Persist to localStorage whenever settings change
-  useEffect(() => {
-    saveSettings(settings);
-  }, [settings]);
-
-  const updateSpeed = (speed: number) => {
-    setSettings((prev) => ({ ...prev, speed }));
-  };
-
-  const updatePreservesPitch = (preservesPitch: boolean) => {
-    setSettings((prev) => ({ ...prev, preservesPitch }));
-  };
-
-  const reset = () => {
-    setSettings(DEFAULT_SETTINGS);
-  };
+  const updateSpeed = useReaderStore((state) => state.updatePlaybackSpeed)
+  const updatePreservesPitch = useReaderStore((state) => state.updatePreservesPitch)
+  const reset = useReaderStore((state) => state.resetPlaybackSettings)
 
   return {
-    speed: settings.speed,
-    preservesPitch: settings.preservesPitch,
+    speed,
+    preservesPitch,
     updateSpeed,
     updatePreservesPitch,
     reset,
-  };
+  }
 }

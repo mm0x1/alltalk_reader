@@ -1,13 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { ttsService } from '~/services/api'
+import { useRef, useEffect, useCallback } from 'react'
 import {
   type AudioSession,
-  getAudioUrlForPlayback,
-  revokeAudioObjectUrl,
-  revokeAllAudioObjectUrls,
   updateSessionPosition
 } from '~/services/session'
-import { getBaseUrl } from '~/config/env'
+import { usePlaybackMachine } from './usePlaybackMachine'
+import { AudioEngine } from '~/core/AudioEngine'
+import { SafariAdapter } from '~/core/SafariAdapter'
 
 interface UseAudioPlayerProps {
   paragraphs: string[]
@@ -27,6 +25,15 @@ interface UseAudioPlayerProps {
   repetitionPenalty?: number
 }
 
+/**
+ * Audio Player Hook (Phase 4: State Machine Refactor)
+ *
+ * Now uses XState playback machine to eliminate race conditions.
+ * State transitions are explicit and type-safe.
+ *
+ * Before (Phase 1-3): Multiple useState hooks, boolean flags
+ * After (Phase 4): Single state machine, impossible invalid states
+ */
 export function useAudioPlayer({
   paragraphs,
   selectedVoice,
@@ -39,71 +46,101 @@ export function useAudioPlayer({
   currentSession,
   playbackSpeed,
   preservesPitch,
-  temperature,
-  repetitionPenalty,
+  temperature = 0.65,
+  repetitionPenalty = 3.0,
 }: UseAudioPlayerProps) {
-  const [currentParagraph, setCurrentParagraph] = useState<number | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isAutoProgressing, setIsAutoProgressing] = useState(false)
-  const [isSafari, setIsSafari] = useState(false)
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const autoProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const currentAudioUrlRef = useRef<string | null>(null)
+  // Initialize AudioEngine with SafariAdapter (Phase 2)
+  const audioEngineRef = useRef<AudioEngine | null>(null)
+  if (!audioEngineRef.current) {
+    const safariAdapter = new SafariAdapter()
+    audioEngineRef.current = new AudioEngine(safariAdapter)
+  }
 
-  // Store playback settings in refs to avoid stale closures in event handlers
-  const playbackSpeedRef = useRef(playbackSpeed)
-  const preservesPitchRef = useRef(preservesPitch)
+  // Use state machine for playback state (Phase 4)
+  const {
+    state,
+    send,
+    isPlaying,
+    isLoading,
+    isError,
+    currentParagraph,
+    errorMessage,
+    play,
+    pause,
+    stop,
+  } = usePlaybackMachine({
+    paragraphs,
+    voice: selectedVoice,
+    speed,
+    pitch,
+    language,
+    temperature,
+    repetitionPenalty,
+    playbackSpeed,
+    preservesPitch,
+    preGeneratedAudio,
+    isPreGenerated,
+    currentSession,
+    isServerConnected,
+  })
 
-  // Keep playback setting refs in sync with props
+  // Update AudioEngine settings when playback settings change
   useEffect(() => {
-    console.log(`[AudioPlayer] Updating refs - playbackSpeed: ${playbackSpeed}, preservesPitch: ${preservesPitch}`)
-    playbackSpeedRef.current = playbackSpeed
-    preservesPitchRef.current = preservesPitch
+    console.log(`[AudioPlayer] Updating playback settings - speed: ${playbackSpeed}, preservesPitch: ${preservesPitch}`)
+    audioEngineRef.current?.updateSettings({
+      speed: playbackSpeed,
+      preservesPitch
+    })
   }, [playbackSpeed, preservesPitch])
 
-  // Detect Safari/iOS
+  // Sync AudioEngine with state machine
   useEffect(() => {
-    const userAgent = navigator.userAgent.toLowerCase()
-    const isSafariUA = /safari/.test(userAgent) && !/chrome/.test(userAgent)
-    const isIOS = /iphone|ipad|ipod/.test(userAgent)
-    setIsSafari(isSafariUA || isIOS)
+    const audioEngine = audioEngineRef.current
+    if (!audioEngine) return
 
-    if (isSafariUA || isIOS) {
-      console.log('🍎 Safari/iOS detected - using compatible audio handling')
-      if (!audioRef.current) {
-        audioRef.current = new Audio()
-        audioRef.current.preload = 'metadata'
-      }
+    const audioUrl = state.context.audioUrl
+    if (!audioUrl) return
+
+    // When audio is ready, start playing and transition to playing state
+    if (state.matches('ready')) {
+      console.log('▶️ [AudioPlayer] Audio ready, starting playback and transitioning to PLAYING')
+      audioEngine.play(audioUrl, {
+        onEnded: () => {
+          console.log('🎵 [AudioPlayer] Audio ended, sending AUDIO_ENDED event')
+          send({ type: 'AUDIO_ENDED' })
+        },
+        onError: (error: any) => {
+          console.error('[AudioPlayer] Audio playback error:', error)
+          send({ type: 'STOP' })
+        },
+      }).then((success) => {
+        if (success) {
+          // Transition state machine to playing after audio starts successfully
+          console.log('✅ [AudioPlayer] Audio started, sending PLAY event to enter PLAYING state')
+          send({ type: 'PLAY' })
+        }
+      }).catch((error: any) => {
+        console.error('[AudioPlayer] Failed to start playback:', error)
+        send({ type: 'STOP' })
+      })
     }
-  }, [])
 
-  // Helper function to configure audio playback settings
-  // Uses refs to access current values, avoiding stale closures in event handlers
-  const configureAudioPlayback = (audio: HTMLAudioElement) => {
-    console.log(`[AudioPlayer] configureAudioPlayback called - playbackSpeedRef.current: ${playbackSpeedRef.current}, preservesPitchRef.current: ${preservesPitchRef.current}`)
-    audio.playbackRate = playbackSpeedRef.current;
-
-    // Set preservesPitch with cross-browser support
-    if ('preservesPitch' in audio) {
-      audio.preservesPitch = preservesPitchRef.current;
-    } else if ('mozPreservesPitch' in audio) {
-      (audio as any).mozPreservesPitch = preservesPitchRef.current;
-    } else if ('webkitPreservesPitch' in audio) {
-      (audio as any).webkitPreservesPitch = preservesPitchRef.current;
+    // Pause audio when state machine transitions to paused
+    if (state.matches('paused')) {
+      audioEngine.pause()
     }
 
-    console.log(`[AudioPlayer] Configured playback: ${playbackSpeedRef.current}x, preservesPitch: ${preservesPitchRef.current}, actual audio.playbackRate: ${audio.playbackRate}`);
-  };
-
-  // Update playback rate on existing audio when settings change
-  useEffect(() => {
-    if (audioRef.current && !audioRef.current.paused) {
-      configureAudioPlayback(audioRef.current);
+    // Resume audio when transitioning back to playing from paused
+    // (This is for the RESUME event)
+    if (state.matches('playing') && audioEngine.getAudioElement()?.paused) {
+      audioEngine.resume()
     }
-  }, [playbackSpeed, preservesPitch]);
+
+    // Stop audio when state machine transitions to idle/error
+    if (state.matches('idle') || state.matches('error')) {
+      audioEngine.stop()
+    }
+  }, [state, send])
 
   // Auto-save playback position (debounced)
   const savePositionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -133,283 +170,53 @@ export function useAudioPlayer({
     }
   }, [currentParagraph, currentSession?.id])
 
-  // Handle auto-progression to next paragraph with error handling
-  const handleAutoProgression = async (currentIndex: number) => {
-    const nextIndex = currentIndex + 1
-    
-    if (nextIndex >= paragraphs.length) {
-      setIsPlaying(false)
-      setCurrentParagraph(null)
-      setIsLoadingAudio(false)
-      setIsAutoProgressing(false)
-      setErrorMessage(null)
-      console.log('Reached end of book')
-      return
-    }
+  // Play paragraph (with optional force reload)
+  const handlePlayParagraph = useCallback(
+    (index: number, forceReload = false) => {
+      console.log(`🎯 [AudioPlayer] Playing paragraph ${index + 1}${forceReload ? ' (force reload)' : ''}`)
 
-    setIsAutoProgressing(true)
-    
-    autoProgressTimeoutRef.current = setTimeout(() => {
-      console.warn(`Auto-progression timeout for paragraph ${nextIndex + 1}`)
-      setIsAutoProgressing(false)
-      setIsLoadingAudio(false)
-      setErrorMessage(`Auto-progression timed out. Click paragraph ${nextIndex + 1} to continue.`)
-    }, 15000)
-    
-    try {
-      console.log(`🚀 Auto-progressing from paragraph ${currentIndex + 1} to ${nextIndex + 1}`)
-      await handlePlayParagraph(nextIndex)
-      console.log(`✅ handlePlayParagraph completed for paragraph ${nextIndex + 1}`)
-    } catch (error) {
-      console.error('Auto-progression failed:', error)
-      
-      if (autoProgressTimeoutRef.current) {
-        clearTimeout(autoProgressTimeoutRef.current)
-        autoProgressTimeoutRef.current = null
-      }
-      
-      setIsPlaying(false)
-      setIsLoadingAudio(false)
-      setIsAutoProgressing(false)
-      
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      setErrorMessage(`Auto-progression failed: ${errorMsg}. Click the next paragraph to continue manually.`)
-      setCurrentParagraph(nextIndex)
-    }
-  }
+      // Send PLAY event to state machine
+      play(index, forceReload)
+    },
+    [play]
+  )
 
-  // Play a paragraph at the specified index
-  const handlePlayParagraph = async (index: number, isManualClick = false) => {
-    console.log(`🎯 handlePlayParagraph called for index ${index + 1}, isManualClick: ${isManualClick}`)
-    
-    if (index >= paragraphs.length) {
-      setIsPlaying(false)
-      setCurrentParagraph(null)
-      setIsLoadingAudio(false)
-      setErrorMessage(null)
-      setIsAutoProgressing(false)
-      return
-    }
-
-    if (isManualClick) {
-      setIsAutoProgressing(false)
-    }
-
-    setCurrentParagraph(index)
-    setIsLoadingAudio(true)
-    setErrorMessage(null)
-
-    if (audioRef.current) {
-      audioRef.current.pause()
-      if (!isSafari) {
-        audioRef.current = null
-      }
-    }
-
-    // Revoke previous blob URL to prevent memory leak
-    if (currentAudioUrlRef.current) {
-      revokeAudioObjectUrl(currentAudioUrlRef.current)
-      currentAudioUrlRef.current = null
-    }
-
-    try {
-      let audioUrl: string | null = null
-
-      if (currentSession) {
-        audioUrl = getAudioUrlForPlayback(currentSession, index,
-          isPreGenerated && preGeneratedAudio[index] ? preGeneratedAudio[index] : undefined)
-      } else if (isPreGenerated && preGeneratedAudio[index]) {
-        // Resolve relative path to full URL for no-session playback
-        audioUrl = `${getBaseUrl()}${preGeneratedAudio[index]}`
-        console.log(`Using pre-generated audio for paragraph ${index + 1}/${paragraphs.length}`)
-      }
-
-      if (!audioUrl) {
-        console.log(`Generating TTS for paragraph ${index + 1}/${paragraphs.length} (${paragraphs[index].length} characters)`)
-
-        const result = await ttsService.generateTTS(paragraphs[index], {
-          characterVoice: selectedVoice,
-          language,
-          outputFileName: `paragraph_${index}_${Date.now()}`,
-          // speed removed - now handled client-side via playbackRate
-          pitch,
-          temperature,
-          repetitionPenalty,
-        })
-
-        if (!result) {
-          throw new Error('Failed to generate audio')
-        }
-
-        audioUrl = result.fullAudioUrl
-      }
-
-      if (audioUrl !== null) {
-        console.log(`${isSafari ? '🍎' : '🔧'} ${isSafari ? 'Reusing' : 'Creating'} audio object for paragraph ${index + 1} with URL: ${audioUrl}`)
-        
-        let audio: HTMLAudioElement
-
-        if (isSafari && audioRef.current) {
-          audio = audioRef.current
-          audio.oncanplaythrough = null
-          audio.oncanplay = null
-          audio.onended = null
-          audio.onerror = null
-          audio.src = audioUrl
-          configureAudioPlayback(audio)
-          console.log(`🍎 Safari: Updated audio source to ${audioUrl}`)
-        } else {
-          audio = new Audio(audioUrl)
-          configureAudioPlayback(audio)
-        }
-        
-        let hasPlayStarted = false
-        
-        const startPlayback = () => {
-          if (hasPlayStarted) return
-          hasPlayStarted = true
-
-          console.log(`📻 Audio ready for paragraph ${index + 1}, starting playback`)
-
-          // Re-apply playback settings right before play to ensure they haven't been reset by load()
-          configureAudioPlayback(audio)
-
-          setIsLoadingAudio(false)
-          setIsPlaying(true)
-          setIsAutoProgressing(false)
-
-          if (autoProgressTimeoutRef.current) {
-            clearTimeout(autoProgressTimeoutRef.current)
-            autoProgressTimeoutRef.current = null
-          }
-
-          audio.play().then(() => {
-            console.log(`🔊 Audio playback started successfully for paragraph ${index + 1}`)
-          }).catch(err => {
-            console.error(`❌ Failed to play audio for paragraph ${index + 1}:`, err)
-            setIsPlaying(false)
-            setIsAutoProgressing(false)
-            
-            if (err.name === 'NotAllowedError') {
-              setErrorMessage('Autoplay blocked by browser. Click to continue playing.')
-            } else {
-              setErrorMessage('Failed to play audio. Please try again.')
-            }
-          })
-        }
-        
-        audio.oncanplaythrough = startPlayback
-        audio.oncanplay = startPlayback
-
-        audio.onended = () => {
-          console.log(`🎵 Audio ended for paragraph ${index + 1}, current paragraph in state: ${currentParagraph}, starting auto-progression`)
-          setIsPlaying(false)
-          handleAutoProgression(index)
-        }
-
-        audio.onerror = (e) => {
-          console.error('Audio error:', e)
-          setIsPlaying(false)
-          setIsLoadingAudio(false)
-          setIsAutoProgressing(false)
-          
-          if (autoProgressTimeoutRef.current) {
-            clearTimeout(autoProgressTimeoutRef.current)
-            autoProgressTimeoutRef.current = null
-          }
-          
-          if (currentSession?.isOfflineSession) {
-            setErrorMessage('Offline audio not available for this paragraph.')
-          } else if (!isServerConnected) {
-            setErrorMessage('AllTalk server is offline. Please connect to the server or use an offline session.')
-          } else {
-            setErrorMessage('Error playing audio. Please try again.')
-          }
-        }
-        
-        audioRef.current = audio
-        currentAudioUrlRef.current = audioUrl
-        audio.preload = 'auto'
-        audio.load()
-      } else {
-        console.error('Audio URL is null, cannot play audio')
-        setIsPlaying(false)
-        setIsLoadingAudio(false)
-        setIsAutoProgressing(false)
-        setErrorMessage('Failed to generate audio. Please try again.')
-      }
-    } catch (error) {
-      console.error('Failed to play paragraph:', error)
-      setIsPlaying(false)
-      setIsLoadingAudio(false)
-      setIsAutoProgressing(false)
-      
-      if (autoProgressTimeoutRef.current) {
-        clearTimeout(autoProgressTimeoutRef.current)
-        autoProgressTimeoutRef.current = null
-      }
-      
-      if (error instanceof Error && error.message.includes('fetch')) {
-        setErrorMessage('AllTalk server is not accessible. Please check if the server is running.')
-      } else {
-        setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred')
-      }
-    }
-  }
-
-  const togglePlayback = () => {
+  // Toggle playback (play/pause)
+  const togglePlayback = useCallback(() => {
     if (isPlaying) {
-      if (audioRef.current) {
-        audioRef.current.pause()
-      }
-      setIsPlaying(false)
-    } else if (!isLoadingAudio) {
-      handlePlayParagraph(currentParagraph !== null ? currentParagraph : 0, true)
+      pause()
+    } else if (state.matches('paused')) {
+      send({ type: 'RESUME' })
+    } else if (currentParagraph !== null) {
+      play(currentParagraph)
+    } else {
+      play(0)
     }
-  }
+  }, [isPlaying, state, currentParagraph, pause, play, send])
 
-  const reset = () => {
-    setCurrentParagraph(null)
-    setIsPlaying(false)
-    setIsLoadingAudio(false)
-    setErrorMessage(null)
-    setIsAutoProgressing(false)
-
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
-    }
-
-    if (autoProgressTimeoutRef.current) {
-      clearTimeout(autoProgressTimeoutRef.current)
-      autoProgressTimeoutRef.current = null
-    }
-  }
+  // Reset (stop playback and clear state)
+  const reset = useCallback(() => {
+    console.log('🔄 [AudioPlayer] Resetting playback state')
+    stop()
+  }, [stop])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-      if (autoProgressTimeoutRef.current) {
-        clearTimeout(autoProgressTimeoutRef.current)
-        autoProgressTimeoutRef.current = null
-      }
-      // Revoke all blob URLs to prevent memory leaks
-      revokeAllAudioObjectUrls()
+      audioEngineRef.current?.dispose()
     }
   }, [])
 
   return {
     currentParagraph,
     isPlaying,
-    isLoadingAudio,
+    isLoadingAudio: isLoading,
     errorMessage,
-    isAutoProgressing,
     handlePlayParagraph,
     togglePlayback,
-    reset
+    reset,
+
+    // Expose state machine for debugging
+    _stateMachine: { state, send },
   }
 }

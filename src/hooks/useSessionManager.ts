@@ -1,44 +1,27 @@
-import { useState } from 'react'
+import { useReaderStore } from '~/state/readerStore'
 import { type AudioSession, importSessionFromFile } from '~/services/session'
 
+/**
+ * Hook for managing session state (current session, offline mode, session manager UI)
+ * Now backed by Zustand store (Phase 3)
+ */
 export function useSessionManager() {
-  const [showSessionManager, setShowSessionManager] = useState(false)
-  const [sessionManagerKey, setSessionManagerKey] = useState(Date.now())
-  const [currentSession, setCurrentSession] = useState<AudioSession | null>(null)
-  const [isOfflineSession, setIsOfflineSession] = useState(false)
+  const showSessionManager = useReaderStore((state) => state.sessionState.showSessionManager)
+  const sessionManagerKey = useReaderStore((state) => state.sessionState.sessionManagerKey)
+  const currentSession = useReaderStore((state) => state.sessionState.currentSession)
+  const isOfflineSession = useReaderStore((state) => state.sessionState.isOfflineSession)
 
-  const openSessionManager = () => {
-    setSessionManagerKey(Date.now())
-    setShowSessionManager(true)
-  }
-
-  const closeSessionManager = () => {
-    setShowSessionManager(false)
-  }
+  const openSessionManager = useReaderStore((state) => state.openSessionManager)
+  const closeSessionManager = useReaderStore((state) => state.closeSessionManager)
+  const refreshSessionManager = useReaderStore((state) => state.refreshSessionManager)
+  const clearSession = useReaderStore((state) => state.clearSession)
+  const loadSessionData = useReaderStore((state) => state.loadSessionData)
 
   const loadSession = (session: AudioSession) => {
     if (!session) return
 
     try {
-      setCurrentSession(session)
-
-      if (session.isOfflineSession && session.audioBlobData) {
-        setIsOfflineSession(true)
-        console.log('Loaded offline session with embedded audio')
-      } else {
-        setIsOfflineSession(false)
-      }
-
-      console.log(`Loaded session with ${session.paragraphs.length} paragraphs`)
-      return {
-        text: session.text,
-        paragraphs: session.paragraphs,
-        voice: session.settings.voice,
-        speed: session.settings.speed,
-        pitch: session.settings.pitch,
-        language: session.settings.language,
-        preGeneratedAudio: session.audioUrls || []
-      }
+      return loadSessionData(session)
     } catch (error) {
       console.error('Error loading session:', error)
       throw new Error('Failed to load the session. Please try again.')
@@ -55,10 +38,6 @@ export function useSessionManager() {
     }
   }
 
-  const refreshSessionManager = () => {
-    setSessionManagerKey(Date.now())
-  }
-
   return {
     showSessionManager,
     sessionManagerKey,
@@ -68,6 +47,7 @@ export function useSessionManager() {
     closeSessionManager,
     loadSession,
     handleFileImport,
-    refreshSessionManager
+    refreshSessionManager,
+    clearSession,
   }
 }

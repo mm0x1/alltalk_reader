@@ -12,43 +12,48 @@
 
 ```
 src/
-├── services/              # API and storage services
-│   ├── api/              # Modular AllTalk API services
-│   │   ├── client.ts     # HTTP client with timeout & retry logic
-│   │   ├── status.ts     # Server status checking (/api/ready, /api/currentsettings)
-│   │   ├── voices.ts     # Voice management (/api/voices, /api/rvcvoices)
-│   │   └── tts.ts        # TTS generation (/api/tts-generate) & text splitting logic
-│   ├── textProcessing/   # Text processing & AO3 parsing
-│   │   ├── index.ts      # Re-exports all modules
+├── state/                # ✨ Centralized state management (Phase 3 & 4)
+│   ├── readerStore.ts    # Zustand store with 9 state slices + Redux DevTools
+│   └── playbackMachine.ts # XState machine (idle → loading → ready → playing → paused)
+├── core/                 # ✨ Core audio infrastructure (Phase 2)
+│   ├── AudioEngine.ts    # Centralized audio playback & settings management
+│   └── SafariAdapter.ts  # Safari-specific compatibility layer
+├── services/             # API and storage services
+│   ├── api/             # Modular AllTalk API services
+│   │   ├── client.ts    # HTTP client with timeout & retry logic
+│   │   ├── status.ts    # Server status checking (/api/ready, /api/currentsettings)
+│   │   ├── voices.ts    # Voice management (/api/voices, /api/rvcvoices)
+│   │   └── tts.ts       # TTS generation (/api/tts-generate) & text splitting logic
+│   ├── textProcessing/  # Text processing & AO3 parsing
 │   │   ├── textProcessor.ts # Main entry: processInput + splitIntoParagraphs
 │   │   ├── ao3Parser.ts  # State machine parser for AO3 pages
 │   │   └── ao3Config.ts  # Configurable AO3 markers & patterns
-│   ├── generation/       # Buffered playback system
+│   ├── generation/      # Buffered playback system
 │   │   ├── controller.ts # GenerationController class
 │   │   └── types.ts      # Buffer state types
-│   ├── session/          # Session management (refactored from sessionStorage.ts)
-│   │   ├── api.ts        # CRUD operations
-│   │   ├── export.ts     # Export logic
-│   │   ├── import.ts     # Import logic
-│   │   ├── cache.ts      # Browser cache management
-│   │   └── offline.ts    # Base64 ↔ blob URL conversion
-│   ├── storage/          # IndexedDB storage
-│   │   └── indexedDb.ts  # Persistent audio storage
-│   ├── alltalkApi.ts     # **DEPRECATED** - Legacy compatibility wrapper
-│   └── sessionStorage.ts # **DEPRECATED** - Use session/* modules instead
-├── hooks/                # Custom React hooks (state management)
-│   ├── useAudioPlayer.ts         # Playback control, auto-progression, Safari compatibility
-│   ├── useBufferedPlayback.ts    # Buffer-ahead playback mode
+│   ├── session/         # Session management
+│   │   ├── api.ts       # CRUD operations
+│   │   ├── export.ts    # Export logic
+│   │   ├── import.ts    # Import logic
+│   │   ├── cache.ts     # Browser cache management
+│   │   └── offline.ts   # Base64 ↔ blob URL conversion
+│   └── storage/         # IndexedDB storage
+│       └── indexedDb.ts  # Persistent audio storage
+├── hooks/               # Thin wrappers around Zustand store (Phase 3)
+│   ├── useAudioPlayer.ts         # Live playback with XState machine (Phase 4)
+│   ├── useBufferedPlayback.ts    # Buffer-ahead mode (uses AudioEngine)
+│   ├── usePlaybackMachine.ts     # XState machine wrapper (Phase 4)
 │   ├── useBatchAudioGeneration.ts # Sequential batch generation logic
 │   ├── useSessionSaver.ts        # Auto-save after batch generation
-│   ├── useTextProcessor.ts       # Text input, paragraph splitting, AO3 detection
-│   ├── useTtsSettings.ts         # Voice, speed, pitch, language settings
-│   ├── useBatchGeneration.ts     # Pre-generated audio URLs & cache status
-│   ├── useModalState.ts          # UI modal visibility
+│   ├── useTextProcessor.ts       # Text input, splitting, AO3 detection (Zustand wrapper)
+│   ├── useTtsSettings.ts         # TTS settings (Zustand wrapper)
+│   ├── useBatchGeneration.ts     # Pre-generated audio state (Zustand wrapper)
+│   ├── usePlaybackSettings.ts    # Client-side speed/pitch (Zustand wrapper)
+│   ├── useModalState.ts          # UI modal visibility (Zustand wrapper)
 │   ├── useServerConnection.ts    # API connection status
-│   └── useSessionManager.ts      # Session loading & offline detection
-├── components/           # UI components
-│   ├── buffer/           # Buffer mode UI
+│   └── useSessionManager.ts      # Session loading (Zustand wrapper)
+├── components/          # UI components
+│   ├── buffer/          # Buffer mode UI
 │   │   ├── BufferPlayButton.tsx
 │   │   ├── BufferStatusIndicator.tsx
 │   │   └── BufferSettings.tsx
@@ -60,14 +65,14 @@ src/
 │   ├── SettingsMonitor.tsx       # AllTalk connection status & config editor
 │   ├── ServerConfigModal.tsx     # Edit server URL
 │   └── [other UI components]
-├── routes/               # TanStack Router routes
-│   └── reader.tsx        # **MAIN ROUTE** - Orchestrates entire UI & state
-├── contexts/             # React contexts
+├── routes/              # TanStack Router routes
+│   └── reader.tsx       # **MAIN ROUTE** - Orchestrates entire UI (simplified in Phase 3)
+├── contexts/            # React contexts
 │   └── ApiStateContext.tsx       # Centralized API state
-├── config/               # Configuration management
-│   └── env.ts            # Environment variable handling
-└── design-system/        # Design tokens & constants
-    └── constants.ts      # Tailwind tokens, API endpoints, status states
+├── config/              # Configuration management
+│   └── env.ts           # Environment variable handling
+└── design-system/       # Design tokens & constants
+    └── constants.ts     # Tailwind tokens, API endpoints, status states
 ```
 
 ## Data Models
@@ -198,43 +203,160 @@ interface AudioSession {
 - `clearAllCachedAudioBlobs()`: Cleanup all cache
 - `getCacheSize()`: Calculate storage usage
 
-### Legacy API Service (Deprecated)
+### AudioEngine (Phase 2)
 
-**File**: `src/services/alltalkApi.ts`
+**File**: `src/core/AudioEngine.ts`
 
-- **Status**: **ALL FUNCTIONS MARKED DEPRECATED** with JSDoc `@deprecated` tags
-- **Purpose**: Backward compatibility wrapper during migration to new architecture
-- **Migration**: Components should use `ApiStateContext` and `src/services/api/*` modules
-- **When to Use**: Only for legacy code that hasn't been migrated yet
+**Purpose**: Centralized audio playback infrastructure used by all playback modes.
 
-## State Management Patterns
+**Features**:
+- ✅ Unified audio element management
+- ✅ Real-time playback settings (speed, preservesPitch)
+- ✅ Safari compatibility via SafariAdapter
+- ✅ Lifecycle management (play, pause, resume, stop, dispose)
+- ✅ Event handling (onCanPlay, onEnded, onError)
 
-### Custom Hooks Architecture
+**Usage**:
+```typescript
+const audioEngine = new AudioEngine(new SafariAdapter())
 
-**Philosophy**: Co-located hooks with main route, each responsible for one domain of state. No global state (except legacy code).
+// Update settings in real-time (applies immediately to playing audio)
+audioEngine.updateSettings({ speed: 1.5, preservesPitch: true })
 
-**All hooks used by** `src/routes/reader.tsx`:
+// Play audio with callbacks
+await audioEngine.play(url, {
+  onCanPlay: () => console.log('Audio ready'),
+  onEnded: () => console.log('Audio finished'),
+  onError: (err) => console.error('Playback error', err)
+})
+```
 
-1. **useServerConnection**: Manages AllTalk API connection status
-2. **useTextProcessor**: Handles text input, paragraph splitting, and AO3 detection
-3. **useTtsSettings**: Manages TTS configuration (voice, speed, pitch, language)
-4. **useBatchGeneration**: Tracks pre-generated audio URLs and cache status
-5. **useModalState**: Controls UI modal visibility
-6. **useSessionManager**: Handles session loading and offline detection
-7. **useAudioPlayer**: **Most complex** - manages playback control, auto-progression, Safari compatibility
-8. **useBufferedPlayback**: Buffer-ahead playback mode (generate audio ahead while playing)
-9. **useBatchAudioGeneration**: Sequential batch generation logic for pre-generation
-10. **useSessionSaver**: Auto-save after batch generation completes
+**Used By**:
+- `useAudioPlayer` (live playback mode)
+- `useBufferedPlayback` (buffered playback mode)
 
-### React Context (New Architecture)
+### SafariAdapter (Phase 2)
+
+**File**: `src/core/SafariAdapter.ts`
+
+**Purpose**: Safari-specific compatibility layer.
+
+**Features**:
+- Browser detection (Safari vs others)
+- Audio element priming for autoplay bypass
+- Graceful no-op for non-Safari browsers
+
+**Integration**: AudioEngine uses SafariAdapter internally, components don't interact with it directly.
+
+## State Management Patterns (✨ Refactored 2025-02-09)
+
+### Zustand Store (Phase 3)
+
+**File**: `src/state/readerStore.ts`
+
+**Philosophy**: Single source of truth with modular state slices. Replaces scattered useState hooks with centralized store.
+
+**Architecture**:
+```typescript
+interface ReaderStore {
+  // State slices (9 total)
+  ttsSettings: TtsSettings           // Voice, speed, pitch, language
+  playbackSettings: PlaybackSettings // Client-side speed, preservesPitch
+  textState: TextState               // Input text, paragraphs, AO3 metadata
+  sessionState: SessionState         // Current session, offline flag
+  batchGeneration: BatchGenerationState // Pre-generated audio URLs
+  modalState: ModalState             // UI modal visibility
+  resumeState: ResumeState           // Resume prompts
+  importExportState: ImportExportState // Import/export UI state
+  smartSplitState: SmartSplitState   // Smart splitting preferences
+
+  // Actions (consolidated)
+  resetAll: () => void               // Atomic reset (orthogonality)
+  // ... slice-specific actions
+}
+```
+
+**Features**:
+- ✅ Redux DevTools integration for state inspection
+- ✅ localStorage persistence for playback settings
+- ✅ Atomic state resets (no partial resets)
+- ✅ Type-safe selectors
+
+**Usage**:
+```typescript
+// Direct store access
+const selectedVoice = useReaderStore(state => state.ttsSettings.selectedVoice)
+const updateVoice = useReaderStore(state => state.updateVoice)
+
+// Via hook wrapper (preferred - maintains API compatibility)
+const { selectedVoice, updateVoice } = useTtsSettings()
+```
+
+### XState Playback Machine (Phase 4)
+
+**File**: `src/state/playbackMachine.ts`
+
+**Purpose**: Explicit state transitions for audio playback. Eliminates race conditions by making invalid states impossible.
+
+**States**:
+```
+idle → loading → ready → playing → paused → (error)
+                    ↓
+                  idle (on STOP/NEW_BOOK)
+```
+
+**Benefits**:
+- ✅ Can't play without loading first (eliminates race conditions)
+- ✅ Explicit state transitions (no boolean flag confusion)
+- ✅ Type-safe events
+- ✅ Visualizable with XState Inspector
+- ✅ Auto-progression handled by state machine
+
+**Integration**:
+```typescript
+// Used by useAudioPlayer via usePlaybackMachine wrapper
+const { state, send, isPlaying, currentParagraph } = usePlaybackMachine({
+  paragraphs,
+  voice,
+  speed,
+  // ...
+})
+
+// State machine coordinates with AudioEngine
+if (state.matches('ready')) {
+  audioEngine.play(audioUrl, {
+    onEnded: () => send({ type: 'AUDIO_ENDED' })
+  })
+}
+```
+
+### Hook Wrappers Pattern
+
+**Philosophy**: Thin wrappers around Zustand store. Maintains backward compatibility while benefiting from centralized state.
+
+**Examples**:
+
+All hooks in `src/hooks/` now follow this pattern:
+- **useTtsSettings**: Wraps `readerStore.ttsSettings` slice
+- **usePlaybackSettings**: Wraps `readerStore.playbackSettings` slice
+- **useSessionManager**: Wraps `readerStore.sessionState` slice
+- **useModalState**: Wraps `readerStore.modalState` slice
+- **useTextProcessor**: Wraps `readerStore.textState` slice
+- **useBatchGeneration**: Wraps `readerStore.batchGeneration` slice
+
+**Benefits**:
+- ✅ Maintains existing component API (no migration needed)
+- ✅ Centralized state inspection via Redux DevTools
+- ✅ Easy to refactor further if needed
+
+### React Context (API State)
 
 **File**: `src/contexts/ApiStateContext.tsx`
 
-- **Purpose**: Centralized API state management (replacing global `LEGACY_SERVER_STATUS`)
+- **Purpose**: Centralized API state management
 - **Provides**: Connection status, voices, current settings
 - **Actions**: `checkConnection()`, `initializeApi()`, `reloadConfig()`
 - **Usage**: Wrap app with `<ApiStateProvider>`, consume with `useApiState()` hook
-- **Migration Status**: Partial - new components should use this, old code still uses legacy
 
 ## Data Persistence (Three-Layer Architecture)
 
@@ -300,19 +422,46 @@ interface AudioSession {
 
 ## Browser Compatibility
 
-### Safari/iOS Audio Constraints
+### Safari/iOS Audio Constraints (✨ Centralized in Phase 2)
 
-**File**: `src/hooks/useAudioPlayer.ts`
+**Files**: `src/core/AudioEngine.ts`, `src/core/SafariAdapter.ts`
 
 **Problem**: Safari has strict autoplay policies and resource management for Audio elements
 
-**Solution**: Reuse single Audio object instead of creating new ones
+**Solution**: Centralized Safari handling via SafariAdapter + AudioEngine
 
 **Implementation**:
-- **Non-Safari**: Create new Audio element for each paragraph
-- **Safari**: Create Audio element once, update `src` property for each paragraph
+```typescript
+// SafariAdapter.ts
+export class SafariAdapter {
+  private isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
+  async prime(audio: HTMLAudioElement): Promise<void> {
+    if (!this.isSafari) return // No-op for non-Safari
+
+    // Prime audio element for autoplay
+    audio.load()
+    // ... Safari-specific priming logic
+  }
+}
+
+// AudioEngine.ts
+export class AudioEngine {
+  constructor(private safariAdapter: SafariAdapter) {
+    this.audio = new Audio() // Single audio element (Safari optimization)
+  }
+
+  async play(url: string, callbacks: AudioCallbacks) {
+    this.audio.src = url
+    await this.safariAdapter.prime(this.audio) // Safari priming
+    await this.audio.play()
+  }
+}
+```
 
 **Benefits**:
-- Bypasses Safari autoplay restrictions
-- Better resource management
-- Consistent playback behavior across browsers
+- ✅ Safari compatibility centralized (not duplicated across hooks)
+- ✅ Single Audio element reused (Safari optimization)
+- ✅ Automatic Safari detection
+- ✅ Graceful no-op for non-Safari browsers
+- ✅ Easy to update Safari logic in one place

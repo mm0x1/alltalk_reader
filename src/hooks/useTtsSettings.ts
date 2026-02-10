@@ -1,10 +1,6 @@
-import { useState } from 'react'
+import { useReaderStore } from '~/state/readerStore'
 
 const DEFAULT_VOICE = 'female_01.wav'
-
-// Default values for advanced settings
-// Temperature: 0.65 for stability (reduces vocal fry/distortion in longer texts)
-// Repetition Penalty: 3.0 for natural speech patterns (5.0 was too restrictive)
 const DEFAULT_TEMPERATURE = 0.65
 const DEFAULT_REPETITION_PENALTY = 3.0
 const DEFAULT_RVC_PITCH = 0
@@ -16,22 +12,40 @@ export interface AdvancedTtsSettings {
   rvcPitch: number
 }
 
+/**
+ * Hook for managing TTS generation settings
+ * Now backed by Zustand store (Phase 3)
+ *
+ * NOTE: The resetPreGenerated callback pattern is maintained for backward
+ * compatibility but represents tight coupling. In Phase 3.5, this should be
+ * refactored so that reader.tsx calls both actions separately.
+ */
 export function useTtsSettings() {
-  // Basic settings
-  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE)
-  /** @deprecated Speed is now handled client-side via playbackRate. Always 1.0 for generation. */
-  const [speed, setSpeed] = useState(1.0)
-  const [pitch, setPitch] = useState(0)
-  const [language, setLanguage] = useState('en')
+  // Select state
+  const selectedVoice = useReaderStore((state) => state.ttsSettings.selectedVoice)
+  const speed = useReaderStore((state) => state.ttsSettings.speed)
+  const pitch = useReaderStore((state) => state.ttsSettings.pitch)
+  const language = useReaderStore((state) => state.ttsSettings.language)
+  const temperature = useReaderStore((state) => state.ttsSettings.temperature)
+  const repetitionPenalty = useReaderStore((state) => state.ttsSettings.repetitionPenalty)
+  const selectedRvcVoice = useReaderStore((state) => state.ttsSettings.selectedRvcVoice)
+  const rvcPitch = useReaderStore((state) => state.ttsSettings.rvcPitch)
 
-  // Advanced settings (Phase 5)
-  const [temperature, setTemperature] = useState(DEFAULT_TEMPERATURE)
-  const [repetitionPenalty, setRepetitionPenalty] = useState(DEFAULT_REPETITION_PENALTY)
-  const [selectedRvcVoice, setSelectedRvcVoice] = useState<string | null>(null)
-  const [rvcPitch, setRvcPitch] = useState(DEFAULT_RVC_PITCH)
+  // Select actions
+  const updateVoiceStore = useReaderStore((state) => state.updateVoice)
+  const updateSpeedStore = useReaderStore((state) => state.updateSpeed)
+  const updatePitchStore = useReaderStore((state) => state.updatePitch)
+  const updateLanguageStore = useReaderStore((state) => state.updateLanguage)
+  const updateTemperatureStore = useReaderStore((state) => state.updateTemperature)
+  const updateRepetitionPenaltyStore = useReaderStore((state) => state.updateRepetitionPenalty)
+  const updateRvcVoiceStore = useReaderStore((state) => state.updateRvcVoice)
+  const updateRvcPitchStore = useReaderStore((state) => state.updateRvcPitch)
+  const loadTtsFromSessionStore = useReaderStore((state) => state.loadTtsFromSession)
+  const resetTtsSettingsStore = useReaderStore((state) => state.resetTtsSettings)
 
+  // Wrapper functions that maintain callback pattern for backward compatibility
   const updateVoice = (voice: string, resetPreGenerated?: () => void) => {
-    setSelectedVoice(voice)
+    updateVoiceStore(voice)
     resetPreGenerated?.()
   }
 
@@ -44,33 +58,32 @@ export function useTtsSettings() {
   }
 
   const updatePitch = (newPitch: number, resetPreGenerated?: () => void) => {
-    setPitch(newPitch)
+    updatePitchStore(newPitch)
     resetPreGenerated?.()
   }
 
   const updateLanguage = (newLanguage: string, resetPreGenerated?: () => void) => {
-    setLanguage(newLanguage)
+    updateLanguageStore(newLanguage)
     resetPreGenerated?.()
   }
 
-  // Advanced settings updaters
   const updateTemperature = (newTemperature: number, resetPreGenerated?: () => void) => {
-    setTemperature(newTemperature)
+    updateTemperatureStore(newTemperature)
     resetPreGenerated?.()
   }
 
   const updateRepetitionPenalty = (newPenalty: number, resetPreGenerated?: () => void) => {
-    setRepetitionPenalty(newPenalty)
+    updateRepetitionPenaltyStore(newPenalty)
     resetPreGenerated?.()
   }
 
   const updateRvcVoice = (voice: string | null, resetPreGenerated?: () => void) => {
-    setSelectedRvcVoice(voice)
+    updateRvcVoiceStore(voice)
     resetPreGenerated?.()
   }
 
   const updateRvcPitch = (newPitch: number, resetPreGenerated?: () => void) => {
-    setRvcPitch(newPitch)
+    updateRvcPitchStore(newPitch)
     resetPreGenerated?.()
   }
 
@@ -81,46 +94,34 @@ export function useTtsSettings() {
     sessionLanguage: string,
     advancedSettings?: Partial<AdvancedTtsSettings>
   ) => {
-    setSelectedVoice(voice)
-    // Always normalize speed to 1.0 (playback speed is handled separately)
-    setSpeed(1.0)
-    setPitch(sessionPitch)
-    setLanguage(sessionLanguage)
+    loadTtsFromSessionStore(voice, sessionSpeed, sessionPitch, sessionLanguage)
 
     // Load advanced settings if provided
     if (advancedSettings) {
       if (advancedSettings.temperature !== undefined) {
-        setTemperature(advancedSettings.temperature)
+        updateTemperatureStore(advancedSettings.temperature)
       }
       if (advancedSettings.repetitionPenalty !== undefined) {
-        setRepetitionPenalty(advancedSettings.repetitionPenalty)
+        updateRepetitionPenaltyStore(advancedSettings.repetitionPenalty)
       }
       if (advancedSettings.selectedRvcVoice !== undefined) {
-        setSelectedRvcVoice(advancedSettings.selectedRvcVoice)
+        updateRvcVoiceStore(advancedSettings.selectedRvcVoice)
       }
       if (advancedSettings.rvcPitch !== undefined) {
-        setRvcPitch(advancedSettings.rvcPitch)
+        updateRvcPitchStore(advancedSettings.rvcPitch)
       }
     }
   }
 
   const reset = () => {
-    setSelectedVoice(DEFAULT_VOICE)
-    setSpeed(1.0)
-    setPitch(0)
-    setLanguage('en')
-    // Reset advanced settings
-    setTemperature(DEFAULT_TEMPERATURE)
-    setRepetitionPenalty(DEFAULT_REPETITION_PENALTY)
-    setSelectedRvcVoice(null)
-    setRvcPitch(DEFAULT_RVC_PITCH)
+    resetTtsSettingsStore()
   }
 
   const resetAdvanced = () => {
-    setTemperature(DEFAULT_TEMPERATURE)
-    setRepetitionPenalty(DEFAULT_REPETITION_PENALTY)
-    setSelectedRvcVoice(null)
-    setRvcPitch(DEFAULT_RVC_PITCH)
+    updateTemperatureStore(DEFAULT_TEMPERATURE)
+    updateRepetitionPenaltyStore(DEFAULT_REPETITION_PENALTY)
+    updateRvcVoiceStore(null)
+    updateRvcPitchStore(DEFAULT_RVC_PITCH)
   }
 
   return {
@@ -156,6 +157,6 @@ export function useTtsSettings() {
       temperature: DEFAULT_TEMPERATURE,
       repetitionPenalty: DEFAULT_REPETITION_PENALTY,
       rvcPitch: DEFAULT_RVC_PITCH,
-    }
+    },
   }
 }
