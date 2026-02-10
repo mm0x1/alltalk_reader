@@ -53,25 +53,32 @@ This document provides everything an agent needs to understand and work with thi
 src/
 ├── routes/
 │   └── reader.tsx           # MAIN ORCHESTRATOR - All UI & state coordination
-├── hooks/                   # State management (one hook per domain)
-│   ├── useAudioPlayer.ts    # Live playback, auto-progression, Safari compat
+├── state/                   # ✨ NEW: Centralized state management
+│   ├── readerStore.ts       # Zustand store with 9 state slices
+│   └── playbackMachine.ts   # XState machine for playback (idle → loading → playing)
+├── core/                    # ✨ NEW: Core audio infrastructure
+│   ├── AudioEngine.ts       # Centralized audio playback & settings
+│   └── SafariAdapter.ts     # Safari-specific compatibility layer
+├── hooks/                   # Thin wrappers around Zustand store
+│   ├── useAudioPlayer.ts    # Live playback with state machine
 │   ├── useBufferedPlayback.ts # Buffer-ahead playback mode
+│   ├── usePlaybackMachine.ts  # XState machine wrapper
 │   ├── useTextProcessor.ts  # Text input, paragraph splitting, AO3 detection
-│   ├── useTtsSettings.ts    # Voice, speed, pitch, language
-│   ├── useBatchGeneration.ts # Pre-generated audio state
+│   ├── useTtsSettings.ts    # Voice, speed, pitch, language (Zustand wrapper)
+│   ├── useBatchGeneration.ts # Pre-generated audio state (Zustand wrapper)
 │   ├── useBatchAudioGeneration.ts # Batch generation logic
-│   ├── useSessionManager.ts # Session loading, offline detection
+│   ├── useSessionManager.ts # Session loading, offline detection (Zustand wrapper)
 │   ├── useSessionSaver.ts   # Auto-save after batch generation
-│   ├── useServerConnection.ts # API connection status
-│   └── useModalState.ts     # UI modal visibility
+│   ├── usePlaybackSettings.ts # Client-side speed/pitch (Zustand wrapper)
+│   ├── useModalState.ts     # UI modal visibility (Zustand wrapper)
+│   └── [other hooks...]
 ├── services/
-│   ├── api/                 # PREFERRED: Modular API services
+│   ├── api/                 # Modular API services
 │   │   ├── client.ts        # HTTP client with timeout
 │   │   ├── tts.ts           # TTS generation & text splitting
 │   │   ├── voices.ts        # Voice management
 │   │   └── status.ts        # Server health checks
 │   ├── textProcessing/      # Text processing & AO3 parsing
-│   │   ├── index.ts         # Re-exports all modules
 │   │   ├── textProcessor.ts # Main entry: processInput + splitIntoParagraphs
 │   │   ├── ao3Parser.ts     # State machine parser for AO3 pages
 │   │   └── ao3Config.ts     # Configurable AO3 markers & patterns
@@ -163,20 +170,45 @@ src/
 
 ## Important Patterns
 
-### State Management
-- **Pattern**: Custom hooks, one per domain
-- **Location**: `src/hooks/`
-- **Coordination**: All hooks consumed by `reader.tsx`
+### State Management (✨ Refactored 2025-02-09)
+- **Pattern**: Zustand store with thin hook wrappers
+- **Location**: `src/state/readerStore.ts` (single source of truth)
+- **Hooks**: `src/hooks/*` are now thin wrappers around Zustand slices
+- **Coordination**: All state consolidated in readerStore, consumed via hooks
+- **DevTools**: Redux DevTools integration for state inspection
+- **Example**:
+  ```typescript
+  // Hook wrapper (maintains API compatibility)
+  const { selectedVoice, updateVoice } = useTtsSettings()
+
+  // Backed by Zustand store
+  const selectedVoice = useReaderStore(state => state.ttsSettings.selectedVoice)
+  ```
+
+### Playback State Machine (✨ New 2025-02-09)
+- **Pattern**: XState state machine for explicit transitions
+- **Location**: `src/state/playbackMachine.ts`
+- **States**: `idle → loading → ready → playing → paused`
+- **Benefits**: Invalid states impossible, race conditions eliminated
+- **Integration**: Used by `useAudioPlayer.ts` via `usePlaybackMachine.ts`
+
+### Audio Infrastructure (✨ New 2025-02-09)
+- **Pattern**: Centralized AudioEngine for all playback modes
+- **Location**: `src/core/AudioEngine.ts`
+- **Features**:
+  - Safari compatibility via `SafariAdapter`
+  - Real-time playback settings (speed, preservesPitch)
+  - Unified audio lifecycle management
+- **Usage**: Both `useAudioPlayer` and `useBufferedPlayback` use AudioEngine
+- **Example**:
+  ```typescript
+  const audioEngine = new AudioEngine(new SafariAdapter())
+  await audioEngine.play(url, { speed: 1.5, preservesPitch: true })
+  ```
 
 ### API Calls
 - **Preferred**: `src/services/api/*` modules
-- **Deprecated**: `src/services/alltalkApi.ts` (DO NOT USE)
 - **Context**: `ApiStateContext` for shared API state
-
-### Audio Playback
-- **Non-Safari**: Create new Audio() for each paragraph
-- **Safari/iOS**: Reuse single Audio element, change `.src`
-- **Auto-progression**: `onended` event → play next paragraph
 
 ### Data Persistence (3 Layers)
 1. **sessionStorage**: Temporary audio cache (cleared on tab close)
@@ -185,43 +217,55 @@ src/
 
 ---
 
-## Recent Changes (Important Context)
+## Recent Architecture Refactoring (2025-02-09)
 
-### AO3 Auto-Parser (NEW)
+### ✨ Pragmatic Rewrite Complete (All 5 Phases)
+
+**Major refactoring following Pragmatic Programmer principles. All phases completed in one day.**
+
+#### Phase 1: Critical Bug Fixes
+- ✅ Fixed stale audio after "New Book" (orthogonality violation)
+- ✅ Fixed single-paragraph buffered playback stuck (race condition)
+- ✅ Added atomic state resets
+
+#### Phase 2: AudioEngine Extraction
+- ✅ Created `core/AudioEngine.ts` - centralized audio playback
+- ✅ Created `core/SafariAdapter.ts` - Safari compatibility layer
+- ✅ Eliminated ~150 lines of duplicate audio code
+- ✅ Both `useAudioPlayer` and `useBufferedPlayback` now use AudioEngine
+
+#### Phase 3: State Consolidation (Zustand)
+- ✅ Created `state/readerStore.ts` with 9 state slices
+- ✅ Migrated all hooks to Zustand wrappers (maintains API compatibility)
+- ✅ Added Redux DevTools integration
+- ✅ localStorage persistence for playback settings
+- ✅ Simplified reader.tsx by ~90 lines
+
+#### Phase 4: State Machine Implementation (XState)
+- ✅ Created `state/playbackMachine.ts` (idle → loading → ready → playing → paused)
+- ✅ Created `hooks/usePlaybackMachine.ts` wrapper
+- ✅ Migrated useAudioPlayer to state machine
+- ✅ Fixed auto-progression bug (ready → playing transition)
+- ✅ Eliminated 163 lines of boolean flag complexity
+
+#### Phase 5: Bug Fixes & Polish
+- ✅ Fixed dual audio playback in buffered mode (tracking issue)
+- ✅ Fixed playback speed real-time updates
+- ✅ Added `currentlyPlayingAudioRef` to track active audio source
+- ✅ Comprehensive documentation updates
+
+**Result**: Transformed "vibe-coded" architecture into well-structured app following DRY, orthogonality, and ETC principles.
+
+### AO3 Auto-Parser
 Automatically detects and parses Archive of Our Own (AO3) pages when pasted. Key files:
 - `src/services/textProcessing/ao3Config.ts` - Configurable detection patterns & markers
 - `src/services/textProcessing/ao3Parser.ts` - State machine parser
 - `src/services/textProcessing/textProcessor.ts` - Main entry point
-- `src/hooks/useTextProcessor.ts` - Integrated AO3 detection
 
 **Features**:
 - Auto-detects AO3 by matching 2+ detection patterns
 - Extracts chapter content, removes navigation/UI clutter
 - Shows green notification with chapter title when detected
-- All markers configurable in `ao3Config.ts` for easy updates when AO3 changes
-
-### SSR/Serialization Fix
-- **Removed React Query integration** - Was causing ReadableStream serialization errors
-- Changed from `routerWithQueryClient` to plain TanStack Router
-- Changed from `createRootRouteWithContext` to `createRootRoute`
-- Added `ssr: false` to reader route as safeguard
-
-### Buffered Playback Mode
-Key files:
-- `src/hooks/useBufferedPlayback.ts` - Main hook
-- `src/services/generation/controller.ts` - GenerationController
-- `src/services/generation/types.ts` - Type definitions
-- `src/components/buffer/*` - UI components
-
-**Known Issues Fixed**:
-- Stale closure bug with `handleAudioEnded` - Fixed using `handleAudioEndedRef`
-- Integration with `useAudioPlayer` - Added `resetAudio()` when buffer mode starts
-- PlaybackControls now respect buffer mode
-
-### Server Config Modal
-- Added `ServerConfigModal.tsx`
-- Gear icon in SettingsMonitor
-- Stores override in localStorage
 
 ---
 
@@ -272,15 +316,6 @@ VITE_MAX_CHARACTERS=4096        # Max chars per TTS request
 - Export: `src/services/session/export.ts`
 - Import: `src/services/session/import.ts`
 - Offline audio: `src/services/session/offline.ts`
-
----
-
-## Known Technical Debt
-
-1. Memory leak: Object URLs not revoked properly
-2. Buffer mode: Some edge cases with pause/resume
-3. sessionStorage limits (~5-10MB)
-4. No audio preloading for smoother playback
 
 ---
 
