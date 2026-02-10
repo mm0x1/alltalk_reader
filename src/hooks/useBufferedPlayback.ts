@@ -141,6 +141,22 @@ export function useBufferedPlayback({
       speed: playbackSpeed,
       preservesPitch
     });
+
+    // Also update currently playing audio if it exists (preloaded audio)
+    if (currentlyPlayingAudioRef.current) {
+      currentlyPlayingAudioRef.current.playbackRate = playbackSpeed;
+
+      // Set preservesPitch with cross-browser support
+      if ('preservesPitch' in currentlyPlayingAudioRef.current) {
+        currentlyPlayingAudioRef.current.preservesPitch = preservesPitch;
+      } else if ('mozPreservesPitch' in currentlyPlayingAudioRef.current) {
+        (currentlyPlayingAudioRef.current as any).mozPreservesPitch = preservesPitch;
+      } else if ('webkitPreservesPitch' in currentlyPlayingAudioRef.current) {
+        (currentlyPlayingAudioRef.current as any).webkitPreservesPitch = preservesPitch;
+      }
+
+      console.log(`[BufferedPlayback] Updated currently playing audio: ${playbackSpeed}x, preservesPitch: ${preservesPitch}`);
+    }
   }, [playbackSpeed, preservesPitch]);
 
   // Calculate buffer ahead of current playback
