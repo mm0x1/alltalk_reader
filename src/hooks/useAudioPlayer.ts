@@ -101,8 +101,9 @@ export function useAudioPlayer({
     const audioUrl = state.context.audioUrl
     if (!audioUrl) return
 
-    // Play audio when state machine transitions to ready or playing
-    if (state.matches('ready') || state.matches('playing')) {
+    // When audio is ready, start playing and transition to playing state
+    if (state.matches('ready')) {
+      console.log('▶️ [AudioPlayer] Audio ready, starting playback and transitioning to PLAYING')
       audioEngine.play(audioUrl, {
         onEnded: () => {
           console.log('🎵 [AudioPlayer] Audio ended, sending AUDIO_ENDED event')
@@ -112,6 +113,12 @@ export function useAudioPlayer({
           console.error('[AudioPlayer] Audio playback error:', error)
           send({ type: 'STOP' })
         },
+      }).then((success) => {
+        if (success) {
+          // Transition state machine to playing after audio starts successfully
+          console.log('✅ [AudioPlayer] Audio started, sending PLAY event to enter PLAYING state')
+          send({ type: 'PLAY' })
+        }
       }).catch((error: any) => {
         console.error('[AudioPlayer] Failed to start playback:', error)
         send({ type: 'STOP' })
