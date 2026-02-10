@@ -28,25 +28,7 @@ AllTalk Reader transforms any text into an audiobook experience with professiona
 - **AO3 Auto-Parsing**: Automatically detects and extracts chapter content from Archive of Our Own pages
 - **Session Management**: Save, load, and delete audio sessions with persistent storage
 - **Safari Compatible**: Optimized audio playback for Safari/iOS devices
-
-### Advanced Features
-
-- **State Machine Playback**: XState-powered state transitions eliminate race conditions
-- **Redux DevTools Integration**: Inspect state, time-travel debugging, and action history
-- **Real-Time Settings**: Playback speed and pitch changes apply immediately to playing audio
 - **Buffer-Ahead Generation**: Configurable buffer sizes for smooth playback
-- **Session Export/Import**: Download sessions as self-contained JSON files with base64-encoded audio
-- **Dual Storage System**: Browser sessionStorage + Express server for optimal persistence
-
-## Tech Stack
-
-- **Frontend**: React 19, TanStack Router, Tailwind CSS
-- **State Management**: Zustand with Redux DevTools integration
-- **Playback Control**: XState state machine
-- **Audio Engine**: Centralized AudioEngine with Safari compatibility layer
-- **Backend**: Express.js session storage server
-- **Build Tool**: Vite
-- **External Dependency**: AllTalk TTS Server
 
 ## Requirements
 
@@ -71,7 +53,7 @@ AllTalk Reader transforms any text into an audiobook experience with professiona
 
 3. **Start the Application**
    ```bash
-   pnpm start:all  # Starts both Vite (port 3000) and Express (port 3001)
+   bash ./start.sh
    ```
 
 4. **Access the App**
@@ -212,19 +194,6 @@ Built following **The Pragmatic Programmer** principles (DRY, Orthogonality, ETC
 
 ## Development
 
-### Project Structure
-
-```
-src/
-├── state/              # Zustand store + XState machine
-├── core/               # AudioEngine + SafariAdapter
-├── hooks/              # React hooks (thin wrappers around state)
-├── services/           # API services, text processing, session management
-├── components/         # UI components
-├── routes/             # TanStack Router routes
-└── config/             # Environment configuration
-```
-
 ### Documentation
 
 For developers and AI agents, comprehensive documentation is available in `/docs`:
@@ -234,14 +203,6 @@ For developers and AI agents, comprehensive documentation is available in `/docs
 - `playback-modes.md` - Detailed playback mode flows
 - `development.md` - Development workflow and debugging
 - `CLAUDE.md` - AI assistant guidelines
-
-### Commands
-
-```bash
-pnpm start:all    # Start both servers (development)
-pnpm dev          # Vite only (limited functionality)
-pnpm build        # Production build with TypeScript check
-```
 
 ## Environment Variables
 
@@ -259,10 +220,5 @@ Created for personal use. Feel free to adapt for your own needs.
 
 ## Acknowledgments
 
-- Built with [AllTalk TTS](https://github.com/erew123/alltalk_tts)
-- Architecture inspired by *The Pragmatic Programmer* (Hunt & Thomas)
-- State machine implementation using [XState](https://xstate.js.org/)
+- Built with [AllTalk TTS](https://github.com/erew123/alltalk_tts) and Claude
 
----
-
-*Last Updated: 2025-02-09*
