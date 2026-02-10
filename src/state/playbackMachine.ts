@@ -299,6 +299,9 @@ export const playbackMachine = setup({
       },
       on: {
         STOP: 'idle',
+        UPDATE_SETTINGS: {
+          actions: ['updateSettings'],
+        },
       },
     },
     ready: {
@@ -310,6 +313,9 @@ export const playbackMachine = setup({
           guard: 'isValidParagraphIndex',
           actions: ['assignParagraphIndex'],
         },
+        UPDATE_SETTINGS: {
+          actions: ['updateSettings'],
+        },
       },
     },
     playing: {
@@ -317,6 +323,10 @@ export const playbackMachine = setup({
       on: {
         PAUSE: 'paused',
         STOP: 'idle',
+        PLAY: {
+          target: 'loading',
+          actions: ['assignParagraphIndex'],
+        },
         AUDIO_ENDED: [
           {
             target: 'loading',
@@ -333,16 +343,26 @@ export const playbackMachine = setup({
           guard: 'isValidParagraphIndex',
           actions: ['assignParagraphIndex'],
         },
+        UPDATE_SETTINGS: {
+          actions: ['updateSettings'],
+        },
       },
     },
     paused: {
       on: {
         RESUME: 'playing',
         STOP: 'idle',
+        PLAY: {
+          target: 'loading',
+          actions: ['assignParagraphIndex'],
+        },
         SKIP_TO: {
           target: 'loading',
           guard: 'isValidParagraphIndex',
           actions: ['assignParagraphIndex'],
+        },
+        UPDATE_SETTINGS: {
+          actions: ['updateSettings'],
         },
       },
     },
@@ -354,6 +374,9 @@ export const playbackMachine = setup({
           actions: ['assignParagraphIndex', 'clearError'],
         },
         STOP: 'idle',
+        UPDATE_SETTINGS: {
+          actions: ['updateSettings'],
+        },
       },
     },
   },
