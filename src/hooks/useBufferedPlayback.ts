@@ -634,6 +634,11 @@ export function useBufferedPlayback({
   const pause = useCallback(() => {
     console.log('[BufferedPlayback] Pausing');
     audioEngineRef.current?.pause();
+    // Also pause preloaded audio if it's currently playing
+    if (preloadedAudioRef.current?.audio) {
+      preloadedAudioRef.current.audio.pause();
+      console.log('[BufferedPlayback] Paused preloaded audio');
+    }
     controllerRef.current.pause();
     setState((prev) => ({ ...prev, status: 'paused' }));
   }, []);
@@ -643,6 +648,13 @@ export function useBufferedPlayback({
 
     console.log('[BufferedPlayback] Resuming');
     audioEngineRef.current?.resume();
+    // Also resume preloaded audio if it was paused
+    if (preloadedAudioRef.current?.audio && preloadedAudioRef.current.audio.paused) {
+      preloadedAudioRef.current.audio.play().catch((err) => {
+        console.error('[BufferedPlayback] Failed to resume preloaded audio:', err);
+      });
+      console.log('[BufferedPlayback] Resumed preloaded audio');
+    }
     controllerRef.current.resume();
     setState((prev) => ({ ...prev, status: 'playing' }));
   }, [state.status]);
