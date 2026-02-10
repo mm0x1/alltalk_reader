@@ -1,6 +1,6 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
-import type { AudioSession } from '~/services/session'
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import type { AudioSession } from "~/services/session";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -10,89 +10,89 @@ import type { AudioSession } from '~/services/session'
  * TTS generation settings (server-side)
  */
 export interface TtsSettings {
-  selectedVoice: string
+  selectedVoice: string;
   /** @deprecated Speed is now handled client-side. Always 1.0 for generation. */
-  speed: number
-  pitch: number
-  language: string
+  speed: number;
+  pitch: number;
+  language: string;
   // Advanced settings
-  temperature: number
-  repetitionPenalty: number
-  selectedRvcVoice: string | null
-  rvcPitch: number
+  temperature: number;
+  repetitionPenalty: number;
+  selectedRvcVoice: string | null;
+  rvcPitch: number;
 }
 
 /**
  * Playback settings (client-side audio control)
  */
 export interface PlaybackSettings {
-  speed: number
-  preservesPitch: boolean
+  speed: number;
+  preservesPitch: boolean;
 }
 
 /**
  * Text processing state
  */
 export interface TextState {
-  text: string
-  paragraphs: string[]
-  isProcessing: boolean
-  wasAo3Parsed: boolean
+  text: string;
+  paragraphs: string[];
+  isProcessing: boolean;
+  wasAo3Parsed: boolean;
   ao3Metadata: {
-    chapterTitle?: string
-    hasSummary: boolean
-    hasNotes: boolean
-  } | null
+    chapterTitle?: string;
+    hasSummary: boolean;
+    hasNotes: boolean;
+  } | null;
 }
 
 /**
  * Session management state
  */
 export interface SessionState {
-  currentSession: AudioSession | null
-  isOfflineSession: boolean
-  showSessionManager: boolean
-  sessionManagerKey: number
+  currentSession: AudioSession | null;
+  isOfflineSession: boolean;
+  showSessionManager: boolean;
+  sessionManagerKey: number;
 }
 
 /**
  * Batch generation state
  */
 export interface BatchGenerationState {
-  preGeneratedAudio: string[]
-  isPreGenerated: boolean
+  preGeneratedAudio: string[];
+  isPreGenerated: boolean;
 }
 
 /**
  * Modal visibility state
  */
 export interface ModalState {
-  showSettings: boolean
-  showBatchGenerator: boolean
-  showExportImport: boolean
-  showBufferSettings: boolean
+  showSettings: boolean;
+  showBatchGenerator: boolean;
+  showExportImport: boolean;
+  showBufferSettings: boolean;
 }
 
 /**
  * Resume position state
  */
 export interface ResumeState {
-  showResumePrompt: boolean
-  lastPlaybackPositionIndex: number | null
+  showResumePrompt: boolean;
+  lastPlaybackPositionIndex: number | null;
 }
 
 /**
  * Import/export state
  */
 export interface ImportExportState {
-  importError: string | null
+  importError: string | null;
 }
 
 /**
  * Smart split toggle
  */
 export interface SmartSplitState {
-  useSmartSplit: boolean
+  useSmartSplit: boolean;
 }
 
 // ============================================================================
@@ -101,170 +101,178 @@ export interface SmartSplitState {
 
 export interface ReaderStore {
   // State slices
-  ttsSettings: TtsSettings
-  playbackSettings: PlaybackSettings
-  textState: TextState
-  sessionState: SessionState
-  batchGeneration: BatchGenerationState
-  modalState: ModalState
-  resumeState: ResumeState
-  importExportState: ImportExportState
-  smartSplitState: SmartSplitState
+  ttsSettings: TtsSettings;
+  playbackSettings: PlaybackSettings;
+  textState: TextState;
+  sessionState: SessionState;
+  batchGeneration: BatchGenerationState;
+  modalState: ModalState;
+  resumeState: ResumeState;
+  importExportState: ImportExportState;
+  smartSplitState: SmartSplitState;
 
   // TTS Settings Actions
-  updateVoice: (voice: string) => void
-  updateSpeed: (speed: number) => void
-  updatePitch: (pitch: number) => void
-  updateLanguage: (language: string) => void
-  updateTemperature: (temperature: number) => void
-  updateRepetitionPenalty: (penalty: number) => void
-  updateRvcVoice: (voice: string | null) => void
-  updateRvcPitch: (pitch: number) => void
-  loadTtsFromSession: (voice: string, speed: number, pitch: number, language: string) => void
-  resetTtsSettings: () => void
+  updateVoice: (voice: string) => void;
+  updateSpeed: (speed: number) => void;
+  updatePitch: (pitch: number) => void;
+  updateLanguage: (language: string) => void;
+  updateTemperature: (temperature: number) => void;
+  updateRepetitionPenalty: (penalty: number) => void;
+  updateRvcVoice: (voice: string | null) => void;
+  updateRvcPitch: (pitch: number) => void;
+  loadTtsFromSession: (
+    voice: string,
+    speed: number,
+    pitch: number,
+    language: string,
+  ) => void;
+  resetTtsSettings: () => void;
 
   // Playback Settings Actions
-  updatePlaybackSpeed: (speed: number) => void
-  updatePreservesPitch: (preserve: boolean) => void
-  resetPlaybackSettings: () => void
+  updatePlaybackSpeed: (speed: number) => void;
+  updatePreservesPitch: (preserve: boolean) => void;
+  resetPlaybackSettings: () => void;
 
   // Text State Actions
-  updateText: (text: string) => void
-  updateParagraphs: (paragraphs: string[]) => void
-  setProcessing: (isProcessing: boolean) => void
-  setAo3Parsed: (wasAo3Parsed: boolean, metadata: TextState['ao3Metadata']) => void
-  loadTextFromSession: (text: string, paragraphs: string[]) => void
-  resetTextState: () => void
+  updateText: (text: string) => void;
+  updateParagraphs: (paragraphs: string[]) => void;
+  setProcessing: (isProcessing: boolean) => void;
+  setAo3Parsed: (
+    wasAo3Parsed: boolean,
+    metadata: TextState["ao3Metadata"],
+  ) => void;
+  loadTextFromSession: (text: string, paragraphs: string[]) => void;
+  resetTextState: () => void;
 
   // Session State Actions
-  setCurrentSession: (session: AudioSession | null) => void
-  setOfflineSession: (isOffline: boolean) => void
-  openSessionManager: () => void
-  closeSessionManager: () => void
-  refreshSessionManager: () => void
-  clearSession: () => void
+  setCurrentSession: (session: AudioSession | null) => void;
+  setOfflineSession: (isOffline: boolean) => void;
+  openSessionManager: () => void;
+  closeSessionManager: () => void;
+  refreshSessionManager: () => void;
+  clearSession: () => void;
   loadSessionData: (session: AudioSession) => {
-    text: string
-    paragraphs: string[]
-    voice: string
-    speed: number
-    pitch: number
-    language: string
-    preGeneratedAudio: string[]
-  }
+    text: string;
+    paragraphs: string[];
+    voice: string;
+    speed: number;
+    pitch: number;
+    language: string;
+    preGeneratedAudio: string[];
+  };
 
   // Batch Generation Actions
-  setPreGeneratedAudio: (audio: string[]) => void
-  setIsPreGenerated: (isPreGenerated: boolean) => void
-  resetBatchGeneration: () => void
-  initializeBatchForParagraphs: (paragraphCount: number) => void
-  loadBatchFromSession: (audio: string[]) => void
+  setPreGeneratedAudio: (audio: string[]) => void;
+  setIsPreGenerated: (isPreGenerated: boolean) => void;
+  resetBatchGeneration: () => void;
+  initializeBatchForParagraphs: (paragraphCount: number) => void;
+  loadBatchFromSession: (audio: string[]) => void;
 
   // Modal State Actions
-  toggleSettings: () => void
-  openBatchGenerator: () => void
-  closeBatchGenerator: () => void
-  openExportImport: () => void
-  closeExportImport: () => void
-  setShowBufferSettings: (show: boolean) => void
+  toggleSettings: () => void;
+  openBatchGenerator: () => void;
+  closeBatchGenerator: () => void;
+  openExportImport: () => void;
+  closeExportImport: () => void;
+  setShowBufferSettings: (show: boolean) => void;
 
   // Resume State Actions
-  setShowResumePrompt: (show: boolean) => void
-  setLastPlaybackPosition: (index: number | null) => void
-  handleResumePosition: (session: AudioSession) => void
+  setShowResumePrompt: (show: boolean) => void;
+  setLastPlaybackPosition: (index: number | null) => void;
+  handleResumePosition: (session: AudioSession) => void;
 
   // Import/Export State Actions
-  setImportError: (error: string | null) => void
+  setImportError: (error: string | null) => void;
 
   // Smart Split Actions
-  setUseSmartSplit: (use: boolean) => void
+  setUseSmartSplit: (use: boolean) => void;
 
   // Global Actions
-  resetAll: () => void
+  resetAll: () => void;
 }
 
 // ============================================================================
 // DEFAULT VALUES
 // ============================================================================
 
-const DEFAULT_VOICE = 'female_01.wav'
-const DEFAULT_TEMPERATURE = 0.65
-const DEFAULT_REPETITION_PENALTY = 3.0
-const DEFAULT_RVC_PITCH = 0
+const DEFAULT_VOICE = "female_01.wav";
+const DEFAULT_TEMPERATURE = 0.6;
+const DEFAULT_REPETITION_PENALTY = 3.0;
+const DEFAULT_RVC_PITCH = 0;
 
 const defaultTtsSettings: TtsSettings = {
   selectedVoice: DEFAULT_VOICE,
   speed: 1.0,
   pitch: 0,
-  language: 'en',
+  language: "en",
   temperature: DEFAULT_TEMPERATURE,
   repetitionPenalty: DEFAULT_REPETITION_PENALTY,
   selectedRvcVoice: null,
   rvcPitch: DEFAULT_RVC_PITCH,
-}
+};
 
 // Load playback settings from localStorage
 const loadPlaybackSettings = (): PlaybackSettings => {
-  if (typeof window === 'undefined') {
-    return { speed: 1.0, preservesPitch: true }
+  if (typeof window === "undefined") {
+    return { speed: 1.0, preservesPitch: true };
   }
 
   try {
-    const stored = localStorage.getItem('alltalk-playback-settings')
+    const stored = localStorage.getItem("alltalk-playback-settings");
     if (stored) {
-      const parsed = JSON.parse(stored)
+      const parsed = JSON.parse(stored);
       return {
         speed: parsed.speed ?? 1.0,
         preservesPitch: parsed.preservesPitch ?? true,
-      }
+      };
     }
   } catch (e) {
-    console.warn('[PlaybackSettings] Failed to load from localStorage:', e)
+    console.warn("[PlaybackSettings] Failed to load from localStorage:", e);
   }
-  return { speed: 1.0, preservesPitch: true }
-}
+  return { speed: 1.0, preservesPitch: true };
+};
 
-const defaultPlaybackSettings: PlaybackSettings = loadPlaybackSettings()
+const defaultPlaybackSettings: PlaybackSettings = loadPlaybackSettings();
 
 const defaultTextState: TextState = {
-  text: '',
+  text: "",
   paragraphs: [],
   isProcessing: false,
   wasAo3Parsed: false,
   ao3Metadata: null,
-}
+};
 
 const defaultSessionState: SessionState = {
   currentSession: null,
   isOfflineSession: false,
   showSessionManager: false,
   sessionManagerKey: Date.now(),
-}
+};
 
 const defaultBatchGeneration: BatchGenerationState = {
   preGeneratedAudio: [],
   isPreGenerated: false,
-}
+};
 
 const defaultModalState: ModalState = {
   showSettings: false,
   showBatchGenerator: false,
   showExportImport: false,
   showBufferSettings: false,
-}
+};
 
 const defaultResumeState: ResumeState = {
   showResumePrompt: false,
   lastPlaybackPositionIndex: null,
-}
+};
 
 const defaultImportExportState: ImportExportState = {
   importError: null,
-}
+};
 
 const defaultSmartSplitState: SmartSplitState = {
   useSmartSplit: false,
-}
+};
 
 // ============================================================================
 // STORE IMPLEMENTATION
@@ -291,7 +299,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, selectedVoice: voice },
           }),
           false,
-          'updateVoice'
+          "updateVoice",
         ),
 
       updateSpeed: (speed) =>
@@ -300,7 +308,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, speed },
           }),
           false,
-          'updateSpeed'
+          "updateSpeed",
         ),
 
       updatePitch: (pitch) =>
@@ -309,7 +317,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, pitch },
           }),
           false,
-          'updatePitch'
+          "updatePitch",
         ),
 
       updateLanguage: (language) =>
@@ -318,7 +326,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, language },
           }),
           false,
-          'updateLanguage'
+          "updateLanguage",
         ),
 
       updateTemperature: (temperature) =>
@@ -327,7 +335,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, temperature },
           }),
           false,
-          'updateTemperature'
+          "updateTemperature",
         ),
 
       updateRepetitionPenalty: (penalty) =>
@@ -336,7 +344,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, repetitionPenalty: penalty },
           }),
           false,
-          'updateRepetitionPenalty'
+          "updateRepetitionPenalty",
         ),
 
       updateRvcVoice: (voice) =>
@@ -345,7 +353,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, selectedRvcVoice: voice },
           }),
           false,
-          'updateRvcVoice'
+          "updateRvcVoice",
         ),
 
       updateRvcPitch: (pitch) =>
@@ -354,7 +362,7 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: { ...state.ttsSettings, rvcPitch: pitch },
           }),
           false,
-          'updateRvcPitch'
+          "updateRvcPitch",
         ),
 
       loadTtsFromSession: (voice, speed, pitch, language) =>
@@ -369,11 +377,11 @@ export const useReaderStore = create<ReaderStore>()(
             },
           }),
           false,
-          'loadTtsFromSession'
+          "loadTtsFromSession",
         ),
 
       resetTtsSettings: () =>
-        set({ ttsSettings: defaultTtsSettings }, false, 'resetTtsSettings'),
+        set({ ttsSettings: defaultTtsSettings }, false, "resetTtsSettings"),
 
       // Playback Settings Actions
       updatePlaybackSpeed: (speed) =>
@@ -382,27 +390,36 @@ export const useReaderStore = create<ReaderStore>()(
             playbackSettings: { ...state.playbackSettings, speed },
           }),
           false,
-          'updatePlaybackSpeed'
+          "updatePlaybackSpeed",
         ),
 
       updatePreservesPitch: (preserve) =>
         set(
           (state) => ({
-            playbackSettings: { ...state.playbackSettings, preservesPitch: preserve },
+            playbackSettings: {
+              ...state.playbackSettings,
+              preservesPitch: preserve,
+            },
           }),
           false,
-          'updatePreservesPitch'
+          "updatePreservesPitch",
         ),
 
       resetPlaybackSettings: () => {
-        const defaults = { speed: 1.0, preservesPitch: true }
-        set({ playbackSettings: defaults }, false, 'resetPlaybackSettings')
+        const defaults = { speed: 1.0, preservesPitch: true };
+        set({ playbackSettings: defaults }, false, "resetPlaybackSettings");
         // Persist reset to localStorage
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           try {
-            localStorage.setItem('alltalk-playback-settings', JSON.stringify(defaults))
+            localStorage.setItem(
+              "alltalk-playback-settings",
+              JSON.stringify(defaults),
+            );
           } catch (e) {
-            console.warn('[PlaybackSettings] Failed to save to localStorage:', e)
+            console.warn(
+              "[PlaybackSettings] Failed to save to localStorage:",
+              e,
+            );
           }
         }
       },
@@ -414,7 +431,7 @@ export const useReaderStore = create<ReaderStore>()(
             textState: { ...state.textState, text },
           }),
           false,
-          'updateText'
+          "updateText",
         ),
 
       updateParagraphs: (paragraphs) =>
@@ -423,7 +440,7 @@ export const useReaderStore = create<ReaderStore>()(
             textState: { ...state.textState, paragraphs },
           }),
           false,
-          'updateParagraphs'
+          "updateParagraphs",
         ),
 
       setProcessing: (isProcessing) =>
@@ -432,16 +449,20 @@ export const useReaderStore = create<ReaderStore>()(
             textState: { ...state.textState, isProcessing },
           }),
           false,
-          'setProcessing'
+          "setProcessing",
         ),
 
       setAo3Parsed: (wasAo3Parsed, metadata) =>
         set(
           (state) => ({
-            textState: { ...state.textState, wasAo3Parsed, ao3Metadata: metadata },
+            textState: {
+              ...state.textState,
+              wasAo3Parsed,
+              ao3Metadata: metadata,
+            },
           }),
           false,
-          'setAo3Parsed'
+          "setAo3Parsed",
         ),
 
       loadTextFromSession: (text, paragraphs) =>
@@ -456,11 +477,11 @@ export const useReaderStore = create<ReaderStore>()(
             },
           }),
           false,
-          'loadTextFromSession'
+          "loadTextFromSession",
         ),
 
       resetTextState: () =>
-        set({ textState: defaultTextState }, false, 'resetTextState'),
+        set({ textState: defaultTextState }, false, "resetTextState"),
 
       // Session State Actions
       setCurrentSession: (session) =>
@@ -469,16 +490,19 @@ export const useReaderStore = create<ReaderStore>()(
             sessionState: { ...state.sessionState, currentSession: session },
           }),
           false,
-          'setCurrentSession'
+          "setCurrentSession",
         ),
 
       setOfflineSession: (isOffline) =>
         set(
           (state) => ({
-            sessionState: { ...state.sessionState, isOfflineSession: isOffline },
+            sessionState: {
+              ...state.sessionState,
+              isOfflineSession: isOffline,
+            },
           }),
           false,
-          'setOfflineSession'
+          "setOfflineSession",
         ),
 
       openSessionManager: () =>
@@ -491,7 +515,7 @@ export const useReaderStore = create<ReaderStore>()(
             },
           }),
           false,
-          'openSessionManager'
+          "openSessionManager",
         ),
 
       closeSessionManager: () =>
@@ -500,16 +524,19 @@ export const useReaderStore = create<ReaderStore>()(
             sessionState: { ...state.sessionState, showSessionManager: false },
           }),
           false,
-          'closeSessionManager'
+          "closeSessionManager",
         ),
 
       refreshSessionManager: () =>
         set(
           (state) => ({
-            sessionState: { ...state.sessionState, sessionManagerKey: Date.now() },
+            sessionState: {
+              ...state.sessionState,
+              sessionManagerKey: Date.now(),
+            },
           }),
           false,
-          'refreshSessionManager'
+          "refreshSessionManager",
         ),
 
       clearSession: () =>
@@ -522,11 +549,11 @@ export const useReaderStore = create<ReaderStore>()(
             },
           }),
           false,
-          'clearSession'
+          "clearSession",
         ),
 
       loadSessionData: (session) => {
-        const { sessionState } = get()
+        const { sessionState } = get();
 
         // Update session state
         set(
@@ -538,13 +565,15 @@ export const useReaderStore = create<ReaderStore>()(
             },
           },
           false,
-          'loadSessionData'
-        )
+          "loadSessionData",
+        );
 
         if (session.isOfflineSession && session.audioBlobData) {
-          console.log('Loaded offline session with embedded audio')
+          console.log("Loaded offline session with embedded audio");
         } else {
-          console.log(`Loaded session with ${session.paragraphs.length} paragraphs`)
+          console.log(
+            `Loaded session with ${session.paragraphs.length} paragraphs`,
+          );
         }
 
         return {
@@ -555,17 +584,20 @@ export const useReaderStore = create<ReaderStore>()(
           pitch: session.settings.pitch,
           language: session.settings.language,
           preGeneratedAudio: session.audioUrls || [],
-        }
+        };
       },
 
       // Batch Generation Actions
       setPreGeneratedAudio: (audio) =>
         set(
           (state) => ({
-            batchGeneration: { ...state.batchGeneration, preGeneratedAudio: audio },
+            batchGeneration: {
+              ...state.batchGeneration,
+              preGeneratedAudio: audio,
+            },
           }),
           false,
-          'setPreGeneratedAudio'
+          "setPreGeneratedAudio",
         ),
 
       setIsPreGenerated: (isPreGenerated) =>
@@ -574,22 +606,26 @@ export const useReaderStore = create<ReaderStore>()(
             batchGeneration: { ...state.batchGeneration, isPreGenerated },
           }),
           false,
-          'setIsPreGenerated'
+          "setIsPreGenerated",
         ),
 
       resetBatchGeneration: () =>
-        set({ batchGeneration: defaultBatchGeneration }, false, 'resetBatchGeneration'),
+        set(
+          { batchGeneration: defaultBatchGeneration },
+          false,
+          "resetBatchGeneration",
+        ),
 
       initializeBatchForParagraphs: (paragraphCount) =>
         set(
           {
             batchGeneration: {
-              preGeneratedAudio: new Array(paragraphCount).fill(''),
+              preGeneratedAudio: new Array(paragraphCount).fill(""),
               isPreGenerated: false,
             },
           },
           false,
-          'initializeBatchForParagraphs'
+          "initializeBatchForParagraphs",
         ),
 
       loadBatchFromSession: (audio) =>
@@ -597,21 +633,25 @@ export const useReaderStore = create<ReaderStore>()(
           {
             batchGeneration: {
               preGeneratedAudio: audio,
-              isPreGenerated: audio.length > 0 && audio.every((url) => url !== ''),
+              isPreGenerated:
+                audio.length > 0 && audio.every((url) => url !== ""),
             },
           },
           false,
-          'loadBatchFromSession'
+          "loadBatchFromSession",
         ),
 
       // Modal State Actions
       toggleSettings: () =>
         set(
           (state) => ({
-            modalState: { ...state.modalState, showSettings: !state.modalState.showSettings },
+            modalState: {
+              ...state.modalState,
+              showSettings: !state.modalState.showSettings,
+            },
           }),
           false,
-          'toggleSettings'
+          "toggleSettings",
         ),
 
       openBatchGenerator: () =>
@@ -620,7 +660,7 @@ export const useReaderStore = create<ReaderStore>()(
             modalState: { ...state.modalState, showBatchGenerator: true },
           }),
           false,
-          'openBatchGenerator'
+          "openBatchGenerator",
         ),
 
       closeBatchGenerator: () =>
@@ -629,7 +669,7 @@ export const useReaderStore = create<ReaderStore>()(
             modalState: { ...state.modalState, showBatchGenerator: false },
           }),
           false,
-          'closeBatchGenerator'
+          "closeBatchGenerator",
         ),
 
       openExportImport: () =>
@@ -638,7 +678,7 @@ export const useReaderStore = create<ReaderStore>()(
             modalState: { ...state.modalState, showExportImport: true },
           }),
           false,
-          'openExportImport'
+          "openExportImport",
         ),
 
       closeExportImport: () =>
@@ -647,7 +687,7 @@ export const useReaderStore = create<ReaderStore>()(
             modalState: { ...state.modalState, showExportImport: false },
           }),
           false,
-          'closeExportImport'
+          "closeExportImport",
         ),
 
       setShowBufferSettings: (show) =>
@@ -656,7 +696,7 @@ export const useReaderStore = create<ReaderStore>()(
             modalState: { ...state.modalState, showBufferSettings: show },
           }),
           false,
-          'setShowBufferSettings'
+          "setShowBufferSettings",
         ),
 
       // Resume State Actions
@@ -666,24 +706,31 @@ export const useReaderStore = create<ReaderStore>()(
             resumeState: { ...state.resumeState, showResumePrompt: show },
           }),
           false,
-          'setShowResumePrompt'
+          "setShowResumePrompt",
         ),
 
       setLastPlaybackPosition: (index) =>
         set(
           (state) => ({
-            resumeState: { ...state.resumeState, lastPlaybackPositionIndex: index },
+            resumeState: {
+              ...state.resumeState,
+              lastPlaybackPositionIndex: index,
+            },
           }),
           false,
-          'setLastPlaybackPosition'
+          "setLastPlaybackPosition",
         ),
 
       handleResumePosition: (session) => {
         if (session.lastPlaybackPosition) {
-          const { paragraphIndex, timestamp } = session.lastPlaybackPosition
+          const { paragraphIndex, timestamp } = session.lastPlaybackPosition;
           // Show resume prompt if position is recent (within 30 days) and not at the start
-          const isRecent = Date.now() - timestamp < 30 * 24 * 60 * 60 * 1000
-          if (isRecent && paragraphIndex > 0 && paragraphIndex < session.paragraphs.length) {
+          const isRecent = Date.now() - timestamp < 30 * 24 * 60 * 60 * 1000;
+          if (
+            isRecent &&
+            paragraphIndex > 0 &&
+            paragraphIndex < session.paragraphs.length
+          ) {
             set(
               {
                 resumeState: {
@@ -692,31 +739,39 @@ export const useReaderStore = create<ReaderStore>()(
                 },
               },
               false,
-              'handleResumePosition'
-            )
+              "handleResumePosition",
+            );
           } else {
             set(
               { resumeState: defaultResumeState },
               false,
-              'handleResumePosition_reset'
-            )
+              "handleResumePosition_reset",
+            );
           }
         } else {
           set(
             { resumeState: defaultResumeState },
             false,
-            'handleResumePosition_noPosition'
-          )
+            "handleResumePosition_noPosition",
+          );
         }
       },
 
       // Import/Export State Actions
       setImportError: (error) =>
-        set({ importExportState: { importError: error } }, false, 'setImportError'),
+        set(
+          { importExportState: { importError: error } },
+          false,
+          "setImportError",
+        ),
 
       // Smart Split Actions
       setUseSmartSplit: (use) =>
-        set({ smartSplitState: { useSmartSplit: use } }, false, 'setUseSmartSplit'),
+        set(
+          { smartSplitState: { useSmartSplit: use } },
+          false,
+          "setUseSmartSplit",
+        ),
 
       // Global Actions
       resetAll: () => {
@@ -725,7 +780,10 @@ export const useReaderStore = create<ReaderStore>()(
             ttsSettings: defaultTtsSettings,
             playbackSettings: defaultPlaybackSettings,
             textState: defaultTextState,
-            sessionState: { ...defaultSessionState, sessionManagerKey: Date.now() },
+            sessionState: {
+              ...defaultSessionState,
+              sessionManagerKey: Date.now(),
+            },
             batchGeneration: defaultBatchGeneration,
             modalState: defaultModalState,
             resumeState: defaultResumeState,
@@ -733,30 +791,33 @@ export const useReaderStore = create<ReaderStore>()(
             smartSplitState: defaultSmartSplitState,
           },
           false,
-          'resetAll'
-        )
-        console.log('🔄 [ReaderStore] Complete state reset (New Book)')
+          "resetAll",
+        );
+        console.log("🔄 [ReaderStore] Complete state reset (New Book)");
       },
     }),
-    { name: 'ReaderStore' }
-  )
-)
+    { name: "ReaderStore" },
+  ),
+);
 
 // Subscribe to playback settings changes and persist to localStorage
-if (typeof window !== 'undefined') {
-  let previousPlaybackSettings = useReaderStore.getState().playbackSettings
+if (typeof window !== "undefined") {
+  let previousPlaybackSettings = useReaderStore.getState().playbackSettings;
 
   useReaderStore.subscribe((state) => {
-    const currentPlaybackSettings = state.playbackSettings
+    const currentPlaybackSettings = state.playbackSettings;
 
     // Only update if playback settings actually changed
     if (currentPlaybackSettings !== previousPlaybackSettings) {
-      previousPlaybackSettings = currentPlaybackSettings
+      previousPlaybackSettings = currentPlaybackSettings;
       try {
-        localStorage.setItem('alltalk-playback-settings', JSON.stringify(currentPlaybackSettings))
+        localStorage.setItem(
+          "alltalk-playback-settings",
+          JSON.stringify(currentPlaybackSettings),
+        );
       } catch (e) {
-        console.warn('[PlaybackSettings] Failed to save to localStorage:', e)
+        console.warn("[PlaybackSettings] Failed to save to localStorage:", e);
       }
     }
-  })
+  });
 }
