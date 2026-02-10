@@ -125,6 +125,7 @@ export function useBufferedPlayback({
   // Refs for mutable state
   const controllerRef = useRef<GenerationController>(new GenerationController());
   const preloadedAudioRef = useRef<{ index: number; audio: HTMLAudioElement } | null>(null); // Preloaded next audio
+  const currentlyPlayingAudioRef = useRef<HTMLAudioElement | null>(null); // Track which audio is currently playing
 
   // Initialize AudioEngine with SafariAdapter
   const audioEngineRef = useRef<AudioEngine | null>(null);
@@ -382,17 +383,20 @@ export function useBufferedPlayback({
           return new Promise<boolean>((resolve) => {
             preloaded.onended = () => {
               console.log(`[BufferedPlayback] Paragraph ${index + 1} ended`);
+              currentlyPlayingAudioRef.current = null; // Clear tracking
               handleAudioEndedRef.current(index);
             };
 
             preloaded.onerror = (err) => {
               console.error(`[BufferedPlayback] Audio error for paragraph ${index + 1}:`, err);
+              currentlyPlayingAudioRef.current = null; // Clear tracking
               resolve(false);
             };
 
             preloaded.play()
               .then(() => {
                 console.log(`[BufferedPlayback] Playing paragraph ${index + 1} (preloaded)`);
+                currentlyPlayingAudioRef.current = preloaded; // Track this as currently playing
                 preloadedAudioRef.current = null; // Clear after use
                 // Start preloading the next paragraph while this one plays
                 preloadNextParagraph(index);
@@ -413,6 +417,7 @@ export function useBufferedPlayback({
 
       // Fallback: Use AudioEngine to play audio (no preloaded audio available)
       console.log(`[BufferedPlayback] No preloaded audio, using AudioEngine for paragraph ${index + 1}`);
+      currentlyPlayingAudioRef.current = null; // AudioEngine manages its own element
       const success = await audioEngineRef.current!.play(fullUrl, {
         onCanPlay: () => {
           console.log(`[BufferedPlayback] Playing paragraph ${index + 1}`);
@@ -540,6 +545,11 @@ export function useBufferedPlayback({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       controllerRef.current.stop();
       audioEngineRef.current?.dispose();
+      // Clean up currently playing audio
+      if (currentlyPlayingAudioRef.current) {
+        currentlyPlayingAudioRef.current.pause();
+        currentlyPlayingAudioRef.current.src = '';
+      }
       revokeAllAudioObjectUrls();
     };
   }, []);
@@ -633,11 +643,15 @@ export function useBufferedPlayback({
 
   const pause = useCallback(() => {
     console.log('[BufferedPlayback] Pausing');
-    audioEngineRef.current?.pause();
-    // Also pause preloaded audio if it's currently playing
-    if (preloadedAudioRef.current?.audio) {
-      preloadedAudioRef.current.audio.pause();
-      console.log('[BufferedPlayback] Paused preloaded audio');
+    // Only pause the currently active audio source
+    if (currentlyPlayingAudioRef.current) {
+      // Pause the standalone audio element (used for preloaded audio)
+      currentlyPlayingAudioRef.current.pause();
+      console.log('[BufferedPlayback] Paused currently playing audio (preloaded)');
+    } else {
+      // Pause AudioEngine (used for first paragraph or fallback)
+      audioEngineRef.current?.pause();
+      console.log('[BufferedPlayback] Paused AudioEngine');
     }
     controllerRef.current.pause();
     setState((prev) => ({ ...prev, status: 'paused' }));
@@ -647,13 +661,17 @@ export function useBufferedPlayback({
     if (state.status !== 'paused') return;
 
     console.log('[BufferedPlayback] Resuming');
-    audioEngineRef.current?.resume();
-    // Also resume preloaded audio if it was paused
-    if (preloadedAudioRef.current?.audio && preloadedAudioRef.current.audio.paused) {
-      preloadedAudioRef.current.audio.play().catch((err) => {
-        console.error('[BufferedPlayback] Failed to resume preloaded audio:', err);
+    // Only resume the currently active audio source
+    if (currentlyPlayingAudioRef.current) {
+      // Resume the standalone audio element (used for preloaded audio)
+      currentlyPlayingAudioRef.current.play().catch((err) => {
+        console.error('[BufferedPlayback] Failed to resume audio:', err);
       });
-      console.log('[BufferedPlayback] Resumed preloaded audio');
+      console.log('[BufferedPlayback] Resumed currently playing audio (preloaded)');
+    } else {
+      // Resume AudioEngine (used for first paragraph or fallback)
+      audioEngineRef.current?.resume();
+      console.log('[BufferedPlayback] Resumed AudioEngine');
     }
     controllerRef.current.resume();
     setState((prev) => ({ ...prev, status: 'playing' }));
@@ -662,6 +680,12 @@ export function useBufferedPlayback({
   const stop = useCallback(() => {
     console.log('[BufferedPlayback] Stopping');
     audioEngineRef.current?.stop();
+    // Clean up currently playing audio
+    if (currentlyPlayingAudioRef.current) {
+      currentlyPlayingAudioRef.current.pause();
+      currentlyPlayingAudioRef.current.src = '';
+      currentlyPlayingAudioRef.current = null;
+    }
     // Clean up preloaded audio
     if (preloadedAudioRef.current) {
       preloadedAudioRef.current.audio.src = '';
@@ -679,6 +703,11 @@ export function useBufferedPlayback({
 
       // Stop current playback
       audioEngineRef.current?.stop();
+      if (currentlyPlayingAudioRef.current) {
+        currentlyPlayingAudioRef.current.pause();
+        currentlyPlayingAudioRef.current.src = '';
+        currentlyPlayingAudioRef.current = null;
+      }
 
       // Check if target is already generated
       const isReady = controllerRef.current.isReady(index);
