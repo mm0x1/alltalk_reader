@@ -124,6 +124,17 @@ export const playbackMachine = setup({
 
         // Check if we have session audio
         if (context.currentSession && !forceReload) {
+          // For offline sessions, use embedded blob data instead of server URLs
+          if (context.currentSession.isOfflineSession && context.currentSession.audioBlobData) {
+            const blobDataKey = `audio_${paragraphIndex}`;
+            const audioBlobUrl = context.currentSession.audioBlobData[blobDataKey];
+            if (audioBlobUrl) {
+              console.log(`🔊 [State Machine] Using offline audio blob for paragraph ${paragraphIndex + 1}`);
+              return { audioUrl: audioBlobUrl, paragraphIndex };
+            }
+          }
+
+          // For regular sessions, use server URLs
           const sessionAudioUrl =
             context.currentSession.audioUrls?.[paragraphIndex];
           if (sessionAudioUrl) {
