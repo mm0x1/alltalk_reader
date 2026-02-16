@@ -100,6 +100,16 @@ export function useAudioPlayer({
     const audioUrl = state.context.audioUrl;
     if (!audioUrl) return;
 
+    // Stop the current audio whenever loading begins for a new paragraph.
+    // This prevents multiple audio elements playing simultaneously when the
+    // user clicks paragraphs faster than each load completes.
+    // Note: when first entering loading from idle, audioUrl is null so this
+    // branch is unreachable — nothing to stop on the very first play.
+    if (state.matches("loading")) {
+      audioEngine.stop();
+      return;
+    }
+
     // When audio is ready, start playing and transition to playing state
     if (state.matches("ready")) {
       console.log(
