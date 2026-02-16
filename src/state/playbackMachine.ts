@@ -110,36 +110,55 @@ export const playbackMachine = setup({
           throw new Error(`Invalid paragraph index: ${paragraphIndex}`);
         }
 
-        // Check if we have pre-generated audio
+        // Helper to resolve relative AllTalk audio paths to full URLs.
+        // Batch generation stores relative paths (e.g. "/audio/prebatch_0_...wav")
+        // to keep sessions server-agnostic, but AudioEngine needs full URLs.
+        const { getBaseUrl } = await import("~/config/env");
+        const resolveAudioUrl = (url: string): string =>
+          url.startsWith("/") ? `${getBaseUrl()}${url}` : url;
+
+        // Check if we have session audio first.
+        // Session audio is authoritative — it is never bypassed by forceReload.
+        // forceReload only controls whether in-memory pre-generated audio is skipped.
+        if (context.currentSession) {
+          // Offline sessions: use embedded base64 blob data. Never regenerate —
+          // there is no server to call.
+          if (
+            context.currentSession.isOfflineSession &&
+            context.currentSession.audioBlobData
+          ) {
+            const audioBlobUrl =
+              context.currentSession.audioBlobData[`audio_${paragraphIndex}`];
+            if (audioBlobUrl) {
+              console.log(
+                `🔊 [State Machine] Using offline audio blob for paragraph ${paragraphIndex + 1}`,
+              );
+              return { audioUrl: audioBlobUrl, paragraphIndex };
+            }
+          }
+
+          // Regular sessions: use stored server URLs (may be relative paths).
+          const sessionAudioUrl =
+            context.currentSession.audioUrls?.[paragraphIndex];
+          if (sessionAudioUrl) {
+            return {
+              audioUrl: resolveAudioUrl(sessionAudioUrl),
+              paragraphIndex,
+            };
+          }
+        }
+
+        // Check in-memory pre-generated audio cache.
+        // Respects forceReload so that explicit paragraph clicks bypass stale cache.
         if (
           context.isPreGenerated &&
           context.preGeneratedAudio[paragraphIndex] &&
           !forceReload
         ) {
           return {
-            audioUrl: context.preGeneratedAudio[paragraphIndex],
+            audioUrl: resolveAudioUrl(context.preGeneratedAudio[paragraphIndex]),
             paragraphIndex,
           };
-        }
-
-        // Check if we have session audio
-        if (context.currentSession && !forceReload) {
-          // For offline sessions, use embedded blob data instead of server URLs
-          if (context.currentSession.isOfflineSession && context.currentSession.audioBlobData) {
-            const blobDataKey = `audio_${paragraphIndex}`;
-            const audioBlobUrl = context.currentSession.audioBlobData[blobDataKey];
-            if (audioBlobUrl) {
-              console.log(`🔊 [State Machine] Using offline audio blob for paragraph ${paragraphIndex + 1}`);
-              return { audioUrl: audioBlobUrl, paragraphIndex };
-            }
-          }
-
-          // For regular sessions, use server URLs
-          const sessionAudioUrl =
-            context.currentSession.audioUrls?.[paragraphIndex];
-          if (sessionAudioUrl) {
-            return { audioUrl: sessionAudioUrl, paragraphIndex };
-          }
         }
 
         // Check server connection
