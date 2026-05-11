@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@soundtouchjs/audio-worklet':
+        specifier: ^1.0.10
+        version: 1.0.10
       '@tanstack/react-query':
         specifier: ^5.66.0
         version: 5.90.16(react@19.2.3)
@@ -696,6 +699,12 @@ packages:
     resolution: {integrity: sha512-SPEpaL6DX4rmcXtnhdrQYgzQ5W2uW3SCJch88lB2zImhJRhIIK44fkUrgIV/Q8yUNfw5oyZ5vkeQsZLhCb06lw==}
     cpu: [x64]
     os: [win32]
+
+  '@soundtouchjs/audio-worklet@1.0.10':
+    resolution: {integrity: sha512-MfMOhcCss1f0L+6MV38AAD3OFF1S8dNGqr1JhjCnt71osCE1saeU0YfF2EpXgjF0wNGeAS2ekNxiZ3UUPq54Dw==}
+
+  '@soundtouchjs/core@1.0.10':
+    resolution: {integrity: sha512-KeifMox5hFxc4hzdHCG96/84JJbZC6wuNiE33FChHcuM/BjFqDcD6Uli5v2K1cw3mchH5K7rIGXJiQSvHvJkWQ==}
 
   '@tanstack/history@1.145.7':
     resolution: {integrity: sha512-gMo/ReTUp0a3IOcZoI3hH6PLDC2R/5ELQ7P2yu9F6aEkA0wSQh+Q4qzMrtcKvF2ut0oE+16xWCGDo/TdYd6cEQ==}
@@ -2303,6 +2312,12 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.55.1':
     optional: true
+
+  '@soundtouchjs/audio-worklet@1.0.10':
+    dependencies:
+      '@soundtouchjs/core': 1.0.10
+
+  '@soundtouchjs/core@1.0.10': {}
 
   '@tanstack/history@1.145.7': {}
 
