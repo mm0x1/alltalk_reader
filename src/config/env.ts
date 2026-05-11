@@ -41,7 +41,7 @@ export const API_CONFIG: ApiConfig = {
   host: storedConfig.host || import.meta.env.VITE_API_HOST || 'localhost',
   port: storedConfig.port || import.meta.env.VITE_API_PORT || '7851',
   connectionTimeout: Number(import.meta.env.VITE_CONNECTION_TIMEOUT) || 5,
-  maxCharacters: Number(import.meta.env.VITE_MAX_CHARACTERS) || 4096,
+  maxCharacters: Number(import.meta.env.VITE_MAX_CHARACTERS) || 2000,
   advancedApiSettings: import.meta.env.VITE_ADVANCED_API_SETTINGS === 'true',
 };
 
