@@ -7,16 +7,20 @@ import { useReaderStore } from '~/state/readerStore'
 export function usePlaybackSettings() {
   const speed = useReaderStore((state) => state.playbackSettings.speed)
   const preservesPitch = useReaderStore((state) => state.playbackSettings.preservesPitch)
+  const pitchSemitones = useReaderStore((state) => state.playbackSettings.pitchSemitones)
 
   const updateSpeed = useReaderStore((state) => state.updatePlaybackSpeed)
   const updatePreservesPitch = useReaderStore((state) => state.updatePreservesPitch)
+  const updatePitchSemitones = useReaderStore((state) => state.updatePitchSemitones)
   const reset = useReaderStore((state) => state.resetPlaybackSettings)
 
   return {
     speed,
     preservesPitch,
+    pitchSemitones,
     updateSpeed,
     updatePreservesPitch,
+    updatePitchSemitones,
     reset,
   }
 }

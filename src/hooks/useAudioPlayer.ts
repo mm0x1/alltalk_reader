@@ -17,6 +17,7 @@ interface UseAudioPlayerProps {
   // Playback settings (client-side)
   playbackSpeed: number;
   preservesPitch: boolean;
+  pitchSemitones: number;
   // Advanced settings (Phase 5)
   temperature?: number;
   repetitionPenalty?: number;
@@ -43,6 +44,7 @@ export function useAudioPlayer({
   currentSession,
   playbackSpeed,
   preservesPitch,
+  pitchSemitones,
   temperature = 0.6,
   repetitionPenalty = 3.0,
 }: UseAudioPlayerProps) {
@@ -84,13 +86,14 @@ export function useAudioPlayer({
   // Update AudioEngine settings when playback settings change
   useEffect(() => {
     console.log(
-      `[AudioPlayer] Updating playback settings - speed: ${playbackSpeed}, preservesPitch: ${preservesPitch}`,
+      `[AudioPlayer] Updating playback settings - speed: ${playbackSpeed}, preservesPitch: ${preservesPitch}, pitchSemitones: ${pitchSemitones}`,
     );
     audioEngineRef.current?.updateSettings({
       speed: playbackSpeed,
       preservesPitch,
+      pitchSemitones,
     });
-  }, [playbackSpeed, preservesPitch]);
+  }, [playbackSpeed, preservesPitch, pitchSemitones]);
 
   // Sync AudioEngine with state machine
   useEffect(() => {

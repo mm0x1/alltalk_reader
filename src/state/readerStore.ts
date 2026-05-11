@@ -28,6 +28,8 @@ export interface TtsSettings {
 export interface PlaybackSettings {
   speed: number;
   preservesPitch: boolean;
+  /** Client-side pitch shift in semitones. 0 = no shift. */
+  pitchSemitones: number;
 }
 
 /**
@@ -131,6 +133,7 @@ export interface ReaderStore {
   // Playback Settings Actions
   updatePlaybackSpeed: (speed: number) => void;
   updatePreservesPitch: (preserve: boolean) => void;
+  updatePitchSemitones: (semitones: number) => void;
   resetPlaybackSettings: () => void;
 
   // Text State Actions
@@ -213,8 +216,14 @@ const defaultTtsSettings: TtsSettings = {
 
 // Load playback settings from localStorage
 const loadPlaybackSettings = (): PlaybackSettings => {
+  const defaults: PlaybackSettings = {
+    speed: 1.0,
+    preservesPitch: true,
+    pitchSemitones: 0,
+  };
+
   if (typeof window === "undefined") {
-    return { speed: 1.0, preservesPitch: true };
+    return defaults;
   }
 
   try {
@@ -222,14 +231,15 @@ const loadPlaybackSettings = (): PlaybackSettings => {
     if (stored) {
       const parsed = JSON.parse(stored);
       return {
-        speed: parsed.speed ?? 1.0,
-        preservesPitch: parsed.preservesPitch ?? true,
+        speed: parsed.speed ?? defaults.speed,
+        preservesPitch: parsed.preservesPitch ?? defaults.preservesPitch,
+        pitchSemitones: parsed.pitchSemitones ?? defaults.pitchSemitones,
       };
     }
   } catch (e) {
     console.warn("[PlaybackSettings] Failed to load from localStorage:", e);
   }
-  return { speed: 1.0, preservesPitch: true };
+  return defaults;
 };
 
 const defaultPlaybackSettings: PlaybackSettings = loadPlaybackSettings();
@@ -405,8 +415,24 @@ export const useReaderStore = create<ReaderStore>()(
           "updatePreservesPitch",
         ),
 
+      updatePitchSemitones: (semitones) =>
+        set(
+          (state) => ({
+            playbackSettings: {
+              ...state.playbackSettings,
+              pitchSemitones: semitones,
+            },
+          }),
+          false,
+          "updatePitchSemitones",
+        ),
+
       resetPlaybackSettings: () => {
-        const defaults = { speed: 1.0, preservesPitch: true };
+        const defaults: PlaybackSettings = {
+          speed: 1.0,
+          preservesPitch: true,
+          pitchSemitones: 0,
+        };
         set({ playbackSettings: defaults }, false, "resetPlaybackSettings");
         // Persist reset to localStorage
         if (typeof window !== "undefined") {
