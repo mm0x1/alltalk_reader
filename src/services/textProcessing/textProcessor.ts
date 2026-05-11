@@ -93,26 +93,28 @@ export class TextProcessor {
   }
 
   /**
-   * Split oversized text into chunks at sentence boundaries
+   * Split oversized text into chunks at sentence boundaries.
+   * Every emitted chunk is guaranteed to end in terminal punctuation
+   * so XTTS doesn't silently drop the tail of a chunk.
    */
   splitTextIntoChunks(
     text: string,
     maxLength = API_CONFIG.maxCharacters
   ): string[] {
     if (!text) return [];
-    if (text.length <= maxLength) return [text];
+    if (text.length <= maxLength) return [ensureTerminalPunctuation(text.trim())];
 
     const chunks: string[] = [];
     let remaining = text;
 
     while (remaining.length > 0) {
       if (remaining.length <= maxLength) {
-        chunks.push(remaining.trim());
+        chunks.push(ensureTerminalPunctuation(remaining.trim()));
         break;
       }
 
       const breakPoint = this.findBestBreakPoint(remaining, maxLength);
-      chunks.push(remaining.slice(0, breakPoint).trim());
+      chunks.push(ensureTerminalPunctuation(remaining.slice(0, breakPoint).trim()));
       remaining = remaining.slice(breakPoint).trim();
     }
 
@@ -120,31 +122,45 @@ export class TextProcessor {
   }
 
   /**
-   * Find the best point to break text (sentence > clause > word)
+   * Find the best point to break text. Sentence-terminal punctuation
+   * is strongly preferred over commas/spaces because XTTS uses
+   * terminal punctuation to anchor its internal chunking.
    */
   private findBestBreakPoint(text: string, maxLength: number): number {
-    // Priority order: sentence end, semicolon, comma, space
-    const breakPoints = [
+    const minBreak = Math.floor(maxLength / 2);
+
+    // Tier 1: sentence terminals — take the best of these if any pass minBreak
+    const terminals = [
       text.lastIndexOf('. ', maxLength),
       text.lastIndexOf('! ', maxLength),
       text.lastIndexOf('? ', maxLength),
+    ];
+    const bestTerminal = Math.max(...terminals);
+    if (bestTerminal > minBreak) return bestTerminal + 1;
+
+    // Tier 2: weaker breaks
+    const fallbacks = [
       text.lastIndexOf('; ', maxLength),
       text.lastIndexOf(', ', maxLength),
       text.lastIndexOf(' ', maxLength),
     ];
-
-    // Find the best break point (closest to maxLength but > maxLength/2)
-    const minBreak = Math.floor(maxLength / 2);
-
-    for (const point of breakPoints) {
-      if (point > minBreak) {
-        return point + 1; // Include the punctuation
-      }
+    for (const point of fallbacks) {
+      if (point > minBreak) return point + 1;
     }
 
-    // Fallback: hard break at maxLength
     return maxLength;
   }
+}
+
+const TERMINAL_PUNCTUATION = /[.!?;:]$/;
+
+/**
+ * Ensure a chunk ends with terminal punctuation so XTTS treats it as
+ * a complete utterance. Appends a period when missing.
+ */
+function ensureTerminalPunctuation(chunk: string): string {
+  if (!chunk) return chunk;
+  return TERMINAL_PUNCTUATION.test(chunk) ? chunk : `${chunk}.`;
 }
 
 export const textProcessor = new TextProcessor();

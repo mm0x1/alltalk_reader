@@ -30,6 +30,13 @@ export interface TtsResult {
   fullAudioUrl: string;
 }
 
+const TERMINAL_PUNCTUATION = /[.!?;:]$/;
+
+function ensureTerminalPunctuation(chunk: string): string {
+  if (!chunk) return chunk;
+  return TERMINAL_PUNCTUATION.test(chunk) ? chunk : `${chunk}.`;
+}
+
 export class TtsService {
   constructor(private client = apiClient) {}
 
@@ -118,47 +125,47 @@ export class TtsService {
 
   splitTextIntoChunks(text: string, maxLength = API_CONFIG.maxCharacters): string[] {
     if (!text) return [];
+    if (text.length <= maxLength) return [ensureTerminalPunctuation(text.trim())];
 
-    // If text is under the limit, return it as a single chunk
-    if (text.length <= maxLength) {
-      return [text];
-    }
-
-    const chunks = [];
+    const chunks: string[] = [];
     let remainingText = text;
+    const minBreak = Math.floor(maxLength / 2);
 
     while (remainingText.length > 0) {
       if (remainingText.length <= maxLength) {
-        // Add the remaining text as the last chunk
-        chunks.push(remainingText);
+        chunks.push(ensureTerminalPunctuation(remainingText.trim()));
         break;
       }
 
-      // Find a good break point within the maxLength
-      let breakPoint = remainingText.lastIndexOf('.', maxLength);
+      // Prefer sentence-terminal punctuation (XTTS uses these as chunk anchors)
+      const terminals = [
+        remainingText.lastIndexOf('.', maxLength),
+        remainingText.lastIndexOf('!', maxLength),
+        remainingText.lastIndexOf('?', maxLength),
+      ];
+      let breakPoint = Math.max(...terminals);
 
-      if (breakPoint === -1 || breakPoint < maxLength / 2) {
-        // If no period found or it's too early, try semicolon
-        breakPoint = remainingText.lastIndexOf(';', maxLength);
+      if (breakPoint < minBreak) {
+        // Fallback: weaker boundaries
+        const fallbacks = [
+          remainingText.lastIndexOf(';', maxLength),
+          remainingText.lastIndexOf(',', maxLength),
+          remainingText.lastIndexOf(' ', maxLength),
+        ];
+        breakPoint = -1;
+        for (const point of fallbacks) {
+          if (point > minBreak) {
+            breakPoint = point;
+            break;
+          }
+        }
       }
 
-      if (breakPoint === -1 || breakPoint < maxLength / 2) {
-        // If no semicolon found or it's too early, try comma
-        breakPoint = remainingText.lastIndexOf(',', maxLength);
-      }
+      if (breakPoint < minBreak) breakPoint = maxLength - 1;
 
-      if (breakPoint === -1 || breakPoint < maxLength / 2) {
-        // If no comma found or it's too early, try space
-        breakPoint = remainingText.lastIndexOf(' ', maxLength);
-      }
-
-      if (breakPoint === -1 || breakPoint < maxLength / 2) {
-        // If no good break point found, just break at the maximum length
-        breakPoint = maxLength;
-      }
-
-      // Add the chunk and remove it from the remaining text
-      chunks.push(remainingText.substring(0, breakPoint + 1).trim());
+      chunks.push(
+        ensureTerminalPunctuation(remainingText.substring(0, breakPoint + 1).trim())
+      );
       remainingText = remainingText.substring(breakPoint + 1).trim();
     }
 
