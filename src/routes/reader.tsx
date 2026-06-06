@@ -68,8 +68,10 @@ function BookReader() {
   const {
     speed: playbackSpeed,
     preservesPitch,
+    pitchSemitones,
     updateSpeed: updatePlaybackSpeed,
     updatePreservesPitch,
+    updatePitchSemitones,
     reset: resetPlaybackSettings
   } = usePlaybackSettings()
   const { preGeneratedAudio, isPreGenerated, handleBatchComplete, resetPreGenerated, initializeForParagraphs, loadFromSession: loadBatchFromSession } = useBatchGeneration()
@@ -109,6 +111,7 @@ function BookReader() {
     // Playback settings (client-side)
     playbackSpeed,
     preservesPitch,
+    pitchSemitones,
     // Advanced settings (Phase 5)
     temperature,
     repetitionPenalty,
@@ -135,6 +138,7 @@ function BookReader() {
     // Playback settings (client-side)
     playbackSpeed,
     preservesPitch,
+    pitchSemitones,
     // Advanced settings (Phase 5)
     temperature,
     repetitionPenalty,
@@ -450,8 +454,10 @@ function BookReader() {
                 <PlaybackSettings
                   speed={playbackSpeed}
                   preservesPitch={preservesPitch}
+                  pitchSemitones={pitchSemitones}
                   onSpeedChange={updatePlaybackSpeed}
                   onPreservesPitchChange={updatePreservesPitch}
+                  onPitchSemitonesChange={updatePitchSemitones}
                 />
               </div>
             )}
@@ -735,8 +741,10 @@ function BookReader() {
               <PlaybackSettings
                 speed={playbackSpeed}
                 preservesPitch={preservesPitch}
+                pitchSemitones={pitchSemitones}
                 onSpeedChange={updatePlaybackSpeed}
                 onPreservesPitchChange={updatePreservesPitch}
+                onPitchSemitonesChange={updatePitchSemitones}
               />
             </div>
           )}

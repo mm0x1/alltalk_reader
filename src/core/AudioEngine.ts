@@ -10,11 +10,14 @@
  */
 
 import { SafariAdapter } from './SafariAdapter'
+import { PitchShifter } from './PitchShifter'
 import { revokeAudioObjectUrl } from '~/services/session'
 
 export interface PlaybackSettings {
   speed: number
   preservesPitch: boolean
+  /** Client-side pitch shift in semitones. 0 = no shift (default). */
+  pitchSemitones: number
 }
 
 export interface AudioEngineCallbacks {
@@ -28,12 +31,14 @@ export class AudioEngine {
   private safariAdapter: SafariAdapter
   private currentUrl: string | null = null
   private playbackSettings: PlaybackSettings
+  private pitchShifter: PitchShifter | null = null
 
   constructor(safariAdapter: SafariAdapter) {
     this.safariAdapter = safariAdapter
     this.playbackSettings = {
       speed: 1.0,
-      preservesPitch: true
+      preservesPitch: true,
+      pitchSemitones: 0
     }
 
     // Initialize audio for Safari
@@ -68,6 +73,7 @@ export class AudioEngine {
    * If audio is currently playing, applies settings immediately
    */
   public updateSettings(settings: Partial<PlaybackSettings>): void {
+    const previousPitch = this.playbackSettings.pitchSemitones
     this.playbackSettings = {
       ...this.playbackSettings,
       ...settings
@@ -77,6 +83,26 @@ export class AudioEngine {
     if (this.audio && !this.audio.paused) {
       this.configureAudioPlayback(this.audio)
     }
+
+    // Engage pitch shifter when pitch becomes non-zero (lazy init)
+    if (
+      settings.pitchSemitones !== undefined &&
+      (settings.pitchSemitones !== 0 || previousPitch !== 0)
+    ) {
+      this.applyPitch(this.audio ?? undefined)
+    }
+  }
+
+  private applyPitch(audio?: HTMLAudioElement): void {
+    const { pitchSemitones } = this.playbackSettings
+    if (pitchSemitones === 0 && !this.pitchShifter) return
+
+    if (!this.pitchShifter) {
+      this.pitchShifter = new PitchShifter()
+    }
+    this.pitchShifter.setPitch(pitchSemitones, audio).catch((err) => {
+      console.warn('[AudioEngine] Pitch shifter failed:', err)
+    })
   }
 
   /**
@@ -169,6 +195,14 @@ export class AudioEngine {
       // Update reference and load
       this.audio = audio
       audio.preload = 'auto'
+
+      // Engage pitch shifter for this element BEFORE load() so the
+      // MediaElementAudioSourceNode latches onto a fresh element.
+      if (this.pitchShifter?.isEngaged() || this.playbackSettings.pitchSemitones !== 0) {
+        this.applyPitch(audio)
+        this.pitchShifter?.resume().catch(() => {})
+      }
+
       audio.load()
     })
   }
@@ -237,6 +271,10 @@ export class AudioEngine {
     this.stop()
     this.safariAdapter.clearPrimedAudio()
     this.audio = null
+    if (this.pitchShifter) {
+      this.pitchShifter.dispose()
+      this.pitchShifter = null
+    }
     console.log('[AudioEngine] Disposed')
   }
 }

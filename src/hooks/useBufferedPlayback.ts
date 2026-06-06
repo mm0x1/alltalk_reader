@@ -30,6 +30,7 @@ interface UseBufferedPlaybackProps {
   // Playback settings (client-side)
   playbackSpeed: number;
   preservesPitch: boolean;
+  pitchSemitones: number;
   // Advanced settings (Phase 5)
   temperature?: number;
   repetitionPenalty?: number;
@@ -114,6 +115,7 @@ export function useBufferedPlayback({
   isServerConnected,
   playbackSpeed,
   preservesPitch,
+  pitchSemitones,
   temperature,
   repetitionPenalty,
 }: UseBufferedPlaybackProps): UseBufferedPlaybackReturn {
@@ -136,10 +138,11 @@ export function useBufferedPlayback({
 
   // Update AudioEngine settings when playback settings change
   useEffect(() => {
-    console.log(`[BufferedPlayback] Updating playback settings - speed: ${playbackSpeed}, preservesPitch: ${preservesPitch}`);
+    console.log(`[BufferedPlayback] Updating playback settings - speed: ${playbackSpeed}, preservesPitch: ${preservesPitch}, pitchSemitones: ${pitchSemitones}`);
     audioEngineRef.current?.updateSettings({
       speed: playbackSpeed,
-      preservesPitch
+      preservesPitch,
+      pitchSemitones,
     });
 
     // Also update currently playing audio if it exists (preloaded audio)
@@ -157,7 +160,7 @@ export function useBufferedPlayback({
 
       console.log(`[BufferedPlayback] Updated currently playing audio: ${playbackSpeed}x, preservesPitch: ${preservesPitch}`);
     }
-  }, [playbackSpeed, preservesPitch]);
+  }, [playbackSpeed, preservesPitch, pitchSemitones]);
 
   // Calculate buffer ahead of current playback
   const calculateBufferAhead = useCallback(

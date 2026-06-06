@@ -58,5 +58,5 @@ export const DEFAULT_PARAGRAPH_CONFIG: ParagraphConfig = {
 
   targetParagraphLength: 1000, // ~1000 chars per paragraph for wall-of-text
   minParagraphLength: 50, // Merge paragraphs smaller than this
-  maxParagraphLength: 4096, // Hard API limit
+  maxParagraphLength: 2000, // Hard API limit (lowered from 4096 to mitigate XTTS chunk-boundary skipping)
 };
