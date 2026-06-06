@@ -5,24 +5,50 @@
  * created when pitch is first set to a non-zero value, so the default
  * playback path through HTMLAudioElement stays untouched.
  *
+ * The @soundtouchjs/audio-worklet module is imported dynamically (inside
+ * ensureInitialized) rather than at the top level. Its SoundTouchNode class
+ * is declared `extends AudioWorkletNode`, and evaluating that class requires
+ * the global AudioWorkletNode, which only exists in a secure context.
+ * localhost counts as secure even over http, but a phone reaching the dev
+ * server by LAN IP over http does not. A static import would therefore throw
+ * "Can't find the variable: AudioWorkletNode" at module load and crash the
+ * whole app on that device. Keeping the import lazy, behind isSupported(),
+ * confines the worklet dependency to the moment pitch is actually engaged.
+ *
  * Once engaged for an engine instance, the graph stays connected (worklet
  * with pitchSemitones=0 is a near-pass-through) because re-routing a
  * MediaElementAudioSourceNode is not reliable across browsers.
  */
 
 /// <reference types="vite/client" />
-import { SoundTouchNode } from '@soundtouchjs/audio-worklet'
-import processorUrl from '@soundtouchjs/audio-worklet/processor?url'
+import type { SoundTouchNode as SoundTouchNodeInstance } from '@soundtouchjs/audio-worklet'
 
 type AnyAudioContextCtor = typeof AudioContext
 
 export class PitchShifter {
   private context: AudioContext | null = null
-  private node: SoundTouchNode | null = null
+  private node: SoundTouchNodeInstance | null = null
   private currentSource: MediaElementAudioSourceNode | null = null
   private currentElement: HTMLAudioElement | null = null
   private semitones = 0
   private initPromise: Promise<void> | null = null
+
+  /**
+   * Whether the Web Audio worklet pipeline can run in this context.
+   * Requires a secure context (https or localhost) so that AudioWorkletNode
+   * and AudioContext are available. Used to short-circuit engagement and to
+   * let the UI disable pitch controls when unsupported.
+   */
+  public static isSupported(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      typeof (globalThis as { AudioWorkletNode?: unknown }).AudioWorkletNode !==
+        'undefined' &&
+      (typeof window.AudioContext !== 'undefined' ||
+        typeof (window as unknown as { webkitAudioContext?: unknown })
+          .webkitAudioContext !== 'undefined')
+    )
+  }
 
   /** True once the AudioContext + worklet have been created. */
   public isEngaged(): boolean {
@@ -109,11 +135,27 @@ export class PitchShifter {
     if (this.initPromise) return this.initPromise
 
     this.initPromise = (async () => {
+      if (!PitchShifter.isSupported()) {
+        throw new Error(
+          'Pitch shifting requires AudioWorkletNode, which is only available in a ' +
+            'secure context (https or localhost). It is unavailable over plain http on a LAN.'
+        )
+      }
+
       const Ctor: AnyAudioContextCtor =
-        (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) as AnyAudioContextCtor
-      if (!Ctor) throw new Error('AudioContext is not available')
+        (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: AnyAudioContextCtor })
+            .webkitAudioContext) as AnyAudioContextCtor
 
       this.context = new Ctor()
+
+      // Dynamic imports: evaluating SoundTouchNode (extends AudioWorkletNode)
+      // is only safe now that isSupported() has confirmed a secure context.
+      const { SoundTouchNode } = await import('@soundtouchjs/audio-worklet')
+      const { default: processorUrl } = await import(
+        '@soundtouchjs/audio-worklet/processor?url'
+      )
+
       await SoundTouchNode.register(this.context, processorUrl)
       this.node = new SoundTouchNode(this.context)
       this.node.pitchSemitones.value = this.semitones

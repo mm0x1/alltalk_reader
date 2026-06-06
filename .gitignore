@@ -27,3 +27,4 @@ dist/
 *.db
 .aider*
 CLAUDE.md
+.claude/
