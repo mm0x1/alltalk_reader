@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { API_CONFIG } from '../config/env'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -28,7 +29,7 @@ function Home() {
             <li>Use any AllTalk server with easy configuration</li>
             <li>Select from all available TTS voices on the server</li>
             <li>Adjust speed, pitch, and language settings</li>
-            <li>Automatic handling of text length limits (4096 characters)</li>
+            <li>Automatic handling of text length limits ({API_CONFIG.maxCharacters} characters)</li>
             <li>Paragraph-by-paragraph audio generation</li>
             <li>Visual progress tracking</li>
           </ul>

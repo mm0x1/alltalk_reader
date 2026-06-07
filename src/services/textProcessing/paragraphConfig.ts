@@ -4,6 +4,8 @@
  * Configurable patterns and thresholds for smart paragraph detection.
  */
 
+import { API_CONFIG } from '../../config/env';
+
 export interface ParagraphConfig {
   /**
    * Detection thresholds (as ratios of total lines)
@@ -58,5 +60,5 @@ export const DEFAULT_PARAGRAPH_CONFIG: ParagraphConfig = {
 
   targetParagraphLength: 1000, // ~1000 chars per paragraph for wall-of-text
   minParagraphLength: 50, // Merge paragraphs smaller than this
-  maxParagraphLength: 2000, // Hard API limit (lowered from 4096 to mitigate XTTS chunk-boundary skipping)
+  maxParagraphLength: API_CONFIG.maxCharacters, // Hard API limit (configurable via VITE_MAX_CHARACTERS)
 };
