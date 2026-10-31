@@ -214,7 +214,14 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
   whether the local `atsetup.sh` / `confignew.json` edits are kept or discarded. Record the tested AllTalk version in the docs and show a warning
   in the app when the server reports something older.
-  *(in progress)* Built and tested against `alltalkbeta` at f16117e (2026-01-09). AllTalk has no version endpoint, so no in-app warning. Local edits in `../alltalk_tts` (macOS installer support, engine set to XTTS, Gradio fixes) left untouched until the user decides.
+  *(in progress)* Built and tested against `alltalkbeta` at f16117e (2026-01-09). AllTalk has no version endpoint, so no in-app warning. Local edits in `../alltalk_tts` kept (see Decisions).
+  *Verified live (2026-10-31)* against f16117e with XTTS `xttsv2_2.0.3` on CPU (Python 3.11.9,
+  torch 2.2.1, coqui-tts 0.24.3, gradio 6.3.0 with huggingface-hub < 1.0; the installer's
+  unpinned `gradio>=4.50` pulls a huggingface-hub that breaks transformers 4.46). Readhouse
+  read engine, model, capabilities and 19 voices; a 120-character passage took 4.2 s to
+  generate and came back as 6.7 s of AAC; the repeat came from the cache in 20 ms; WebKit
+  (iPhone profile) played it and advanced to the next passage by itself. Run notes:
+  `../alltalk_tts/READHOUSE-RUN.md`.
 - [x] **Re-read the API and use it fully.** Endpoints in `docs/alltalk-api-full.md`: `ready`,
   `voices`, `rvcvoices`, `currentsettings`, `reload`, `tts-generate`,
   `tts-generate-streaming`, `stop-generation`, `openai-voicemap`, `deepspeed`,
@@ -272,7 +279,7 @@ Order of work for the 2026-11-13 presentation:
   unwrapped detail line) and the author separator lost its space.
 - [ ] **Manual device checklist.** Include: playback continues across passages with the screen
   locked; headphones unplugged pauses; lock-screen next/previous; offline chapter after toggling
-  airplane mode; first real AllTalk run (not yet verified: AllTalk was offline during the build).
+  airplane mode; first real AllTalk run on a phone (verified on desktop WebKit, 2026-10-31).
   Originally: A short script to run on a real iPhone (Safari autoplay,
   lock screen, background playback) before each release; those can't be fully automated.
 
@@ -473,5 +480,5 @@ One line per work session: date, what was done, what's next.
 - 2026-10-31: Visual regression suite (66 baselines, local + pre-push, CI skips). Fixed the
   phone library overflowing its frame and the missing space after the author; book details
   now wrap instead of truncating. AllTalk v2 installed and running locally (XTTS v2.0.3, CPU;
-  a subagent did the install, notes in `../alltalk_tts/READHOUSE-RUN.md`). Next: first live
-  AllTalk run, then the desktop library.
+  a subagent did the install, notes in `../alltalk_tts/READHOUSE-RUN.md`) and verified live
+  through Readhouse. Next: the desktop library.
