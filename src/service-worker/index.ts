@@ -29,8 +29,13 @@ import {
 } from '#lib/offline-shared.js';
 
 const SHELL_CACHE = `readhouse-shell-${version}`;
+/**
+ * Font files for other scripts (Cyrillic, Greek, Vietnamese...) are left out: a browser fetches
+ * them only for text that needs them, and precaching them all would cost every phone ~0.5 MB.
+ */
+const OTHER_SCRIPT_FONT = /\/eb-garamond-(?!latin-)[^/]*\.woff2$/;
 const SHELL = [
-	...immutable.map((asset) => resolve(asset.path)),
+	...immutable.map((asset) => resolve(asset.path)).filter((path) => !OTHER_SCRIPT_FONT.test(path)),
 	...assets.map((asset) => resolve(asset.path))
 ];
 const KEEP = new Set([SHELL_CACHE, RECENT_AUDIO_CACHE, SAVED_AUDIO_CACHE, BOOK_CACHE, PAGE_CACHE]);

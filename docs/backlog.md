@@ -84,7 +84,14 @@ every decision below assumes the page is served from another machine, often over
   (https://github.com/erew123/alltalk_tts/tree/alltalkbeta), not `main` (v1, last updated
   2025-03). `../alltalk_tts` is already on `alltalkbeta` and up to date with the remote
   (last commit 2026-01-09), with uncommitted local edits to `atsetup.sh` and
-  `confignew.json`.
+  `confignew.json`. **Decided (2026-10-31): keep the local edits** in `../alltalk_tts`.
+- [x] **Visual direction: A, Engraved.** Picked from https://claude.ai/artifact/M9ED11TvLfXVz5XKGhX32P.
+  Ink-blue on pale paper, bone on navy in dark, a sepia engraving as the third theme;
+  EB Garamond throughout (self-hosted); a ruled double frame around every page; drop caps;
+  one dithered band per chapter opening with its roman numeral in a cartouche; the sentence
+  being spoken in reverse ink. Decided while building it: prose is ragged right (with
+  hyphenation) on phones and justified only from 40rem up, since a ~35-character justified
+  line opens rivers; a paused passage is tinted, reverse ink only while the voice reads.
 
 ## Demo-critical path
 
@@ -109,7 +116,7 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Token layer.** CSS custom properties as the single source (light/dark/sepia themes
   switch by swapping values), mapped into Tailwind (or the chosen styling) so only tokens are
   expressible. Remove Tailwind's default palette from the config so raw colors don't compile.
-  *(in progress)* Interim tokens in `src/lib/design/tokens.css` (light, dark, sepia); values get redone with the visual identity.
+  *(in progress)* Engraved values in `src/lib/design/tokens.css` (light, dark, sepia; text colours checked for WCAG AA). Remaining: the Tailwind side is moot (no Tailwind), so this closes with the component inventory.
 - [x] **Enforce it.** Lint rules that fail the build on raw colors, arbitrary values
   (`p-[13px]`), inline styles and HTML controls used outside the design system. Part of the
   check gate, not a guideline.
@@ -126,9 +133,12 @@ Order of work for the 2026-11-13 presentation:
 
 ## UI rework
 
-- [ ] **Book-themed visual identity.** *(in progress)* Three directions with real Ditherhouse
-  dithering, waiting for the user's pick: https://claude.ai/artifact/M9ED11TvLfXVz5XKGhX32P
-  (A Engraved, B Lamplight, C Quiet).
+- [x] **Book-themed visual identity.** Direction A, Engraved (see Decisions).
+  *Done:* tokens, EB Garamond, frame, icon and manifest colours, dithered bands
+  (`scripts/dither-assets.sh` with Ditherhouse's CLI), library (continue plate, shelf), reader
+  (band, drop cap, reverse-ink sentence), player bar, mini player, Button, Sheet. Screenshots
+  reviewed on iPhone, Pixel and desktop in all three themes, with simulated safe-area insets.
+  Settings still uses native selects and checkboxes until Select/Field/Toggle exist.
   Originally: Replace the generic look with one that has personality
   and evokes books: paper and ink palette, a proper reading serif for body text (e.g.
   Literata, Source Serif, Newsreader) with a contrasting UI face, restrained ornament,
@@ -351,8 +361,12 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   *(in progress)* Prepared statements, indexes, no N+1 in the library list, streaming audio, chapter LRU.
 - [ ] **Battery and memory.** No polling loops (event-driven status), audio elements reused,
   object URLs revoked, wake lock only while playing.
-- [ ] **Fonts and assets.** Self-hosted, subset WOFF2, `font-display: swap` with metric-matched
+- [x] **Fonts and assets.** Self-hosted, subset WOFF2, `font-display: swap` with metric-matched
   fallbacks; dithered PNG/WebP assets kept small.
+  *Done:* EB Garamond variable via fontsource (Latin face preloaded, ~44 KB), Georgia fallback
+  with metric overrides; the service worker precaches only Latin and Latin Extended faces
+  (other scripts load on demand; all of them would be ~0.5 MB per phone). Bands are 1-bit
+  PNGs of ~1.3 KB.
 
 ## Feature audit
 
@@ -413,3 +427,10 @@ One line per work session: date, what was done, what's next.
   desktop keyboard shortcuts. Found and fixed a real WebKit bug: media played from service-worker
   responses got a stray pause on the second passage; media range requests now go to the network
   while online. 80 unit + 38 e2e tests. Visual directions artifact published; waiting on a pick.
+- 2026-10-31: Engraved (direction A) built: tokens, EB Garamond, ruled frame (now above header
+  and player, paper masked outside it), dithered chapter bands, drop caps, restyled library,
+  reader, player and mini player. Screenshot review fixed: drop cap invisible in the spoken
+  sentence, unreadable current chapter in Contents, justified rivers on phones, settings touching
+  the frame. Service worker no longer precaches non-Latin font subsets. Kept AllTalk's local
+  edits. 81 unit + 38 e2e tests. Next: Select/Field/Toggle/list rows and the lint rule against
+  raw controls, then desktop layout.
