@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Access } from './access.js';
+import { Access, sessionCookieOptions } from './access.js';
 
 const dirs: string[] = [];
 function dataDir() {
@@ -59,5 +59,24 @@ describe('Access', () => {
 		for (let i = 0; i < 10; i++) expect(access.attempt('wrong', now)).toBe('wrong');
 		expect(access.attempt('secret passcode', now)).toBe('limited');
 		expect(access.attempt('secret passcode', now + 11 * 60_000)).toBe('ok');
+	});
+});
+
+describe('sessionCookieOptions', () => {
+	const post = (origin?: string) =>
+		new Request('https://readhouse.local/api/unlock', {
+			method: 'POST',
+			headers: origin ? { origin } : {}
+		});
+	// adapter-node reports https unless told otherwise, so the browser's Origin decides.
+	const url = new URL('https://readhouse.local/api/unlock');
+
+	it('is not Secure when the page is on plain http', () => {
+		expect(sessionCookieOptions(post('http://192.168.1.20:3000'), url).secure).toBe(false);
+	});
+
+	it('is Secure over https, and without an Origin when the server says https', () => {
+		expect(sessionCookieOptions(post('https://box.tail1234.ts.net'), url).secure).toBe(true);
+		expect(sessionCookieOptions(post(), url).secure).toBe(true);
 	});
 });

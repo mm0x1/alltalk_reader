@@ -242,14 +242,19 @@ test.describe('with a passcode', () => {
 
 		const wrong = await request.post('/api/unlock', { data: { passcode: 'nope' } });
 		expect(wrong.status()).toBe(401);
-		const right = await request.post('/api/unlock', { data: { passcode: 'correct horse' } });
+		const right = await request.post('/api/unlock', {
+			data: { passcode: 'correct horse' },
+			headers: { origin: LOCKED }
+		});
 		expect(right.status()).toBe(204);
 		const cookie = right.headers()['set-cookie'];
 		expect(cookie).toContain('HttpOnly');
 		expect(cookie).toContain('SameSite=Strict');
+		// Over plain http a Secure cookie would be dropped (Safari, and Chrome on a LAN address).
+		expect(cookie).not.toContain('Secure');
 		expect((await request.get('/api/books')).status()).toBe(200);
 
-		await request.post('/api/lock', { headers: JSON_HEADERS });
+		await request.post('/api/lock', { headers: { ...JSON_HEADERS, origin: LOCKED } });
 		expect((await request.get('/api/books')).status()).toBe(401);
 		await request.dispose();
 	});

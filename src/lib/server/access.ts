@@ -20,6 +20,19 @@ function digest(value: string): Buffer {
 	return createHash('sha256').update(value).digest();
 }
 
+/**
+ * Options for the session cookie, for setting and clearing it alike. `Secure` follows the
+ * scheme the browser sees, from the Origin header it sends with a POST: without `ORIGIN` or
+ * `PROTOCOL_HEADER`, adapter-node takes every request for https, and browsers drop a Secure
+ * cookie over plain http (Safari always, Chrome except on localhost), so the device would
+ * never stay unlocked on the LAN.
+ */
+export function sessionCookieOptions(request: Request, url: URL) {
+	const origin = request.headers.get('origin');
+	const secure = origin ? origin.startsWith('https:') : url.protocol === 'https:';
+	return { path: '/', httpOnly: true, sameSite: 'strict', secure } as const;
+}
+
 export function safeEqual(a: string, b: string): boolean {
 	return timingSafeEqual(digest(a), digest(b));
 }

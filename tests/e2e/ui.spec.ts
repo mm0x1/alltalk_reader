@@ -253,6 +253,30 @@ test('a file or link shared from another app arrives in the library', async ({
 	await expect(page).toHaveURL(/\/$/);
 });
 
+test('a share to a locked device waits through unlocking', async ({ page }, testInfo) => {
+	const locked = 'http://127.0.0.1:4174';
+	await page.goto(`${locked}/unlock`);
+	await page.evaluate(async () => {
+		await navigator.serviceWorker.ready;
+	});
+	await page.reload();
+
+	const name = `Locked share ${testInfo.project.name}.txt`;
+	await page.evaluate(
+		async ({ name, text }) => {
+			const form = new FormData();
+			form.append('book', new File([text], name, { type: 'text/plain' }));
+			await fetch('/share', { method: 'POST', body: form, redirect: 'manual' });
+		},
+		{ name, text: STORY }
+	);
+	await page.goto(`${locked}/?shared`);
+	await expect(page).toHaveURL(/\/unlock\?next=/);
+	await page.getByLabel('Passcode').fill('correct horse');
+	await page.getByRole('button', { name: 'Unlock' }).click();
+	await expect(page.getByRole('dialog', { name: 'Add a book' })).toContainText(name);
+});
+
 test('marks the sentence being read in a long paragraph', async ({ page }, testInfo) => {
 	await page.goto('/');
 	const long =

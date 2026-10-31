@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import * as v from 'valibot';
 import { app } from '#lib/server/app.js';
-import { Access, SESSION_COOKIE } from '#lib/server/access.js';
+import { Access, SESSION_COOKIE, sessionCookieOptions } from '#lib/server/access.js';
 import { readJson } from '#lib/server/http.js';
 import type { RequestHandler } from './$types';
 
@@ -20,10 +20,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 		error(401, 'That passcode is not right.');
 	}
 	cookies.set(SESSION_COOKIE, access.issue(), {
-		path: '/',
-		httpOnly: true,
-		sameSite: 'strict',
-		secure: url.protocol === 'https:',
+		...sessionCookieOptions(request, url),
 		maxAge: Access.maxAgeSeconds
 	});
 	return new Response(null, { status: 204 });

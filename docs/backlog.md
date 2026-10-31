@@ -133,8 +133,14 @@ Order of work for the 2026-11-13 presentation:
   *(in progress)* Button (primary, quiet, outline, danger, text; also renders links), Icon,
   Sheet, and in style **B, Plate** (picked from https://claude.ai/artifact/M3AtEFvzbkEYY2rC6BhEeA):
   Field, Select, TextField, Checkbox (ballot box), Radio, Slider, FilePicker, ListRow (dot
-  leaders), Badge. Still to do: Dialog, Popover, Tabs/Segmented, Toast, Progress, Spinner,
-  EmptyState.
+  leaders), Badge. Still to do: Dialog, Toast, Progress, loading indicator (Spinner),
+  EmptyState. *Variants published for a pick* (2026-10-31):
+  https://claude.ai/artifact/Dvyyv4k4ZwhK7nzkq61yeF (Dialog for removing a book: centred
+  plate, bottom sheet, or no question with Undo; loading: breathing ellipsis, engraved rule,
+  turning fleuron; toast: slip above the player, reverse-ink slug, notice under the header;
+  chapter-saving progress: rule under the row, filling leader, one line atop Contents).
+  Popover and Tabs/Segmented are left out: nothing in the app needs them yet (the sleep timer
+  is a sheet, the theme is a radio group).
 - [ ] **Living reference page.** A dev-only route (or Storybook/Histoire) showing every token
   and component in every theme; also the target for visual regression tests.
 - [ ] **Share with the suite.** If a suite-wide house style is adopted, publish the tokens (and,
@@ -221,8 +227,9 @@ Order of work for the 2026-11-13 presentation:
   *Done:* File picker, desktop drag and drop, and an Android share target (installed PWA):
   the service worker receives the POST on the device and the library offers the file or text
   in Add a book; it is never added without a tap, since any website can POST to `/share`.
-  Shared links get an explanation (Readhouse never fetches URLs). Known gap: with a passcode
-  and a locked device, the unlock redirect drops the share. Not on iOS (no share target).
+  Shared links get an explanation (Readhouse never fetches URLs). A share to a locked device
+  waits through unlocking (e2e-tested on all three profiles); the gap noted earlier was the
+  Secure-cookie bug below. Not on iOS (no share target).
 - [ ] **AO3 still first-class.** Keep the AO3 parser (paste/HTML download) and give AO3 works
   the same chapter UI as EPUB; AO3's own EPUB downloads should import cleanly. Test with AO3
   downloads before 2026-11-13.
@@ -362,6 +369,11 @@ The app is reachable from other devices by design, so treat the network as untru
   serving over Tailscale (`tailscale serve` gives HTTPS and limits access to the tailnet)
   and document it. Bind to localhost when only Tailscale serve is used.
   *Done:* Passcode, signed cookies, rate limit; README covers Tailscale.
+  *Fixed (2026-10-31):* over plain http the session cookie was sent `Secure`, because
+  adapter-node takes every request for https unless `ORIGIN` or `PROTOCOL_HEADER` is set;
+  Safari (and Chrome on a LAN address) dropped it, so a passcode never unlocked. `Secure` now
+  follows the browser's Origin header. Chromium's e2e runs missed it: 127.0.0.1 counts as
+  secure there.
 - [x] **HTTPS story.** Plain http over LAN isn't a secure context: pitch shift (AudioWorklet)
   is disabled, and PWA install, service workers and some media APIs won't work. Make
   `tailscale serve` (or a local cert via mkcert/Caddy) the documented default.
@@ -513,3 +525,8 @@ One line per work session: date, what was done, what's next.
   jumping to a chapter saved only after the chapter loaded, so leaving at once kept the old
   place; saves now go out at once and in order, and the library refreshes when the last one
   lands. Device checklist written (needs a run on real phones). Next: remaining components.
+- 2026-10-31: Variants for Dialog, loading, toast and progress published for a pick. TXT import
+  knows "Stave" headings (A Christmas Carol: five staves). Fixed a real passcode bug: over plain
+  http the session cookie was `Secure` (adapter-node assumes https), so Safari never stayed
+  unlocked; this was also the "locked share" gap, now e2e-tested. Next: build the picked
+  components, then the living reference page.
