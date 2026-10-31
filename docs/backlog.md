@@ -291,7 +291,11 @@ Order of work for the 2026-11-13 presentation:
   `mise run visual:update` after reviewing. Add the reference page once it exists. It caught
   two real bugs at once: the library overflowed the frame on phones (grid track sized by an
   unwrapped detail line) and the author separator lost its space.
-- [ ] **Manual device checklist.** Include: playback continues across passages with the screen
+- [ ] **Manual device checklist.** *(in progress)* Written: `docs/device-checklist.md` (first
+  run, lock screen and background, audio routes, offline, installed app and share target,
+  accessibility with large text and screen readers, AO3, passcode, plain http, a results
+  table). Still to do: run it on a real iPhone and Android phone with the real AllTalk
+  before 2026-11-13. Include: playback continues across passages with the screen
   locked; headphones unplugged pauses; lock-screen next/previous; offline chapter after toggling
   airplane mode; first real AllTalk run on a phone (verified on desktop WebKit, 2026-10-31).
   Originally: A short script to run on a real iPhone (Safari autoplay,
@@ -504,4 +508,4 @@ One line per work session: date, what was done, what's next.
   "Connecting to AllTalk" section. Fixed a lost-place bug the e2e suite caught intermittently:
   jumping to a chapter saved only after the chapter loaded, so leaving at once kept the old
   place; saves now go out at once and in order, and the library refreshes when the last one
-  lands. Next: device checklist, then the remaining components.
+  lands. Device checklist written (needs a run on real phones). Next: remaining components.
