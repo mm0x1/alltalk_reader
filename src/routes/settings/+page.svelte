@@ -3,6 +3,12 @@
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { api } from '#lib/client/api.js';
+	import {
+		clearOfflineData,
+		offlineAvailable,
+		storageUse,
+		type StorageUse
+	} from '#lib/client/offline.js';
 	import { applyTheme, readTheme, THEMES, type Theme } from '#lib/design/theme.js';
 	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
 	import type { ServerStatus } from '#lib/status.js';
@@ -20,6 +26,16 @@
 	let saved = $state(false);
 	let problem = $state<string | null>(null);
 	let theme = $state<Theme>('system');
+	let canSave = $state(false);
+	let storage = $state<StorageUse | null>(null);
+
+	function megabytes(bytes: number | null): string {
+		return bytes === null ? '?' : `${Math.round(bytes / 1024 / 1024).toLocaleString()} MB`;
+	}
+
+	async function refreshStorage() {
+		storage = await storageUse();
+	}
 
 	const engine = $derived(status?.alltalk.engine ?? null);
 	const voices = $derived(status?.alltalk.voices ?? []);
@@ -27,6 +43,8 @@
 
 	onMount(() => {
 		theme = readTheme();
+		canSave = offlineAvailable();
+		if (canSave) void refreshStorage();
 		const controller = new AbortController();
 		api
 			.status(controller.signal)
@@ -252,10 +270,34 @@
 				</label>
 			{/each}
 		</fieldset>
+		<div class="storage">
+			<h3>Offline listening</h3>
+			{#if canSave}
+				<p class="note">
+					Save chapters from a book&rsquo;s Contents to listen without a connection. Readhouse uses
+					{megabytes(storage?.usedBytes ?? null)} on this device{#if storage?.persisted}, kept safe
+						from automatic clean-up{/if}.
+				</p>
+				<Button
+					variant="danger"
+					onclick={async () => {
+						if (!confirm('Remove all saved audio and offline copies from this device?')) return;
+						await clearOfflineData();
+						await refreshStorage();
+					}}>Remove offline copies</Button
+				>
+			{:else}
+				<p class="note">
+					Offline listening needs a secure connection. Open Readhouse over HTTPS, for example with
+					<code>tailscale serve</code>, to save chapters on this device.
+				</p>
+			{/if}
+		</div>
 		{#if data.locked}
 			<Button
 				variant="outline"
 				onclick={async () => {
+					await clearOfflineData();
 					await api.lock();
 					await goto(resolve('/unlock'));
 				}}>Lock this device</Button
@@ -410,5 +452,16 @@
 
 	code {
 		font-size: var(--text-s);
+	}
+
+	.storage {
+		display: grid;
+		gap: var(--space-2);
+		justify-items: start;
+	}
+
+	h3 {
+		font-size: var(--text-m);
+		font-weight: var(--weight-bold);
 	}
 </style>

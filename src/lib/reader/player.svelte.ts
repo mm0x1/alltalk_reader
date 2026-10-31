@@ -10,8 +10,16 @@
  */
 
 import { api, ApiError } from '#lib/client/api.js';
+import {
+	markChapterSaved,
+	recallSpeech,
+	rememberSpeech,
+	requestPersistence,
+	saveAudio
+} from '#lib/client/offline.js';
 import type { BookDetail, ChapterContent } from '#lib/library.js';
 import {
+	chapterPositions,
 	firstSpoken,
 	lastSpokenBefore,
 	nextInChapter,
@@ -228,15 +236,12 @@ export class Player {
 			const chapter = await this.#chapter(position.chapter);
 			if (generation !== this.#generation) return;
 			this.chapter = chapter;
-			const result = await api.speech(
-				{ bookId: this.book.id, ...position, priority: 'now' },
-				controller.signal
-			);
+			const url = await this.#audioFor(position, 'now', controller.signal);
 			if (generation !== this.#generation) return;
 
 			const audio = this.#ensureAudio();
 			this.#switching = true;
-			audio.src = result.audio;
+			audio.src = url;
 			audio.playbackRate = this.rate;
 			this.#loaded = key(position);
 			this.#switching = false;
@@ -281,17 +286,62 @@ export class Player {
 			for (let i = 0; i < PREFETCH_AHEAD; i++) {
 				position = await this.#after(position);
 				if (!position || generation !== this.#generation) return;
-				const result = await api.speech(
-					{ bookId: this.book.id, ...position, priority: 'soon' },
-					controller.signal
-				);
-				// Pull the audio into the HTTP cache (it is immutable) so the switch is instant.
-				const response = await fetch(result.audio, { signal: controller.signal });
+				const url = await this.#audioFor(position, 'soon', controller.signal);
+				// Pull the audio into the cache (it is immutable) so the switch is instant.
+				const response = await fetch(url, { signal: controller.signal });
 				await response.arrayBuffer();
 			}
 		} catch {
 			// Prefetching is best effort; the real request will report any problem.
 		}
+	}
+
+	/**
+	 * The audio URL for a passage: asks the server (which generates it if needed) and remembers
+	 * the answer, or falls back to what this device remembers when the server can't be reached.
+	 */
+	async #audioFor(
+		position: Position,
+		priority: 'now' | 'soon',
+		signal: AbortSignal
+	): Promise<string> {
+		try {
+			const { audio } = await api.speech({ bookId: this.book.id, ...position, priority }, signal);
+			void rememberSpeech(this.book.id, position, audio);
+			return audio;
+		} catch (error) {
+			if (isAbort(error)) throw error;
+			const offline =
+				error instanceof TypeError || (error instanceof ApiError && error.status >= 502);
+			const saved = offline ? await recallSpeech(this.book.id, position) : null;
+			if (saved) return saved;
+			throw error;
+		}
+	}
+
+	/**
+	 * Prepares a whole chapter and saves its audio on this device for offline listening.
+	 * Generation runs in the background queue behind whatever is playing.
+	 */
+	async saveChapter(
+		index: number,
+		onProgress: (done: number, total: number) => void,
+		signal: AbortSignal
+	): Promise<void> {
+		void requestPersistence();
+		const chapter = await this.#chapter(index);
+		const positions = chapterPositions(index, chapter.blocks, this.#maxChars);
+		onProgress(0, positions.length);
+		for (const [done, position] of positions.entries()) {
+			const { audio } = await api.speech(
+				{ bookId: this.book.id, ...position, priority: 'soon' },
+				signal
+			);
+			await rememberSpeech(this.book.id, position, audio);
+			await saveAudio(audio, signal);
+			onProgress(done + 1, positions.length);
+		}
+		await markChapterSaved(this.book.id, index);
 	}
 
 	async #after(position: Position): Promise<Position | null> {

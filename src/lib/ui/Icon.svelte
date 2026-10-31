@@ -12,7 +12,9 @@
 		back: 'M15 5l-7 7 7 7',
 		trash: 'M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12',
 		book: 'M5 4.5h9a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3zM17 20H8a3 3 0 0 1 0-6h9',
-		follow: 'M12 5v10M7 11l5 5 5-5M5 20h14'
+		follow: 'M12 5v10M7 11l5 5 5-5M5 20h14',
+		save: 'M12 4v11M7 10l5 5 5-5M5 19h14',
+		saved: 'M5 12.5l4.5 4.5L19 7.5'
 	} as const;
 	export type IconName = keyof typeof PATHS;
 </script>

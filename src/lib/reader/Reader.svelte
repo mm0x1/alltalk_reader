@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/env';
+	import { onMount } from 'svelte';
+	import { offlineAvailable, savedChapters } from '#lib/client/offline.js';
 	import { resolve } from '$app/paths';
 	import type { BookDetail, ChapterContent } from '#lib/library.js';
 	import Button from '#lib/ui/Button.svelte';
@@ -29,6 +31,43 @@
 	const showingCurrent = $derived(chapter.position === position.chapter);
 	let contentsOpen = $state(false);
 	let follow = $state(true);
+	let canSave = $state(false);
+	let saved = $state<ReadonlySet<number>>(new Set());
+	let saving = $state<{ index: number; done: number; total: number } | null>(null);
+	let saveProblem = $state<string | null>(null);
+	let saveController: AbortController | null = null;
+
+	onMount(() => {
+		canSave = offlineAvailable();
+		void savedChapters(book.id).then((set) => (saved = set));
+		return () => saveController?.abort();
+	});
+
+	async function saveChapter(index: number) {
+		if (!player) return;
+		saveController?.abort();
+		const controller = new AbortController();
+		saveController = controller;
+		saveProblem = null;
+		saving = { index, done: 0, total: 0 };
+		try {
+			await player.saveChapter(
+				index,
+				(done, total) => (saving = { index, done, total }),
+				controller.signal
+			);
+			saved = new Set([...saved, index]);
+		} catch (error) {
+			if (!controller.signal.aborted) {
+				saveProblem = error instanceof Error ? error.message : 'Could not save this chapter.';
+			}
+		} finally {
+			if (saveController === controller) {
+				saving = null;
+				saveController = null;
+			}
+		}
+	}
 
 	// Keep the passage being read in view, unless the reader has scrolled away.
 	$effect(() => {
@@ -133,17 +172,49 @@
 {/if}
 
 <Sheet bind:open={contentsOpen} title="Contents">
+	{#if saveProblem}<p class="save-problem" role="alert">{saveProblem}</p>{/if}
 	<ol class="contents">
 		{#each book.chapters as entry, index (index)}
 			<li>
 				<button
 					type="button"
+					class="entry"
 					aria-current={index === position.chapter ? 'true' : undefined}
 					onclick={() => openChapter(index)}
 				>
 					<span class="entry-title">{entry.title}</span>
-					<span class="entry-words">{entry.wordCount.toLocaleString()} words</span>
+					<span class="entry-words">
+						{#if saving?.index === index}
+							Saving {saving.done}/{saving.total || '…'}
+						{:else}
+							{entry.wordCount.toLocaleString()} words
+						{/if}
+					</span>
 				</button>
+				{#if canSave}
+					{#if saving?.index === index}
+						<Button
+							icon="close"
+							aria-label={`Stop saving ${entry.title}`}
+							onclick={() => saveController?.abort()}
+						/>
+					{:else if saved.has(index)}
+						<span class="saved" title="Saved for offline listening">
+							<Button
+								icon="saved"
+								aria-label={`${entry.title} is saved; save again`}
+								onclick={() => saveChapter(index)}
+							/>
+						</span>
+					{:else}
+						<Button
+							icon="save"
+							aria-label={`Save ${entry.title} for offline listening`}
+							disabled={saving !== null}
+							onclick={() => saveChapter(index)}
+						/>
+					{/if}
+				{/if}
 			</li>
 		{/each}
 	</ol>
@@ -253,12 +324,28 @@
 		box-shadow: var(--shadow-raised);
 	}
 
-	.contents button {
+	.contents li {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.saved {
+		color: var(--color-accent);
+	}
+
+	.save-problem {
+		margin-bottom: var(--space-3);
+		color: var(--color-danger);
+	}
+
+	.contents .entry {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-3);
-		width: 100%;
+		flex: 1;
+		min-width: 0;
 		min-height: var(--tap-min);
 		padding: var(--space-2) var(--space-3);
 		border: none;
@@ -268,7 +355,7 @@
 		cursor: pointer;
 	}
 
-	.contents button[aria-current='true'] {
+	.contents .entry[aria-current='true'] {
 		background: var(--color-highlight);
 	}
 

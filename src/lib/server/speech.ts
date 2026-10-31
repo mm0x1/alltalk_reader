@@ -20,6 +20,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { VoiceSettings } from '#lib/settings.js';
 import type { AllTalk, EngineInfo } from './alltalk.js';
 import type { Database } from './db.js';
+import type { Transcoder } from './transcode.js';
 
 export type Priority = 'now' | 'soon';
 
@@ -67,13 +68,29 @@ export class Speech {
 	#running: Job | null = null;
 	#dirReady: Promise<unknown> | null = null;
 
-	constructor(
-		private readonly db: Database,
-		private readonly alltalk: AllTalk,
-		private readonly dir: string,
-		private readonly maxCacheBytes: number,
-		private readonly engineInfo: () => Promise<EngineInfo>
-	) {}
+	private readonly db: Database;
+	private readonly alltalk: AllTalk;
+	private readonly dir: string;
+	private readonly maxCacheBytes: number;
+	private readonly engineInfo: () => Promise<EngineInfo>;
+	private readonly transcoder: Promise<Transcoder | null>;
+
+	constructor(options: {
+		db: Database;
+		alltalk: AllTalk;
+		dir: string;
+		maxCacheBytes: number;
+		engineInfo: () => Promise<EngineInfo>;
+		/** Compresses generated audio, if available. */
+		transcoder?: Promise<Transcoder | null>;
+	}) {
+		this.db = options.db;
+		this.alltalk = options.alltalk;
+		this.dir = options.dir;
+		this.maxCacheBytes = options.maxCacheBytes;
+		this.engineInfo = options.engineInfo;
+		this.transcoder = options.transcoder ?? Promise.resolve(null);
+	}
 
 	/** The cache key: everything that changes what the audio sounds like. */
 	async key(text: string, settings: VoiceSettings): Promise<string> {
@@ -219,11 +236,12 @@ export class Speech {
 
 		const file = await this.alltalk.generate(job.text, job.settings);
 		const extension = file.split('.').pop()?.toLowerCase() ?? '';
-		const mime = MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
+		let mime = MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
 		const response = await this.alltalk.audio(file);
 
 		const finalPath = join(this.dir, job.hash);
-		const tempPath = `${finalPath}.${process.pid}.part`;
+		const downloadPath = `${finalPath}.${process.pid}.download`;
+		const compressedPath = `${finalPath}.${process.pid}.m4a`;
 		let bytes = 0;
 		const limit = new Transform({
 			transform(chunk: Buffer, _encoding, callback) {
@@ -235,13 +253,23 @@ export class Speech {
 			await pipeline(
 				Readable.fromWeb(response.body as unknown as NodeReadableStream),
 				limit,
-				createWriteStream(tempPath, { flags: 'wx' })
+				createWriteStream(downloadPath, { flags: 'wx' })
 			);
 			if (bytes === 0) throw new Error('AllTalk sent an empty audio file');
-			await rename(tempPath, finalPath);
-		} catch (error) {
-			await rm(tempPath, { force: true });
-			throw error;
+
+			const transcoder = await this.transcoder;
+			if (transcoder) {
+				await transcoder.transcode(downloadPath, compressedPath);
+				bytes = (await stat(compressedPath)).size;
+				if (bytes === 0) throw new Error('Compressed audio is empty');
+				await rename(compressedPath, finalPath);
+				mime = transcoder.mime;
+			} else {
+				await rename(downloadPath, finalPath);
+			}
+		} finally {
+			await rm(downloadPath, { force: true });
+			await rm(compressedPath, { force: true });
 		}
 
 		const now = Date.now();

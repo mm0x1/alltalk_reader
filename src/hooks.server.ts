@@ -5,8 +5,13 @@ import { SESSION_COOKIE } from '#lib/server/access.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Reachable without the passcode: the unlock page and its endpoint, and static build files. */
-const PUBLIC_PATHS = new Set(['/unlock', '/api/unlock', '/manifest.webmanifest', '/favicon.svg']);
-const PUBLIC_PREFIXES = ['/_app/immutable/', '/_app/version.json'];
+const PUBLIC_PATHS = new Set([
+	'/unlock',
+	'/api/unlock',
+	'/manifest.webmanifest',
+	'/service-worker.js'
+]);
+const PUBLIC_PREFIXES = ['/_app/immutable/', '/_app/version.json', '/icons/'];
 
 const SECURITY_HEADERS: Record<string, string> = {
 	'x-content-type-options': 'nosniff',

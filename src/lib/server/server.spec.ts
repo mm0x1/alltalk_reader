@@ -9,6 +9,16 @@ import { DEFAULT_VOICE_SETTINGS } from '#lib/settings.js';
 import { createServices, type Services } from './app.js';
 import { AllTalk } from './alltalk.js';
 import { SpeechCancelled } from './speech.js';
+import { execFileSync } from 'node:child_process';
+
+const hasFfmpeg = (() => {
+	try {
+		execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+		return true;
+	} catch {
+		return false;
+	}
+})();
 
 let fake: FakeAllTalk;
 let dir: string;
@@ -19,7 +29,7 @@ beforeAll(async () => {
 });
 afterAll(() => fake.close());
 
-function make(overrides: { audioCacheMaxBytes?: number } = {}) {
+function make(overrides: { audioCacheMaxBytes?: number; audioFormat?: 'auto' | 'original' } = {}) {
 	dir = mkdtempSync(join(tmpdir(), 'readhouse-test-'));
 	services = createServices({
 		dataDir: dir,
@@ -27,6 +37,7 @@ function make(overrides: { audioCacheMaxBytes?: number } = {}) {
 		segmentMaxChars: 200,
 		uploadMaxBytes: 1024 * 1024,
 		audioCacheMaxBytes: overrides.audioCacheMaxBytes ?? 64 * 1024 * 1024,
+		audioFormat: overrides.audioFormat ?? 'original',
 		passcode: undefined
 	});
 }
@@ -257,6 +268,22 @@ describe('Speech', () => {
 		expect(services.speech.cached(first)).toBeNull();
 		expect(services.speech.cached(second)).not.toBeNull();
 		expect(readdirSync(join(dir, 'audio'))).toEqual([second]);
+	});
+
+	it.runIf(hasFfmpeg)('compresses audio to AAC when ffmpeg is available', async () => {
+		services.db.close();
+		rmSync(dir, { recursive: true, force: true });
+		make({ audioFormat: 'auto' });
+		const hash = await services.speech.speak(
+			'Compressed. '.repeat(20),
+			DEFAULT_VOICE_SETTINGS,
+			'now'
+		);
+		const audio = services.speech.cached(hash)!;
+		expect(audio.mime).toBe('audio/mp4');
+		const bytes = await readFile(audio.path);
+		expect(bytes.subarray(4, 8).toString()).toBe('ftyp');
+		expect(readdirSync(join(dir, 'audio'))).toEqual([hash]);
 	});
 
 	it('regenerates when a cached file has gone missing', async () => {

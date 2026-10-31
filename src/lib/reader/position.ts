@@ -43,6 +43,22 @@ export function nextInChapter(
 	return block === null ? null : { chapter: position.chapter, block, segment: 0 };
 }
 
+/** Every segment of a chapter, in reading order. */
+export function chapterPositions(
+	chapter: number,
+	blocks: readonly Block[],
+	maxChars: number
+): Position[] {
+	const positions: Position[] = [];
+	blocks.forEach((block, index) => {
+		const count = segmentCount(block, maxChars);
+		for (let segment = 0; segment < count; segment++) {
+			positions.push({ chapter, block: index, segment });
+		}
+	});
+	return positions;
+}
+
 /** Where "back" goes: the start of this block if we are past its start, else the block before. */
 export function previousInChapter(blocks: readonly Block[], position: Position): Position | null {
 	if (position.segment > 0) return { ...position, segment: 0 };

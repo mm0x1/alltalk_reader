@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { api } from '#lib/client/api.js';
+	import { forgetBook } from '#lib/client/offline.js';
 	import AddBook from '#lib/library/AddBook.svelte';
 	import BookRow from '#lib/library/BookRow.svelte';
 	import { session } from '#lib/reader/session.svelte.js';
@@ -18,6 +19,7 @@
 		if (!confirm(`Remove “${title}” from your library?`)) return;
 		if (session.player?.book.id === id) session.close();
 		await api.remove(id);
+		await forgetBook(id);
 		await invalidateAll();
 	}
 </script>

@@ -28,10 +28,10 @@ export interface FakeAllTalk {
 	close(): Promise<void>;
 }
 
-/** A mono 16-bit PCM WAV of silence, 0.2 s plus a little per character of text. */
+/** A mono 16-bit PCM WAV of silence: 0.5 s plus 10 ms per character, so tests can observe each passage. */
 export function silentWav(text: string): Buffer {
 	const sampleRate = 8000;
-	const samples = Math.round(sampleRate * (0.2 + Math.min(text.length, 2000) * 0.002));
+	const samples = Math.round(sampleRate * (0.5 + Math.min(text.length, 2000) * 0.01));
 	const data = samples * 2;
 	const wav = Buffer.alloc(44 + data);
 	wav.write('RIFF', 0);

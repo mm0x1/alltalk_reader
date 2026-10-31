@@ -9,6 +9,7 @@ import {
 	ACCESS_PASSCODE,
 	ALLTALK_URL,
 	AUDIO_CACHE_MAX_MB,
+	AUDIO_FORMAT,
 	DATA_DIR,
 	SEGMENT_MAX_CHARS,
 	UPLOAD_MAX_MB
@@ -19,6 +20,7 @@ import { Database } from './db.js';
 import { Library } from './library.js';
 import { SettingsStore } from './settings.js';
 import { Speech } from './speech.js';
+import { findTranscoder } from './transcode.js';
 
 const ENGINE_INFO_TTL_MS = 30_000;
 
@@ -46,6 +48,7 @@ export function createServices(options: {
 	segmentMaxChars: number;
 	uploadMaxBytes: number;
 	audioCacheMaxBytes: number;
+	audioFormat: 'auto' | 'original';
 	passcode: string | undefined;
 	fetch?: typeof fetch;
 }): Services {
@@ -76,7 +79,14 @@ export function createServices(options: {
 		library: new Library(db),
 		settings: new SettingsStore(db),
 		alltalk,
-		speech: new Speech(db, alltalk, join(dataDir, 'audio'), options.audioCacheMaxBytes, engineInfo),
+		speech: new Speech({
+			db,
+			alltalk,
+			dir: join(dataDir, 'audio'),
+			maxCacheBytes: options.audioCacheMaxBytes,
+			engineInfo,
+			transcoder: findTranscoder(options.audioFormat)
+		}),
 		access: new Access(options.passcode, dataDir),
 		engineInfo
 	};
@@ -91,6 +101,7 @@ export function app(): Services {
 		segmentMaxChars: SEGMENT_MAX_CHARS,
 		uploadMaxBytes: UPLOAD_MAX_MB * 1024 * 1024,
 		audioCacheMaxBytes: AUDIO_CACHE_MAX_MB * 1024 * 1024,
+		audioFormat: AUDIO_FORMAT,
 		passcode: ACCESS_PASSCODE
 	});
 	return services;

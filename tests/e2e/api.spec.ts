@@ -171,10 +171,15 @@ test('speaks a segment and serves the audio with ranges and caching', async ({ r
 
 	const full = await request.get(audio);
 	expect(full.status()).toBe(200);
-	expect(full.headers()['content-type']).toBe('audio/wav');
 	expect(full.headers()['cache-control']).toContain('immutable');
 	const body = await full.body();
-	expect(body.subarray(0, 4).toString()).toBe('RIFF');
+	// AAC when ffmpeg is installed (AUDIO_FORMAT=auto), otherwise AllTalk's WAV.
+	if (full.headers()['content-type'] === 'audio/mp4') {
+		expect(body.subarray(4, 8).toString()).toBe('ftyp');
+	} else {
+		expect(full.headers()['content-type']).toBe('audio/wav');
+		expect(body.subarray(0, 4).toString()).toBe('RIFF');
+	}
 
 	const partial = await request.get(audio, { headers: { range: 'bytes=0-9' } });
 	expect(partial.status()).toBe(206);

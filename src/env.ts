@@ -42,6 +42,17 @@ export const variables = defineEnvVars({
 		description: 'Disk space generated audio may use before the least recently played is removed.',
 		schema: integer('AUDIO_CACHE_MAX_MB', 2048, 64, 1_000_000)
 	},
+	AUDIO_FORMAT: {
+		description:
+			'"auto" compresses audio to AAC when ffmpeg is installed (about 8x smaller); "original" keeps AllTalk\'s files.',
+		schema: (value) => {
+			const mode = value || 'auto';
+			if (mode !== 'auto' && mode !== 'original') {
+				throw new Error('AUDIO_FORMAT must be "auto" or "original"');
+			}
+			return mode as 'auto' | 'original';
+		}
+	},
 	UPLOAD_MAX_MB: {
 		description: 'Largest book file that can be imported.',
 		schema: integer('UPLOAD_MAX_MB', 64, 1, 1024)
