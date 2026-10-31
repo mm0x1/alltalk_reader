@@ -12,7 +12,12 @@
 	import { applyTheme, readTheme, THEMES, type Theme } from '#lib/design/theme.js';
 	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
 	import type { ServerStatus } from '#lib/status.js';
+	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
+	import Checkbox from '#lib/ui/Checkbox.svelte';
+	import Radio from '#lib/ui/Radio.svelte';
+	import Select from '#lib/ui/Select.svelte';
+	import Slider from '#lib/ui/Slider.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -127,109 +132,93 @@
 	<form onsubmit={save} aria-labelledby="voice-heading">
 		<h2 id="voice-heading">Voice</h2>
 
-		<label class="field">
-			<span>Voice</span>
-			<select bind:value={voice.voice}>
+		<Select id="voice" label="Voice" bind:value={voice.voice}>
+			<option value="">AllTalk&rsquo;s default</option>
+			{#each voices as name (name)}
+				<option value={name}>{voiceLabel(name)}</option>
+			{/each}
+		</Select>
+
+		<Select id="language" label="Language" bind:value={voice.language}>
+			{#each LANGUAGES as code (code)}
+				<option value={code}>{LANGUAGE_NAMES[code] ?? code}</option>
+			{/each}
+		</Select>
+
+		<Checkbox
+			id="narrator"
+			label="Narrator"
+			hint="A second voice reads everything outside of quotes, so dialogue stands out. It often doesn't work well yet: AllTalk can mix up the voices or skip text, so leave it off unless it sounds right with your voices."
+			bind:checked={voice.narratorEnabled}
+		>
+			{#snippet badge()}<Badge>Experimental</Badge>{/snippet}
+		</Checkbox>
+
+		{#if voice.narratorEnabled}
+			<Select id="narrator-voice" label="Narrator voice" bind:value={voice.narratorVoice}>
 				<option value="">AllTalk&rsquo;s default</option>
 				{#each voices as name (name)}
 					<option value={name}>{voiceLabel(name)}</option>
 				{/each}
-			</select>
-		</label>
-
-		<label class="field">
-			<span>Language</span>
-			<select bind:value={voice.language}>
-				{#each LANGUAGES as code (code)}
-					<option value={code}>{LANGUAGE_NAMES[code] ?? code}</option>
-				{/each}
-			</select>
-		</label>
-
-		<label class="check">
-			<input type="checkbox" bind:checked={voice.narratorEnabled} />
-			<span>
-				<strong>Narrator</strong>
-				<small>A second voice reads everything outside of quotes, so dialogue stands out.</small>
-			</span>
-		</label>
-
-		{#if voice.narratorEnabled}
-			<label class="field">
-				<span>Narrator voice</span>
-				<select bind:value={voice.narratorVoice}>
-					<option value="">AllTalk&rsquo;s default</option>
-					{#each voices as name (name)}
-						<option value={name}>{voiceLabel(name)}</option>
-					{/each}
-				</select>
-			</label>
-			<label class="field">
-				<span>Text outside quotes is read by</span>
-				<select bind:value={voice.unquotedIs}>
-					<option value="narrator">the narrator</option>
-					<option value="character">the main voice</option>
-				</select>
-			</label>
+			</Select>
+			<Select id="unquoted" label="Text outside quotes is read by" bind:value={voice.unquotedIs}>
+				<option value="narrator">the narrator</option>
+				<option value="character">the main voice</option>
+			</Select>
 		{/if}
 
 		{#if engine?.capabilities.temperature || engine?.capabilities.repetitionPenalty || rvcVoices.length > 1}
 			<details class="advanced">
 				<summary>Advanced</summary>
 				{#if engine?.capabilities.temperature}
-					<label class="field">
-						<span>Expressiveness (temperature)</span>
-						<input
-							type="range"
-							min="0.1"
-							max="1"
-							step="0.05"
-							value={voice.temperature ?? 0.75}
-							oninput={(event) => (voice.temperature = Number(event.currentTarget.value))}
-						/>
-						<small
-							>{voice.temperature === null ? 'Engine default' : voice.temperature.toFixed(2)}
-							<button type="button" class="link" onclick={() => (voice.temperature = null)}
-								>Reset</button
-							></small
-						>
-					</label>
+					<Slider
+						id="temperature"
+						label="Expressiveness (temperature)"
+						min="0.1"
+						max="1"
+						step="0.05"
+						bind:value={() => voice.temperature ?? 0.75, (next) => (voice.temperature = next)}
+					>
+						{#snippet after()}
+							{voice.temperature === null ? 'Engine default' : voice.temperature.toFixed(2)}
+							<Button variant="text" onclick={() => (voice.temperature = null)}>Reset</Button>
+						{/snippet}
+					</Slider>
 				{/if}
 				{#if engine?.capabilities.repetitionPenalty}
-					<label class="field">
-						<span>Repetition penalty</span>
-						<input
-							type="range"
-							min="1"
-							max="20"
-							step="0.5"
-							value={voice.repetitionPenalty ?? 10}
-							oninput={(event) => (voice.repetitionPenalty = Number(event.currentTarget.value))}
-						/>
-						<small
-							>{voice.repetitionPenalty === null
+					<Slider
+						id="repetition-penalty"
+						label="Repetition penalty"
+						min="1"
+						max="20"
+						step="0.5"
+						bind:value={
+							() => voice.repetitionPenalty ?? 10, (next) => (voice.repetitionPenalty = next)
+						}
+					>
+						{#snippet after()}
+							{voice.repetitionPenalty === null
 								? 'Engine default'
 								: voice.repetitionPenalty.toFixed(1)}
-							<button type="button" class="link" onclick={() => (voice.repetitionPenalty = null)}
-								>Reset</button
-							></small
-						>
-					</label>
+							<Button variant="text" onclick={() => (voice.repetitionPenalty = null)}>Reset</Button>
+						{/snippet}
+					</Slider>
 				{/if}
 				{#if rvcVoices.length > 1}
-					<label class="field">
-						<span>RVC voice</span>
-						<select bind:value={voice.rvcVoice}>
-							{#each rvcVoices as name (name)}
-								<option value={name}>{name === 'Disabled' ? 'Off' : name}</option>
-							{/each}
-						</select>
-					</label>
+					<Select id="rvc-voice" label="RVC voice" bind:value={voice.rvcVoice}>
+						{#each rvcVoices as name (name)}
+							<option value={name}>{name === 'Disabled' ? 'Off' : name}</option>
+						{/each}
+					</Select>
 					{#if voice.rvcVoice !== 'Disabled'}
-						<label class="field">
-							<span>RVC pitch ({voice.rvcPitch})</span>
-							<input type="range" min="-24" max="24" step="1" bind:value={voice.rvcPitch} />
-						</label>
+						<Slider
+							id="rvc-pitch"
+							label={`RVC pitch (${voice.rvcPitch})`}
+							min="-24"
+							max="24"
+							step="1"
+							bind:value={voice.rvcPitch}
+						/>
 					{/if}
 				{/if}
 			</details>
@@ -251,23 +240,16 @@
 		<fieldset class="themes">
 			<legend>Theme</legend>
 			{#each THEMES as option (option)}
-				<label class="choice">
-					<input
-						type="radio"
-						name="theme"
-						value={option}
-						checked={theme === option}
-						onchange={() => {
-							theme = option;
-							applyTheme(option);
-						}}
-					/>
-					<span
-						>{option === 'system'
-							? 'Match device'
-							: option[0].toUpperCase() + option.slice(1)}</span
-					>
-				</label>
+				<Radio
+					name="theme"
+					value={option}
+					label={option === 'system' ? 'Match device' : option[0].toUpperCase() + option.slice(1)}
+					checked={theme === option}
+					onchange={() => {
+						theme = option;
+						applyTheme(option);
+					}}
+				/>
 			{/each}
 		</fieldset>
 		<div class="storage">
@@ -353,56 +335,6 @@
 		color: var(--color-danger);
 	}
 
-	.field {
-		display: grid;
-		gap: var(--space-1);
-		width: 100%;
-	}
-
-	.field > span {
-		font-weight: var(--weight-medium);
-	}
-
-	select {
-		min-height: var(--tap-min);
-		padding: 0 var(--space-3);
-		border: var(--border-thin) solid var(--color-rule);
-		border-radius: var(--radius-s);
-		background: var(--color-paper-raised);
-		font-size: var(--text-m);
-	}
-
-	input[type='range'] {
-		width: 100%;
-		accent-color: var(--color-accent);
-	}
-
-	.check,
-	.choice {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-3);
-		min-height: var(--tap-min);
-		cursor: pointer;
-	}
-
-	.check input,
-	.choice input {
-		width: var(--control-mark);
-		height: var(--control-mark);
-		margin-top: var(--space-1);
-		accent-color: var(--color-accent);
-	}
-
-	.check span {
-		display: grid;
-	}
-
-	small {
-		color: var(--color-ink-muted);
-		font-size: var(--text-s);
-	}
-
 	.advanced {
 		display: grid;
 		gap: var(--space-3);
@@ -413,16 +345,6 @@
 		min-height: var(--tap-min);
 		padding: var(--space-2) 0;
 		font-weight: var(--weight-medium);
-		cursor: pointer;
-	}
-
-	.link {
-		margin-left: var(--space-2);
-		padding: 0;
-		border: none;
-		background: none;
-		color: var(--color-accent);
-		text-decoration: underline;
 		cursor: pointer;
 	}
 

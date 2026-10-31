@@ -5,6 +5,7 @@
 	import { resolve } from '$app/paths';
 	import type { BookDetail, ChapterContent } from '#lib/library.js';
 	import Button from '#lib/ui/Button.svelte';
+	import ListRow from '#lib/ui/ListRow.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import PlayerBar from './PlayerBar.svelte';
 	import { toRoman } from '#lib/text/roman.js';
@@ -225,21 +226,14 @@
 	<ol class="contents">
 		{#each book.chapters as entry, index (index)}
 			<li>
-				<button
-					type="button"
-					class="entry"
-					aria-current={index === position.chapter ? 'true' : undefined}
+				<ListRow
+					title={entry.title}
+					meta={saving?.index === index
+						? `Saving ${saving.done}/${saving.total || '\u2026'}`
+						: `${entry.wordCount.toLocaleString()} words`}
+					current={index === position.chapter}
 					onclick={() => openChapter(index)}
-				>
-					<span class="entry-title">{entry.title}</span>
-					<span class="entry-words">
-						{#if saving?.index === index}
-							Saving {saving.done}/{saving.total || '…'}
-						{:else}
-							{entry.wordCount.toLocaleString()} words
-						{/if}
-					</span>
-				</button>
+				/>
 				{#if canSave}
 					{#if saving?.index === index}
 						<Button
@@ -450,36 +444,5 @@
 	.save-problem {
 		margin-bottom: var(--space-3);
 		color: var(--color-danger);
-	}
-
-	.contents .entry {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: var(--space-3);
-		flex: 1;
-		min-width: 0;
-		min-height: var(--tap-min);
-		padding: var(--space-2) var(--space-3);
-		border: none;
-		border-radius: var(--radius-s);
-		background: none;
-		text-align: start;
-		cursor: pointer;
-	}
-
-	.contents .entry[aria-current='true'] {
-		background: var(--color-highlight);
-		color: var(--color-highlight-ink);
-	}
-
-	.contents .entry[aria-current='true'] .entry-words {
-		color: inherit;
-	}
-
-	.entry-words {
-		flex: none;
-		color: var(--color-ink-muted);
-		font-size: var(--text-xs);
 	}
 </style>

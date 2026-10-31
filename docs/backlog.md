@@ -120,14 +120,16 @@ Order of work for the 2026-11-13 presentation:
 - [x] **Enforce it.** Lint rules that fail the build on raw colors, arbitrary values
   (`p-[13px]`), inline styles and HTML controls used outside the design system. Part of the
   check gate, not a guideline.
-  *Done:* Stylelint (`stylelint.config.js`) fails the build on raw colours, sizes, spacing, type, radii, shadows, z-index and durations outside `tokens.css`. Still to do: a lint rule against raw `<button>`/`<input>`/`<select>` outside `src/lib/ui/` once the component inventory exists.
+  *Done:* Stylelint (`stylelint.config.js`) fails the build on raw colours, sizes, spacing, type, radii, shadows, z-index and durations outside `tokens.css`. ESLint (`svelte/no-restricted-html-elements`) fails the build on raw `<button>`, `<input>`, `<select>` and `<textarea>` outside `src/lib/ui/`.
 - [ ] **Component inventory.** Button, IconButton, Slider (dithered track if it passes the restraint rule), Toggle,
   Select, Sheet (mobile bottom sheet), Dialog, Popover, Tabs/Segmented, List/ListItem, Toast,
   Progress, Spinner, EmptyState, Field/Label, Badge. Each with states (hover, focus-visible,
   active, disabled, loading) and touch targets ≥ 44 px.
-  *(in progress)* Interim Button (also renders links), Icon, Sheet (native dialog). The rest comes with the design phase.
-  Select/Field/Toggle/list-row styles waiting for the user's pick (A Ruled, B Plate,
-  C Double): https://claude.ai/artifact/M3AtEFvzbkEYY2rC6BhEeA
+  *(in progress)* Button (primary, quiet, outline, danger, text; also renders links), Icon,
+  Sheet, and in style **B, Plate** (picked from https://claude.ai/artifact/M3AtEFvzbkEYY2rC6BhEeA):
+  Field, Select, TextField, Checkbox (ballot box), Radio, Slider, FilePicker, ListRow (dot
+  leaders), Badge. Still to do: Dialog, Popover, Tabs/Segmented, Toast, Progress, Spinner,
+  EmptyState.
 - [ ] **Living reference page.** A dev-only route (or Storybook/Histoire) showing every token
   and component in every theme; also the target for visual regression tests.
 - [ ] **Share with the suite.** If a suite-wide house style is adopted, publish the tokens (and,
@@ -140,7 +142,7 @@ Order of work for the 2026-11-13 presentation:
   (`scripts/dither-assets.sh` with Ditherhouse's CLI), library (continue plate, shelf), reader
   (band, drop cap, reverse-ink sentence), player bar, mini player, Button, Sheet. Screenshots
   reviewed on iPhone, Pixel and desktop in all three themes, with simulated safe-area insets.
-  Settings still uses native selects and checkboxes until Select/Field/Toggle exist.
+  Settings, Add a book, Unlock and Contents use the Plate controls.
   Originally: Replace the generic look with one that has personality
   and evokes books: paper and ink palette, a proper reading serif for body text (e.g.
   Literata, Source Serif, Newsreader) with a contrasting UI face, restrained ornament,
@@ -214,6 +216,8 @@ Order of work for the 2026-11-13 presentation:
   `narrator_voice_gen`, but no UI sets them. Expose narrator/character voice choice; it suits
   novels and fanfic well.
   *Done:* Narrator on/off, narrator voice, and who reads unquoted text, in Settings.
+  Off by default and marked Experimental, with a warning that it often doesn't work well yet
+  (user's call, 2026-10-31).
 - [x] **Streaming for faster first audio.** Use `tts-generate-streaming` where the engine
   supports it so playback starts sooner, with fallback to `tts-generate`.
   *Decided: not now.* The streaming endpoint ignores narrator, RVC and temperature, can't go through the cache, and Safari plays progressive WAV poorly. Start-up time is handled by short segments (`SEGMENT_MAX_CHARS`) and prefetching. Revisit if real-device latency is a problem.
@@ -436,3 +440,7 @@ One line per work session: date, what was done, what's next.
   the frame. Service worker no longer precaches non-Latin font subsets. Kept AllTalk's local
   edits. 81 unit + 38 e2e tests. Next: Select/Field/Toggle/list rows and the lint rule against
   raw controls, then desktop layout.
+- 2026-10-31: User picked control style B (Plate). Built Field, Select, TextField, Checkbox,
+  Radio, Slider, FilePicker, ListRow (table-of-contents leaders), Badge, Button `text`;
+  replaced every raw control; ESLint now forbids raw controls outside `src/lib/ui/`. Narrator
+  marked Experimental with a warning, off by default. Next: desktop layout (variants first).

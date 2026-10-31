@@ -34,8 +34,18 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		// The design system, enforced: form controls come from src/lib/ui/ (Button, Select,
+		// TextField, Checkbox, Radio, Slider, FilePicker, ListRow), never raw elements.
+		files: ['src/**/*.svelte'],
+		ignores: ['src/lib/ui/**'],
+		rules: {
+			'svelte/no-restricted-html-elements': [
+				'error',
+				{
+					elements: ['button', 'input', 'select', 'textarea'],
+					message: 'Use the design-system component from src/lib/ui/ instead.'
+				}
+			]
+		}
 	}
 );

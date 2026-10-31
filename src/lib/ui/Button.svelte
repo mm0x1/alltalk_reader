@@ -5,7 +5,7 @@
 
 	/** With `href` it renders a link that looks like a button. */
 	type Props = (HTMLButtonAttributes & HTMLAnchorAttributes) & {
-		variant?: 'primary' | 'quiet' | 'outline' | 'danger';
+		variant?: 'primary' | 'quiet' | 'outline' | 'danger' | 'text';
 		icon?: IconName;
 		/** Without children the button is icon-only and needs an `aria-label`. */
 		children?: Snippet;
@@ -90,6 +90,18 @@
 	.danger {
 		border-color: var(--color-danger);
 		color: var(--color-danger);
+	}
+
+	/* Inline, like a link in a sentence ("Reset"). Still a full-height tap target. */
+	.text {
+		padding: 0 var(--space-1);
+		font-size: inherit;
+		font-weight: var(--weight-regular);
+		font-style: italic;
+		font-variant-caps: normal;
+		letter-spacing: normal;
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
 	}
 
 	@media (hover: hover) {

@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { api } from '#lib/client/api.js';
 	import Button from '#lib/ui/Button.svelte';
+	import TextField from '#lib/ui/TextField.svelte';
 
 	let passcode = $state('');
 	let busy = $state(false);
@@ -39,9 +40,9 @@
 <main class="unlock">
 	<h1>Readhouse</h1>
 	<form onsubmit={unlock}>
-		<label for="passcode">Passcode</label>
-		<input
+		<TextField
 			id="passcode"
+			label="Passcode"
 			type="password"
 			autocomplete="current-password"
 			required
@@ -71,19 +72,6 @@
 		display: grid;
 		gap: var(--space-3);
 		text-align: start;
-	}
-
-	label {
-		font-weight: var(--weight-medium);
-	}
-
-	input {
-		min-height: var(--tap-min);
-		padding: 0 var(--space-3);
-		border: var(--border-thin) solid var(--color-rule);
-		border-radius: var(--radius-s);
-		background: var(--color-paper-raised);
-		font-size: var(--text-m);
 	}
 
 	.problem {

@@ -3,7 +3,9 @@
 	import { resolve } from '$app/paths';
 	import { api } from '#lib/client/api.js';
 	import Button from '#lib/ui/Button.svelte';
+	import FilePicker from '#lib/ui/FilePicker.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
+	import TextField from '#lib/ui/TextField.svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -37,19 +39,12 @@
 		<section>
 			<h3>From a file</h3>
 			<p class="hint">EPUB or plain text (.txt). AO3 downloads work too.</p>
-			<label class="file">
-				<input
-					type="file"
-					accept=".epub,.txt,application/epub+zip,text/plain"
-					disabled={busy}
-					onchange={(event) => {
-						const file = event.currentTarget.files?.[0];
-						event.currentTarget.value = '';
-						if (file) addFile(file);
-					}}
-				/>
-				<span>Choose a file</span>
-			</label>
+			<FilePicker
+				label="Choose a file"
+				accept=".epub,.txt,application/epub+zip,text/plain"
+				disabled={busy}
+				onpick={addFile}
+			/>
 		</section>
 
 		<section>
@@ -61,10 +56,22 @@
 					void add(() => api.paste(pasted, pastedTitle.trim() || null));
 				}}
 			>
-				<label class="visually-hidden" for="paste-title">Title (optional)</label>
-				<input id="paste-title" placeholder="Title (optional)" bind:value={pastedTitle} />
-				<label class="visually-hidden" for="paste-text">Text</label>
-				<textarea id="paste-text" rows="6" placeholder="Paste here" bind:value={pasted}></textarea>
+				<TextField
+					id="paste-title"
+					label="Title (optional)"
+					hideLabel
+					placeholder="Title (optional)"
+					bind:value={pastedTitle}
+				/>
+				<TextField
+					id="paste-text"
+					label="Text"
+					hideLabel
+					multiline
+					rows={6}
+					placeholder="Paste here"
+					bind:value={pasted}
+				/>
 				<Button type="submit" variant="primary" disabled={busy || !pasted.trim()}>Add</Button>
 			</form>
 		</section>
@@ -96,50 +103,9 @@
 		font-size: var(--text-s);
 	}
 
-	.file {
-		position: relative;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-height: calc(var(--tap-min) * 1.5);
-		border: var(--border-thin) dashed var(--color-rule);
-		border-radius: var(--radius-m);
-		font-weight: var(--weight-medium);
-		cursor: pointer;
-	}
-
-	.file:focus-within {
-		outline: 2px solid var(--color-focus);
-		outline-offset: 2px;
-	}
-
-	.file input {
-		position: absolute;
-		inset: 0;
-		opacity: 0;
-		cursor: pointer;
-	}
-
 	form {
 		display: grid;
 		gap: var(--space-2);
-	}
-
-	input:not([type='file']),
-	textarea {
-		width: 100%;
-		min-height: var(--tap-min);
-		padding: var(--space-2) var(--space-3);
-		border: var(--border-thin) solid var(--color-rule);
-		border-radius: var(--radius-s);
-		background: var(--color-paper);
-		/* At least 16px, or iOS zooms in on focus. */
-		font-size: var(--text-m);
-	}
-
-	textarea {
-		resize: vertical;
-		font-family: var(--font-reading);
 	}
 
 	.status {
