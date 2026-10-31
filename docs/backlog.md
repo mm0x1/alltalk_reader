@@ -109,13 +109,16 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Token layer.** CSS custom properties as the single source (light/dark/sepia themes
   switch by swapping values), mapped into Tailwind (or the chosen styling) so only tokens are
   expressible. Remove Tailwind's default palette from the config so raw colors don't compile.
-- [ ] **Enforce it.** Lint rules that fail the build on raw colors, arbitrary values
+  *(in progress)* Interim tokens in `src/lib/design/tokens.css` (light, dark, sepia); values get redone with the visual identity.
+- [x] **Enforce it.** Lint rules that fail the build on raw colors, arbitrary values
   (`p-[13px]`), inline styles and HTML controls used outside the design system. Part of the
   check gate, not a guideline.
+  *Done:* Stylelint (`stylelint.config.js`) fails the build on raw colours, sizes, spacing, type, radii, shadows, z-index and durations outside `tokens.css`. Still to do: a lint rule against raw `<button>`/`<input>`/`<select>` outside `src/lib/ui/` once the component inventory exists.
 - [ ] **Component inventory.** Button, IconButton, Slider (dithered track if it passes the restraint rule), Toggle,
   Select, Sheet (mobile bottom sheet), Dialog, Popover, Tabs/Segmented, List/ListItem, Toast,
   Progress, Spinner, EmptyState, Field/Label, Badge. Each with states (hover, focus-visible,
   active, disabled, loading) and touch targets ≥ 44 px.
+  *(in progress)* Interim Button (also renders links), Icon, Sheet (native dialog). The rest comes with the design phase.
 - [ ] **Living reference page.** A dev-only route (or Storybook/Histoire) showing every token
   and component in every theme; also the target for visual regression tests.
 - [ ] **Share with the suite.** If a suite-wide house style is adopted, publish the tokens (and,
@@ -145,8 +148,9 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Good on desktop.** A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
-- [ ] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
+- [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
   controls, title/chapter, artwork) so playback can be controlled with the screen off.
+  *Done:* Manifest, interim icons, Media Session (lock screen, next/previous), offline service worker.
 - [ ] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
   loading and error states, empty states that say what to do next, helpful copy, no
   developer jargon in the UI ("buffered mode", "session server").
@@ -162,14 +166,17 @@ Order of work for the 2026-11-13 presentation:
 - [x] **Load TXT files.** Detect encoding (UTF-8/UTF-16/Latin-1), detect chapters by common
   headings ("Chapter 1", "CHAPTER ONE", "Part II", `***`), fall back to one chapter.
   *Done:* BOM/UTF-8/Windows-1252, Gutenberg header/footer, chapter headings, contents lists and subtitles.
-- [ ] **Chapter picker.** A table of contents sheet/sidebar: chapters with progress per chapter,
+- [x] **Chapter picker.** A table of contents sheet/sidebar: chapters with progress per chapter,
   tap to read from there, select a range to pre-generate audio, resume where you stopped.
   Long books stay fast (virtualized list, chapters loaded on demand).
-- [ ] **Library.** Imported books are kept on the server in SQLite, so the phone and the
+  *Done:* Contents sheet with current chapter, word counts, tap to jump, save for offline per chapter. Range selection dropped: saving per chapter covers it.
+- [x] **Library.** Imported books are kept on the server in SQLite, so the phone and the
   computer share them, with cover, progress and last read; the service worker caches what's
   needed offline. Delete and re-import.
+  *Done:* Server-side SQLite, shared by all devices; cover, progress, last opened; delete.
 - [ ] **Open from anywhere.** File picker, drag and drop on desktop, Share-to/Open-with on
   mobile via PWA share target if feasible.
+  *(in progress)* File picker and desktop drag and drop done. Share target (Android) pending.
 - [ ] **AO3 still first-class.** Keep the AO3 parser (paste/HTML download) and give AO3 works
   the same chapter UI as EPUB; AO3's own EPUB downloads should import cleanly. Test with AO3
   downloads before 2026-11-13.
@@ -179,22 +186,26 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
   whether the local `atsetup.sh` / `confignew.json` edits are kept or discarded. Record the tested AllTalk version in the docs and show a warning
   in the app when the server reports something older.
-- [ ] **Re-read the API and use it fully.** Endpoints in `docs/alltalk-api-full.md`: `ready`,
+  *(in progress)* Built and tested against `alltalkbeta` at f16117e (2026-01-09). AllTalk has no version endpoint, so no in-app warning. Local edits in `../alltalk_tts` (macOS installer support, engine set to XTTS, Gradio fixes) left untouched until the user decides.
+- [x] **Re-read the API and use it fully.** Endpoints in `docs/alltalk-api-full.md`: `ready`,
   `voices`, `rvcvoices`, `currentsettings`, `reload`, `tts-generate`,
   `tts-generate-streaming`, `stop-generation`, `openai-voicemap`, `deepspeed`,
   `lowvramsetting`, `reload_config`. Not used today: `stop-generation` (wire it to
   pause/skip/cancel so the GPU isn't busy with paragraphs nobody will hear), and the
   engine-capability fields in `currentsettings` should drive which controls are shown.
-- [ ] **Narrator mode for fiction.** AllTalk v2 can voice narration and quoted dialogue with
+  *Done:* Verified against `tts_server.py` on `alltalkbeta`. Used: `ready`, `currentsettings` (engine, model, capabilities drive which settings show and key the audio cache), `voices`, `rvcvoices`, `tts-generate` (voice, narrator, unquoted text, language, temperature, repetition penalty, RVC), `/audio/<file>`, `stop-generation`. Not used on purpose: `reload`/`deepspeed`/`lowvramsetting` (server administration belongs in AllTalk's own UI), OpenAI endpoint (no gain).
+- [x] **Narrator mode for fiction.** AllTalk v2 can voice narration and quoted dialogue with
   different voices. `services/api/tts.ts` already sends `narrator_enabled` /
   `narrator_voice_gen`, but no UI sets them. Expose narrator/character voice choice; it suits
   novels and fanfic well.
-- [ ] **Streaming for faster first audio.** Use `tts-generate-streaming` where the engine
+  *Done:* Narrator on/off, narrator voice, and who reads unquoted text, in Settings.
+- [x] **Streaming for faster first audio.** Use `tts-generate-streaming` where the engine
   supports it so playback starts sooner, with fallback to `tts-generate`.
-- [ ] **Generation pipeline.** One queue/controller for live, buffered and batch generation
+  *Decided: not now.* The streaming endpoint ignores narrator, RVC and temperature, can't go through the cache, and Safari plays progressive WAV poorly. Start-up time is handled by short segments (`SEGMENT_MAX_CHARS`) and prefetching. Revisit if real-device latency is a problem.
+- [x] **Generation pipeline.** One queue/controller for live, buffered and batch generation
   (today three paths: `useAudioPlayer`, `useBufferedPlayback`, batch). Cancel on seek,
   prefetch N paragraphs ahead, retries with backoff, clear errors when AllTalk is down.
-  *(in progress)* Server queue, dedupe, cancellation and cache done; reader-side prefetch next.
+  *Done:* One server queue (now before prefetch, dedupe, cancel abandoned), reader prefetches 3 passages ahead and warms the cache; "save chapter" replaces batch generation.
 - [x] **Proxy AllTalk through the app server.** The phone talks only to the app's origin; the
   server forwards to AllTalk on localhost. AllTalk no longer needs to listen on the LAN, and
   audio URLs stop breaking when the host's address differs between LAN and Tailscale.
@@ -202,10 +213,10 @@ Order of work for the 2026-11-13 presentation:
 
 ## Stability testing
 
-- [ ] **Test tooling and a check gate.** Vitest for units, Playwright for end-to-end; one
+- [x] **Test tooling and a check gate.** Vitest for units, Playwright for end-to-end; one
   `check` command (types, lint incl. design-system rules, unit, e2e) run by a pre-push hook
   and CI (GitHub Actions), like Ditherhouse's `mise run check`.
-  *(in progress)* `pnpm gate` exists; CI and pre-push hook pending.
+  *Done:* `mise run check` (types, prettier, eslint, stylelint, vitest, prod audit, gitleaks, Playwright on iPhone/Android/desktop), pre-push hook, GitHub Actions.
 - [x] **Fake AllTalk server.** A test double that serves the API with short fixed WAVs, slow
   responses and errors on demand, so tests are fast and deterministic without a GPU.
   *Done:* `tests/fake-alltalk.ts`, also runnable standalone for UI work.
@@ -213,10 +224,11 @@ Order of work for the 2026-11-13 presentation:
   and TXT parsing (with real sample books, including malformed ones), chapter detection,
   the playback state machine, session (de)serialization, import/export round trips.
   *Done:* For text, import, library, settings, AllTalk client, speech and access (74 tests).
-- [ ] **End-to-end flows** on a phone viewport (iPhone + Android profiles, WebKit and Chromium)
+- [x] **End-to-end flows** on a phone viewport (iPhone + Android profiles, WebKit and Chromium)
   and desktop: import a book → pick a chapter → play → auto-advance → pause/resume →
   reload and resume position; settings persist; AllTalk offline shows the right state;
   offline session plays without AllTalk.
+  *Done:* `tests/e2e/ui.spec.ts` on WebKit iPhone, Chromium Android and desktop: import, play, auto-advance across chapters, tap to read, contents, mini player, settings, theme, no sideways scroll, offline playback of a saved chapter.
 - [ ] **Visual regression.** Screenshot the design-system reference page and key screens in
   every theme; the build fails on unreviewed visual changes.
 - [ ] **Manual device checklist.** A short script to run on a real iPhone (Safari autoplay,
@@ -224,19 +236,22 @@ Order of work for the 2026-11-13 presentation:
 
 ## Code quality
 
-- [ ] **Rewrite, don't port.** The React code isn't carried over as-is. Lessons from it for
+- [x] **Rewrite, don't port.** The React code isn't carried over as-is. Lessons from it for
   the Svelte version: no 800-line route files (`reader.tsx` 814, `readerStore.ts` 849,
   `useBufferedPlayback.ts` 788); routes and components stay thin, logic lives in plain TS
   modules that are tested without the UI; Svelte 5 runes for state instead of
   Zustand + XState side by side (keep an explicit state machine for playback only if it
   pays for itself).
-- [ ] **One way to do each thing.** Today there are duplicates: live, buffered and batch
+  *Done:* Done; the React app is gone from this branch (still on `main`).
+- [x] **One way to do each thing.** Today there are duplicates: live, buffered and batch
   generation paths; JSON export *and* zip export; server sessions *and* IndexedDB (with a
   migration banner); `ServerConfigModal` *and* `SessionStorageConfig`. The new app has one
   of each (see Feature audit).
-- [ ] **Logic outside components.** Text processing, AO3/EPUB/TXT parsing, the generation
+  *Done:* One queue, one storage backend (server SQLite + device cache for offline), one export path still to decide (see Feature audit).
+- [x] **Logic outside components.** Text processing, AO3/EPUB/TXT parsing, the generation
   queue, the AllTalk client and the library schema live in `$lib` / `$lib/server` modules,
   tested directly; components only render and dispatch.
+  *Done:* Text, import, positions, player and offline logic are plain TS modules; components render and dispatch.
 - [x] **Clean dependency list.** Start from zero; today's list carries unused packages
   (`cheerio`, `lowdb`, `redaxios`, `@tanstack/react-query`, `body-parser`) and TanStack
   starter remnants. Every dependency in the new app is justified.
@@ -249,9 +264,11 @@ Order of work for the 2026-11-13 presentation:
   values or components), testing expectations. `CLAUDE.md` is currently gitignored; decide
   whether to commit it so every session gets the same rules. Update the rest of `docs/`
   (architecture, API reference) at the same time and delete what no longer applies.
-- [ ] **Tooling.** ESLint + Prettier (or Biome), strict TypeScript, pin Node and pnpm in
+  *(in progress)* README rewritten (setup, Tailscale, config, running as a service, security). CLAUDE.md rewritten and committed; refresh after the design phase.
+- [x] **Tooling.** ESLint + Prettier (or Biome), strict TypeScript, pin Node and pnpm in
   `mise.toml` (pnpm is unpinned, so the `pnpm` shim fails), `pnpm approve-builds` for
   esbuild, commit conventions, one up-to-date architecture doc.
+  *Done:* Prettier, ESLint (svelte plugin, typed routes), stylelint, strict TS, Node/pnpm/gitleaks pinned in `mise.toml`.
 - [x] **Config in one place.** All settings validated at startup (`src/config/`), no
   hard-coded hosts; the old `localhost:7851` / LAN IP defaults live only in `.env`.
   *Done:* `src/env.ts` validates everything at startup.
@@ -266,18 +283,20 @@ The app is reachable from other devices by design, so treat the network as untru
   (e.g. zod/valibot) and has size limits; uploads are streamed with a cap; rate limits on
   write and AllTalk endpoints; SQLite transactions instead of rewriting a JSON file.
   *Done:* See Security checklist; API tests cover cross-site, validation and size limits.
-- [ ] **Access control for LAN/Tailscale.** At minimum an optional passcode/token; recommend
+- [x] **Access control for LAN/Tailscale.** At minimum an optional passcode/token; recommend
   serving over Tailscale (`tailscale serve` gives HTTPS and limits access to the tailnet)
   and document it. Bind to localhost when only Tailscale serve is used.
-  *(in progress)* Passcode, signed cookies, rate limit done; Tailscale docs pending.
-- [ ] **HTTPS story.** Plain http over LAN isn't a secure context: pitch shift (AudioWorklet)
+  *Done:* Passcode, signed cookies, rate limit; README covers Tailscale.
+- [x] **HTTPS story.** Plain http over LAN isn't a secure context: pitch shift (AudioWorklet)
   is disabled, and PWA install, service workers and some media APIs won't work. Make
   `tailscale serve` (or a local cert via mkcert/Caddy) the documented default.
+  *Done:* README recommends `tailscale serve`; offline and lock-screen features explain themselves when on plain http.
 - [x] **Untrusted input.** EPUB/HTML/AO3 content sanitized (DOMPurify or text-only
   rendering), size and entry limits on zip/EPUB import (zip bombs), session import
   validated, Content-Security-Policy header.
   *Done:* Book HTML reduced to text, covers sniffed and sandboxed, zip limits counted while inflating.
-- [ ] **Dependencies.** `pnpm audit` clean and part of the check gate; Dependabot/Renovate.
+- [x] **Dependencies.** `pnpm audit` clean and part of the check gate; Dependabot/Renovate.
+  *Done:* `pnpm audit --prod` and gitleaks in the gate. Dev-only advisories (eslint minimatch, vite-plugin deepmerge, no fix yet) reported by `mise run audit`. Renovate/Dependabot still to add.
 - [ ] **Secrets and data.** Nothing sensitive in the repo or bundle; `data/` stays gitignored;
   no IPs or hostnames committed.
 - [ ] **Security checklist, applied to every change.** The items from the wider industry
@@ -310,14 +329,16 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
 - [ ] **Budgets.** Initial JS for the reader ≤ 100 KB gzipped; LCP < 1.5 s and INP < 100 ms on
   a mid-range phone over LAN; no layout shift while audio advances; 60 fps scrolling with a
   1,000-paragraph chapter. Bundle size checked in CI.
-- [ ] **Rendering.** Long chapters render with `content-visibility: auto` (and
+- [x] **Rendering.** Long chapters render with `content-visibility: auto` (and
   `contain-intrinsic-size`) instead of a JS virtualizer; highlight changes touch two
   elements, not the list; no layout reads in scroll handlers.
+  *Done:* `content-visibility: auto` with intrinsic size on every block; highlight is an attribute flip.
 - [ ] **Network.** Audio cached by content hash (same text + voice + settings → same file)
   so nothing is generated twice; `Cache-Control`/`ETag` on audio and immutable hashed
   assets; compression (brotli/gzip) for text; HTTP keep-alive to AllTalk; prefetch only a
   few paragraphs ahead (backpressure; no retry storms: retries with jittered backoff).
   *(in progress)* Content-hash audio cache, immutable caching, ranges and ETags done; compression pending.
+  *(in progress)* Compression of text responses: adapter-node does not compress; JSON is small and audio is already compressed (AAC), so left as is unless measurements say otherwise.
 - [ ] **Server.** Prepared statements, indexes for every lookup, no N+1 queries when
   listing a library, streaming uploads and audio (never whole files in memory), graceful
   shutdown.
@@ -331,24 +352,34 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
 
 Verify each works on phone and desktop; fix, or trim if it isn't worth keeping.
 
-- [ ] **Live playback** (generate on demand, auto-advance). Keep.
-- [ ] **Buffered playback** and **batch pre-generation.** Merge into one "prefetch ahead / download
+- [x] **Live playback** (generate on demand, auto-advance). Keep.
+  *Done:* Kept; reworked on the new player.
+- [x] **Buffered playback** and **batch pre-generation.** Merge into one "prefetch ahead / download
   chapter" behaviour in the new pipeline.
-- [ ] **Sessions** (save/resume). Keep, renamed as the library; one storage backend.
-- [ ] **Export/import** (JSON with base64 audio, zip). Keep zip only (smaller; base64 JSON
+  *Done:* Merged: prefetch ahead + save chapter for offline.
+- [x] **Sessions** (save/resume). Keep, renamed as the library; one storage backend.
+  *Done:* Now the library (server) with per-book progress.
+- [x] **Export/import** (JSON with base64 audio, zip). Keep zip only (smaller; base64 JSON
   inflates audio by a third and hits the 50 MB limit); read old JSON exports once for
   migration.
-- [ ] **Offline sessions.** Keep; verify playback without AllTalk after the storage change.
-- [ ] **Audio cache status / clear cache.** Fold into Settings → Storage.
-- [ ] **Settings monitor / server status.** Replace with a small connection indicator and a
+  *Trimmed:* the library lives on the server and devices save chapters for offline use, so exporting sessions has no job left. Backups are a copy of `DATA_DIR` (README).
+- [x] **Offline sessions.** Keep; verify playback without AllTalk after the storage change.
+  *Done:* Replaced by saved chapters on the device; tested end to end with the network cut.
+- [x] **Audio cache status / clear cache.** Fold into Settings → Storage.
+  *Done:* Settings → Offline listening (usage, remove copies); server cache is bounded by `AUDIO_CACHE_MAX_MB`.
+- [x] **Settings monitor / server status.** Replace with a small connection indicator and a
   clear error state.
-- [ ] **Pitch shift.** Keep only if HTTPS becomes the default; otherwise hide over http instead
+  *Done:* Settings shows AllTalk connection and model; the player explains when AllTalk is unreachable.
+- [x] **Pitch shift.** Keep only if HTTPS becomes the default; otherwise hide over http instead
   of showing a disabled control.
-- [ ] **RVC voices and advanced TTS settings.** Keep behind "Advanced"; show only when
+  *Done:* Dropped: playback speed keeps pitch natively (`preservesPitch`), and AllTalk pitch isn't supported by XTTS.
+- [x] **RVC voices and advanced TTS settings.** Keep behind "Advanced"; show only when
   `currentsettings` says the engine supports them.
+  *Done:* Behind Advanced, shown only when the engine supports them.
 - [x] **AO3 parser.** Keep (core use case); add tests.
   *Done:* Kept and tested; pasted AO3 pages become books.
-- [ ] **Safari/iOS audio handling** (`SafariAdapter`). Keep; cover with the device checklist.
+- [x] **Safari/iOS audio handling** (`SafariAdapter`). Keep; cover with the device checklist.
+  *Done:* One audio element unlocked on first tap; byte-range audio for Safari. Device checklist still to run on a real iPhone.
 
 ## Bugs
 
@@ -368,3 +399,7 @@ One line per work session: date, what was done, what's next.
   AllTalk client, speech cache and queue; JSON API with CSP, cross-site checks, passcode;
   74 unit + 13 API e2e tests. Decided: no ORM (node:sqlite direct), server-side import.
   Next: reader client (player, prefetch, Media Session), interim UI on tokens.
+- 2026-10-31: Reader client (player, prefetch, Media Session, mini player), library, settings,
+  unlock; offline chapters via service worker; AAC compression; PWA manifest; README; stylelint
+  token enforcement; gate in CI and pre-push. 80 unit + 31 e2e tests. Next: design phase
+  (artifacts for comparison), then sentence-level highlight, sleep timer, desktop layout.

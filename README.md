@@ -1,268 +1,150 @@
-# AllTalk Reader
+# Readhouse
 
-A web-based audiobook application that converts text into high-quality speech using the AllTalk TTS API. Built with React 19, featuring multiple playback modes, session management, and offline export capabilities.
+**Your books, read aloud.** Readhouse turns EPUBs, text files and AO3 chapters into a quiet
+reading room that reads to you, in voices you choose, with [AllTalk](https://github.com/erew123/alltalk_tts/tree/alltalkbeta)
+doing the speaking. It runs on your computer and you listen on your phone.
 
-![reader thumbnail](public/thumbnails/reader.png)
+A Motherhouse Inc app, alongside Ditherhouse.
 
-## Overview
+- **Bring any book.** EPUB (including AO3 downloads), plain text (Project Gutenberg files are
+  cleaned up automatically), or paste a chapter straight from an AO3 page.
+- **Chapters, not walls of text.** Readhouse finds the chapters and gives you a table of
+  contents; it remembers where you stopped in every book.
+- **Listen and read along.** The passage being read is highlighted and followed on screen. Tap
+  any paragraph to start from there. Speed control, lock-screen controls.
+- **Narrator mode.** A second voice for everything outside quotes, so dialogue stands apart.
+- **Offline chapters.** Save chapters to your phone and keep listening without a connection.
+- **Private by design.** Everything stays on your machine. Optional passcode for other devices.
 
-AllTalk Reader transforms any text into an audiobook experience with professional text-to-speech. Paste your text, choose a voice, and enjoy seamless auto-progression through paragraphs with intelligent playback controls. The application features a modern architecture with state machine-driven playback, centralized audio engine, and comprehensive session management.
+## What you need
 
-## Key Features
+- A computer that runs [AllTalk v2](https://github.com/erew123/alltalk_tts/tree/alltalkbeta)
+  (the `alltalkbeta` branch). XTTS v2 is the recommended engine.
+- [mise](https://mise.jdx.dev) (installs the right Node.js and pnpm for you).
+- Optional: [ffmpeg](https://ffmpeg.org) on the same computer. Readhouse then compresses audio to
+  AAC, about eight times smaller than AllTalk's WAV files, which helps phones on mobile data and
+  makes offline chapters small.
 
-### Playback Modes
-
-- **Live Generation**: On-demand audio generation with auto-progression
-- **Buffered Playback**: Generate audio ahead while playing for seamless continuous playback
-- **Pre-Generation**: Batch generate all audio upfront for instant playback
-- **Offline Mode**: Export sessions with embedded audio for playback without server connection
-
-### Core Features
-
-- **Dark Mode Interface**: Comfortable viewing for extended reading sessions
-- **Multiple Voices**: Choose from various high-quality character voices
-- **Customizable Settings**: Adjust playback speed, pitch, and language in real-time
-- **Progress Tracking**: Visual indicators for current position and buffer status
-- **Paragraph Navigation**: Click any paragraph to jump to that position
-- **Smart Text Splitting**: Intelligently divides long text at natural boundaries (respects sentences, max 4096 chars)
-- **AO3 Auto-Parsing**: Automatically detects and extracts chapter content from Archive of Our Own pages
-- **Session Management**: Save, load, and delete audio sessions with persistent storage
-- **Safari Compatible**: Optimized audio playback for Safari/iOS devices
-
-### Advanced Features
-
-- **State Machine Playback**: XState-powered state transitions eliminate race conditions
-- **Redux DevTools Integration**: Inspect state, time-travel debugging, and action history
-- **Real-Time Settings**: Playback speed and pitch changes apply immediately to playing audio
-- **Buffer-Ahead Generation**: Configurable buffer sizes for smooth playback
-- **Session Export/Import**: Download sessions as self-contained JSON files with base64-encoded audio
-- **Dual Storage System**: Browser sessionStorage + Express server for optimal persistence
-
-## Tech Stack
-
-- **Frontend**: React 19, TanStack Router, Tailwind CSS
-- **State Management**: Zustand with Redux DevTools integration
-- **Playback Control**: XState state machine
-- **Audio Engine**: Centralized AudioEngine with Safari compatibility layer
-- **Backend**: Express.js session storage server
-- **Build Tool**: Vite
-- **External Dependency**: AllTalk TTS Server
-
-## Requirements
-
-- Node.js 18+ and pnpm
-- AllTalk TTS server running (default: `http://localhost:7851`)
-- Write access to `data/` directory for session storage
-
-## Quick Start
-
-1. **Clone and Install**
-   ```bash
-   git clone <repository-url>
-   cd alltalk_reader
-   pnpm install
-   ```
-
-2. **Configure AllTalk Connection**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your AllTalk server details
-   ```
-
-3. **Start the Application**
-   ```bash
-   pnpm start:all  # Starts both Vite (port 3000) and Express (port 3001)
-   ```
-
-4. **Access the App**
-   - Open http://localhost:3000 in your browser
-
-### Development Mode
+## Install and run
 
 ```bash
-# Full functionality (recommended)
-pnpm start:all
-
-# Vite only (limited - no session storage)
-pnpm dev
-
-# Production build
-pnpm build
+git clone <this repo> readhouse && cd readhouse
+mise install            # Node.js and pnpm
+mise run setup          # dependencies, test browsers, pre-push hook
+cp .env.example .env    # then point ALLTALK_URL at AllTalk
+mise run build
+mise run start          # http://localhost:3000
 ```
 
-## Usage Guide
+Start AllTalk first. Readhouse talks to AllTalk from the computer itself, so AllTalk can stay on
+`127.0.0.1` and never needs to be reachable from your phone.
 
-### Basic Workflow
+## Listening on your phone
 
-1. **Input Text**: Paste your text into the input field
-2. **Process Text**: Click "Process Text" to split into paragraphs
-3. **Select Voice**: Choose from available voices in settings
-4. **Play**: Click play button or any paragraph to start playback
-5. **Adjust Settings**: Change speed, pitch, or language (applies in real-time)
+### Recommended: Tailscale (HTTPS, works anywhere)
 
-### Playback Modes
+With [Tailscale](https://tailscale.com) on the computer and the phone:
 
-**Live Mode (Default)**
-- Click play → generates audio on-demand → plays immediately
-- Auto-progresses to next paragraph when current finishes
+```bash
+# Only accept connections from this computer; Tailscale brings the phone in.
+HOST=127.0.0.1 mise run start
+tailscale serve --bg 3000
+```
 
-**Buffered Mode**
-- Click the lightning bolt icon to enable buffer playback
-- Generates audio ahead while playing for seamless transitions
-- View buffer status in the indicator
+Open the `https://<computer>.<tailnet>.ts.net` address on your phone, then **Add to Home
+Screen**. HTTPS unlocks everything: offline chapters, lock-screen controls and the installed app.
+Only devices on your tailnet can reach it.
 
-**Pre-Generation Mode**
-- Click "Pre-Generate All Audio" to batch generate all paragraphs
-- Auto-saves session to server for persistence
-- Enables instant playback for any paragraph
+If your proxy sends `X-Forwarded-Proto`, also set `PROTOCOL_HEADER=x-forwarded-proto` so
+Readhouse marks its cookies as HTTPS-only.
 
-**Offline Mode**
-- Pre-generate audio first
-- Click "Export/Import" → "Export Session"
-- Download JSON file with embedded audio
-- Import later on any device (no server needed)
+### On your home network
 
-### Session Management
+Run it as above without `HOST=127.0.0.1` and open `http://<computer-ip>:3000` on your phone.
+Reading and listening work; browsers only allow offline chapters and some lock-screen features
+over HTTPS. If other people share your network, set `ACCESS_PASSCODE`.
 
-- **Auto-Save**: Sessions are automatically saved when pre-generating audio
-- **Load Session**: Click "Saved Sessions" to browse and load past sessions
-- **Delete Session**: Remove unwanted sessions from the session manager
-- **Storage**: Sessions persist in `data/sessions.json` on the Express server
+## Configuration
 
-### AO3 Integration
+All settings live in `.env` (see `.env.example`) and are checked when Readhouse starts.
 
-When you paste content from Archive of Our Own (AO3):
-- App auto-detects AO3 pages (matches patterns like "Chapter X of Y", kudos, bookmarks)
-- Automatically extracts chapter content, removing navigation and UI clutter
-- Shows green notification with detected chapter title
-- Configurable detection patterns in `src/services/textProcessing/ao3Config.ts`
+| Variable             | Default                 | What it does                                                 |
+| -------------------- | ----------------------- | ------------------------------------------------------------ |
+| `ALLTALK_URL`        | `http://127.0.0.1:7851` | Where AllTalk is, seen from this computer.                   |
+| `DATA_DIR`           | `data`                  | Library database and generated audio.                        |
+| `ACCESS_PASSCODE`    | none                    | Ask for a passcode on other devices (6+ characters).         |
+| `AUDIO_FORMAT`       | `auto`                  | `auto` compresses to AAC if ffmpeg is installed.             |
+| `AUDIO_CACHE_MAX_MB` | `2048`                  | Disk space for audio before the least recently played goes. |
+| `SEGMENT_MAX_CHARS`  | `500`                   | Longest text per AllTalk request. Shorter starts sooner.     |
+| `UPLOAD_MAX_MB`      | `64`                    | Largest book file you can add.                               |
+| `HOST` / `PORT`      | `0.0.0.0` / `3000`      | Where Readhouse listens.                                     |
 
-### Server Configuration
+**AllTalk tips.** In AllTalk's settings, consider turning on deletion of old output files:
+Readhouse keeps its own copy of everything it generates.
 
-- Default: `http://localhost:7851`
-- Click edit button in Server Status section to change host/port
-- Settings stored in localStorage and override environment variables
-- Connection status indicator shows real-time health
+## Keeping it running
 
-## Advanced Features
+macOS (`~/Library/LaunchAgents/inc.motherhouse.readhouse.plist`):
 
-### Debugging with Redux DevTools
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key><string>inc.motherhouse.readhouse</string>
+	<key>WorkingDirectory</key><string>/path/to/readhouse</string>
+	<key>ProgramArguments</key>
+	<array><string>/opt/homebrew/bin/mise</string><string>run</string><string>start</string></array>
+	<key>RunAtLoad</key><true/>
+	<key>KeepAlive</key><true/>
+</dict>
+</plist>
+```
 
-1. Install Redux DevTools browser extension
-2. Open DevTools while app is running
-3. View state tree, action history, and state diffs
-4. Time-travel through state changes
+Then `launchctl load ~/Library/LaunchAgents/inc.motherhouse.readhouse.plist`.
 
-### Buffer Configuration
+Linux (systemd user service, `~/.config/systemd/user/readhouse.service`):
 
-Customize buffer settings in the Buffer Settings panel:
-- **Target Buffer Size**: Number of paragraphs to generate ahead (default: 3)
-- **Minimum Buffer**: Paragraphs required before playback starts (default: 2)
+```ini
+[Unit]
+Description=Readhouse
 
-### Text Processing
+[Service]
+WorkingDirectory=/path/to/readhouse
+ExecStart=/usr/bin/env mise run start
+Restart=on-failure
 
-- **Smart Splitting**: Prefers sentence boundaries (period > semicolon > comma > space)
-- **Max Chunk Size**: 4096 characters per TTS request
-- **AO3 Parsing**: State machine parser extracts summary, notes, and chapter text
+[Install]
+WantedBy=default.target
+```
 
-## Architecture Highlights
+Then `systemctl --user enable --now readhouse`.
 
-Built following **The Pragmatic Programmer** principles (DRY, Orthogonality, ETC):
+**Backups.** Everything lives in `DATA_DIR`: copy `readhouse.db` (and `audio/` if you want to keep
+generated audio) while Readhouse is stopped.
 
-- **Centralized State**: Zustand store with 9 state slices (single source of truth)
-- **State Machine**: XState machine for playback (idle → loading → ready → playing → paused)
-- **Audio Infrastructure**: AudioEngine with SafariAdapter for cross-browser compatibility
-- **Modular API Services**: Separated concerns (TTS generation, voices, status checking)
-- **Type Safety**: Strict TypeScript with path aliases (`~/` → `src/`)
+## Security
 
-## Tips for Best Results
+Readhouse is meant for you and your devices. It still treats the network as hostile:
 
-- **Text Formatting**: Use properly formatted text with paragraph breaks
-- **Long Texts**: Pre-generate audio to avoid waiting during playback
-- **Offline Use**: Export sessions to play without internet connection
-- **Safari/iOS**: App uses optimized audio handling for Apple devices
-- **Buffer Mode**: Ideal for uninterrupted listening of long content
-- **Speed Changes**: Adjust playback speed in real-time without restarting audio
-
-## Troubleshooting
-
-**Server Connection Issues**
-- Verify AllTalk TTS server is running
-- Check host/port configuration in Server Status
-- Ensure firewall allows connections to AllTalk port
-
-**Audio Playback Problems**
-- Check browser audio permissions
-- Verify selected voice exists on AllTalk server
-- Try Safari-compatible mode if on iOS
-
-**Session Storage Issues**
-- Ensure Express server (port 3001) is running with `pnpm start:all`
-- Verify `data/` directory exists and is writable
-- Check `data/sessions.json` for valid JSON
-
-**Buffered Playback**
-- Reduce buffer size if experiencing memory issues
-- Increase minimum buffer if playback starts too early
-
-**Export/Import**
-- Pre-generate audio before exporting
-- Ensure browser allows file downloads
-- Import validation requires matching paragraph and audio counts
+- Same-origin only: cross-site requests are refused, and there is no CORS.
+- A strict Content Security Policy; book files are reduced to plain text and never rendered as
+  HTML; covers are checked by their bytes and served sandboxed.
+- Every request is validated against a schema and size-limited; uploads are checked while
+  they stream; EPUB archives are unpacked with hard limits (no zip bombs).
+- With `ACCESS_PASSCODE`, devices get a signed, HttpOnly, SameSite=Strict cookie for 90 days.
+  Wrong guesses are rate-limited. Changing the passcode signs every device out.
+- AllTalk is only ever called by the server, at the address you configured.
 
 ## Development
 
-### Project Structure
-
-```
-src/
-├── state/              # Zustand store + XState machine
-├── core/               # AudioEngine + SafariAdapter
-├── hooks/              # React hooks (thin wrappers around state)
-├── services/           # API services, text processing, session management
-├── components/         # UI components
-├── routes/             # TanStack Router routes
-└── config/             # Environment configuration
-```
-
-### Documentation
-
-For developers and AI agents, comprehensive documentation is available in `/docs`:
-- `app-context.md` - Application overview and context
-- `architecture.md` - Technical architecture and structure
-- `critical-paths.md` - Core algorithms and patterns
-- `playback-modes.md` - Detailed playback mode flows
-- `development.md` - Development workflow and debugging
-- `CLAUDE.md` - AI assistant guidelines
-
-### Commands
-
 ```bash
-pnpm start:all    # Start both servers (development)
-pnpm dev          # Vite only (limited functionality)
-pnpm build        # Production build with TypeScript check
+mise run fake-alltalk   # a stand-in AllTalk on :7851, no GPU needed
+mise run dev            # dev server with hot reload
+mise run check          # the full gate: types, lint, unit, audit, secrets, end-to-end
 ```
 
-## Environment Variables
+The plan, decisions and progress live in [`docs/backlog.md`](docs/backlog.md). Agent notes are
+in [`CLAUDE.md`](CLAUDE.md). The AllTalk API reference is [`docs/alltalk-api.md`](docs/alltalk-api.md).
 
-```bash
-VITE_API_PROTOCOL=http://       # http:// or https://
-VITE_API_HOST=localhost         # AllTalk server host
-VITE_API_PORT=7851              # AllTalk server port
-VITE_CONNECTION_TIMEOUT=5       # Timeout in seconds
-VITE_MAX_CHARACTERS=4096        # Max chars per TTS request
-```
-
-## License
-
-Created for personal use. Feel free to adapt for your own needs.
-
-## Acknowledgments
-
-- Built with [AllTalk TTS](https://github.com/erew123/alltalk_tts)
-- Architecture inspired by *The Pragmatic Programmer* (Hunt & Thomas)
-- State machine implementation using [XState](https://xstate.js.org/)
-
----
-
-*Last Updated: 2025-02-09*
+Built with SvelteKit, Svelte 5, TypeScript and SQLite (Node's built-in driver).

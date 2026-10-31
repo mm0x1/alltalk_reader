@@ -69,12 +69,15 @@ a {
 	position: absolute;
 	width: 1px;
 	height: 1px;
+	/* stylelint-disable-next-line scale-unlimited/declaration-strict-value -- standard sr-only rule */
 	margin: -1px;
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
 }
 
+/* Reduced motion must override every component, so this is the one place !important is right. */
+/* stylelint-disable declaration-no-important, scale-unlimited/declaration-strict-value */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
@@ -84,3 +87,4 @@ a {
 		scroll-behavior: auto !important;
 	}
 }
+/* stylelint-enable declaration-no-important, scale-unlimited/declaration-strict-value */

@@ -95,7 +95,7 @@
 		font-family: var(--font-reading);
 		font-size: var(--text-xl);
 		font-weight: var(--weight-bold);
-		letter-spacing: 0.01em;
+		letter-spacing: var(--tracking-display);
 	}
 
 	.library {
@@ -124,7 +124,7 @@
 
 	@media (min-width: 48rem) {
 		.books {
-			grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+			grid-template-columns: repeat(auto-fill, minmax(var(--shelf-column-min), 1fr));
 			gap: var(--space-3);
 		}
 	}

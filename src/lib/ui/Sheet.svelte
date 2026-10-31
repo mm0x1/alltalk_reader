@@ -84,7 +84,7 @@
 
 	@media (min-width: 48rem) {
 		dialog {
-			width: min(32rem, 100% - var(--space-6));
+			width: min(var(--sheet-width), 100% - var(--space-6));
 			margin: auto;
 			border-radius: var(--radius-l);
 		}

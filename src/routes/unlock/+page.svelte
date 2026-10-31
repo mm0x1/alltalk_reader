@@ -56,7 +56,7 @@
 	.unlock {
 		display: grid;
 		gap: var(--space-5);
-		max-width: 20rem;
+		max-width: var(--form-narrow);
 		margin: 0 auto;
 		padding: calc(var(--space-8) + var(--safe-top)) var(--space-4);
 		text-align: center;

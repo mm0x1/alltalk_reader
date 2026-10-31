@@ -38,6 +38,7 @@
 	--weight-regular: 400;
 	--weight-medium: 500;
 	--weight-bold: 650;
+	--tracking-display: 0.01em;
 	--measure: 36rem;
 
 	/* Space, on a 4px grid. */
@@ -66,6 +67,10 @@
 
 	/* Layout. */
 	--tap-min: 2.75rem;
+	--control-mark: 1.25rem;
+	--form-narrow: 20rem;
+	--sheet-width: 32rem;
+	--shelf-column-min: 22rem;
 	--cover-width: 4.5rem;
 	--player-height: 4.5rem;
 	--content-max: 72rem;

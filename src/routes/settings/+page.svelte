@@ -388,8 +388,8 @@
 
 	.check input,
 	.choice input {
-		width: 1.25rem;
-		height: 1.25rem;
+		width: var(--control-mark);
+		height: var(--control-mark);
 		margin-top: var(--space-1);
 		accent-color: var(--color-accent);
 	}
