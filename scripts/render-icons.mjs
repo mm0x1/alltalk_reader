@@ -13,7 +13,7 @@ for (const [name, size, pad] of [
 	const page = await browser.newPage({ viewport: { width: size, height: size } });
 	const inner = Math.round(size * (1 - pad * 2));
 	const body = pad
-		? `<div style="width:${size}px;height:${size}px;background:#1f1c18;display:grid;place-items:center">${svg.replace('<svg ', `<svg width="${inner}" height="${inner}" `).replace('rx="112"', 'rx="0"')}</div>`
+		? `<div style="width:${size}px;height:${size}px;background:#22355a;display:grid;place-items:center">${svg.replace('<svg ', `<svg width="${inner}" height="${inner}" `).replace('rx="112"', 'rx="0"')}</div>`
 		: svg.replace('<svg ', `<svg width="${size}" height="${size}" `);
 	await page.setContent(
 		`<html><body style="margin:0;background:transparent">${body}</body></html>`

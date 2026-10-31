@@ -7,6 +7,7 @@
 	import Button from '#lib/ui/Button.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import PlayerBar from './PlayerBar.svelte';
+	import { toRoman } from '#lib/text/roman.js';
 	import { splitIntoSegments } from '#lib/text/segments.js';
 	import type { Position } from './position.js';
 	import { session } from './session.svelte.js';
@@ -33,16 +34,17 @@
 
 	/**
 	 * The passage being read, split the way the server splits it, so the sentence being spoken
-	 * can be marked. Only for single-line paragraphs: splitting joins lines, which would lose a
-	 * poem's line breaks.
+	 * can be marked. Not for verse: splitting joins lines, which would lose a poem's line breaks.
 	 */
 	const currentSegments = $derived.by(() => {
 		if (!showingCurrent) return null;
 		const block = chapter.blocks[position.block];
 		if (!block || block.type !== 'text' || block.text.includes('\n')) return null;
-		const segments = splitIntoSegments(block.text, segmentMaxChars);
-		return segments.length > 1 ? segments : null;
+		return splitIntoSegments(block.text, segmentMaxChars);
 	});
+
+	/** The first paragraph of the chapter opens with a drop cap. */
+	const openingBlock = $derived(chapter.blocks.findIndex((block) => block.type === 'text'));
 	let contentsOpen = $state(false);
 	let follow = $state(true);
 	let canSave = $state(false);
@@ -155,7 +157,14 @@
 
 <!-- Keyboard and screen-reader users start reading with the player controls and Contents. -->
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<article class="page" lang={book.language ?? undefined} onclick={readFrom}>
+<article
+	class={['page', player?.active && 'playing']}
+	lang={book.language ?? undefined}
+	onclick={readFrom}
+>
+	<div class="band" aria-hidden="true">
+		<span>{toRoman(chapter.position + 1)}.</span>
+	</div>
 	{#each chapter.blocks as block, index (index)}
 		{#if block.type === 'break'}
 			<hr />
@@ -169,7 +178,12 @@
 			</h2>
 		{:else}
 			{@const current = showingCurrent && index === position.block}
-			<p id={`block-${index}`} data-block={index} aria-current={current ? 'true' : undefined}>
+			<p
+				id={`block-${index}`}
+				class={{ opening: index === openingBlock }}
+				data-block={index}
+				aria-current={current ? 'true' : undefined}
+			>
 				{#if current && currentSegments}
 					{#each currentSegments as segment, i (i)}<span
 							class={['segment', i === position.segment && 'speaking']}
@@ -263,8 +277,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding: calc(var(--space-2) + var(--safe-top)) var(--space-2) var(--space-2);
-		border-bottom: var(--border-thin) solid var(--color-rule);
+		padding: calc(var(--space-5) + var(--safe-top)) var(--space-5) var(--space-2);
 		background: var(--color-paper);
 	}
 
@@ -282,63 +295,112 @@
 	}
 
 	.book-title {
-		color: var(--color-ink-muted);
 		font-size: var(--text-xs);
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
 	}
 
 	.chapter-title {
 		font-size: var(--text-m);
-		font-weight: var(--weight-medium);
+		font-weight: var(--weight-regular);
+		font-style: italic;
 	}
 
 	.page {
 		max-width: var(--measure);
 		margin: 0 auto;
-		padding: var(--space-6) var(--space-5) calc(var(--player-height) + var(--space-8));
+		padding: var(--space-2) var(--space-6) calc(var(--player-height) + var(--space-8));
 		font-family: var(--font-reading);
 		font-size: var(--text-reading);
 		line-height: var(--leading-reading);
 		hyphens: auto;
+		text-wrap: pretty;
+	}
+
+	/* Justified only where the measure is long enough; on a phone it opens rivers of space. */
+	@media (min-width: 40rem) {
+		.page {
+			text-align: justify;
+		}
+	}
+
+	/* The chapter's engraved band: a dithered plate with its numeral. */
+	.band {
+		display: grid;
+		place-items: center;
+		height: var(--band-height);
+		margin: 0 calc(var(--space-2) * -1) var(--space-5);
+		background-image: var(--dither-band);
+		background-size: auto 100%;
+		image-rendering: pixelated;
+		font-size: var(--text-xl);
+		font-weight: var(--weight-medium);
+		letter-spacing: var(--tracking-display);
+	}
+
+	/* A solid cartouche keeps the numeral legible over the screen. */
+	.band span {
+		padding: 0 var(--space-3);
+		border: var(--border-double) double var(--color-paper);
+		background: var(--color-ink);
+		color: var(--color-paper);
+		line-height: var(--leading-ui);
 	}
 
 	.page p,
 	.page h2 {
-		margin: 0 calc(var(--space-2) * -1) var(--space-3);
-		padding: var(--space-1) var(--space-2);
-		border-radius: var(--radius-s);
-		white-space: pre-line;
+		margin: 0 0 var(--space-3);
 		cursor: pointer;
 		content-visibility: auto;
 		contain-intrinsic-block-size: auto 6lh;
-		transition: background-color var(--duration-medium) var(--ease-out);
+	}
+
+	.page p {
+		white-space: pre-line;
 	}
 
 	.page h2 {
 		margin-top: var(--space-5);
 		font-size: var(--text-xl);
-		font-weight: var(--weight-bold);
+		font-weight: var(--weight-medium);
+		font-style: italic;
 		line-height: var(--leading-tight);
+		text-align: center;
 		hyphens: manual;
 	}
 
-	.page [aria-current='true'] {
-		background: var(--color-highlight);
+	.page .opening::first-letter {
+		float: left;
+		padding: var(--space-1) var(--space-2) 0 0;
+		font-size: var(--text-initial);
+		font-weight: var(--weight-medium);
+		line-height: var(--leading-initial);
+		/* Floats out of the sentence being spoken, so it keeps its own ink. */
+		background: none;
+		color: var(--color-ink);
 	}
 
-	/* In a long paragraph, the sentence being spoken stands out from the rest of it. */
-	.page [aria-current='true']:has(.speaking) {
-		background: none;
+	/* Being read: a heading or verse is tinted; prose marks the sentence being spoken in reverse. */
+	.page [aria-current='true']:not(:has(.segment)) {
+		background: var(--color-highlight-soft);
 	}
 
 	.segment {
-		border-radius: var(--radius-s);
-		transition: background-color var(--duration-medium) var(--ease-out);
 		box-decoration-break: clone;
 		-webkit-box-decoration-break: clone;
+		transition:
+			background-color var(--duration-medium) var(--ease-out),
+			color var(--duration-medium) var(--ease-out);
 	}
 
 	.speaking {
+		background: var(--color-highlight-soft);
+	}
+
+	/* Reverse ink only while the voice is reading; paused, a tint keeps the place. */
+	.playing .speaking {
 		background: var(--color-highlight);
+		color: var(--color-highlight-ink);
 	}
 
 	.page hr {
@@ -348,7 +410,7 @@
 	}
 
 	.page hr::after {
-		content: '\2042';
+		content: '\2766';
 		color: var(--color-ink-faint);
 	}
 
@@ -408,6 +470,11 @@
 
 	.contents .entry[aria-current='true'] {
 		background: var(--color-highlight);
+		color: var(--color-highlight-ink);
+	}
+
+	.contents .entry[aria-current='true'] .entry-words {
+		color: inherit;
 	}
 
 	.entry-words {

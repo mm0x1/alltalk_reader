@@ -5,11 +5,15 @@
 	import { forgetBook } from '#lib/client/offline.js';
 	import AddBook from '#lib/library/AddBook.svelte';
 	import BookRow from '#lib/library/BookRow.svelte';
+	import ContinuePlate from '#lib/library/ContinuePlate.svelte';
 	import { session } from '#lib/reader/session.svelte.js';
 	import Button from '#lib/ui/Button.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	/** The book read most recently (the list comes most recent first). */
+	const continueWith = $derived(data.books.find((book) => book.openedAt !== null) ?? null);
 
 	let adding = $state(false);
 	let dragging = $state(false);
@@ -54,14 +58,18 @@
 </header>
 
 <main class="library">
+	{#if continueWith}
+		<ContinuePlate book={continueWith} />
+	{/if}
+
 	<div class="heading">
-		<h2>Library</h2>
-		<Button variant="primary" icon="add" onclick={() => (adding = true)}>Add a book</Button>
+		<h2>The shelf</h2>
+		<Button variant="outline" icon="add" onclick={() => (adding = true)}>Add a book</Button>
 	</div>
 
 	{#if data.books.length === 0}
 		<div class="empty">
-			<p class="empty-title">Nothing on the shelves yet.</p>
+			<p class="empty-title">Nothing on the shelf yet.</p>
 			<p>
 				Add an EPUB or a text file, or paste a chapter from AO3, and Readhouse will read it to you.
 			</p>
@@ -88,44 +96,45 @@
 		justify-content: space-between;
 		max-width: var(--content-max);
 		margin: 0 auto;
-		padding: calc(var(--space-3) + var(--safe-top)) var(--space-4) var(--space-3);
+		padding: calc(var(--space-5) + var(--safe-top)) var(--space-6) var(--space-3);
 	}
 
 	.wordmark {
-		font-family: var(--font-reading);
 		font-size: var(--text-xl);
-		font-weight: var(--weight-bold);
+		font-weight: var(--weight-medium);
 		letter-spacing: var(--tracking-display);
 	}
 
 	.library {
+		display: grid;
+		gap: var(--space-5);
 		max-width: var(--content-max);
 		margin: 0 auto;
-		padding: 0 var(--space-4) calc(var(--player-height) + var(--space-7));
+		padding: var(--space-2) var(--space-6) calc(var(--player-height) + var(--space-7));
 	}
 
 	.heading {
 		display: flex;
-		align-items: center;
+		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-3);
-		margin: var(--space-4) 0;
 	}
 
 	h2 {
-		font-size: var(--text-2xl);
-		font-family: var(--font-reading);
+		font-size: var(--text-xl);
+		font-weight: var(--weight-medium);
+		font-style: italic;
 	}
 
 	.books {
 		display: grid;
-		gap: var(--space-2);
+		border-bottom: var(--border-thin) solid var(--color-rule);
 	}
 
 	@media (min-width: 48rem) {
 		.books {
 			grid-template-columns: repeat(auto-fill, minmax(var(--shelf-column-min), 1fr));
-			gap: var(--space-3);
+			column-gap: var(--space-6);
 		}
 	}
 
@@ -139,8 +148,8 @@
 	.empty-title {
 		margin-bottom: var(--space-2);
 		color: var(--color-ink);
-		font-family: var(--font-reading);
 		font-size: var(--text-l);
+		font-style: italic;
 	}
 
 	.drop {
@@ -152,6 +161,7 @@
 		background: var(--color-scrim);
 		color: var(--color-paper);
 		font-size: var(--text-xl);
+		font-style: italic;
 		pointer-events: none;
 	}
 </style>

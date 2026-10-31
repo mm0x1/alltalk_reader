@@ -42,12 +42,14 @@
 		min-height: var(--tap-min);
 		padding: 0 var(--space-4);
 		border: var(--border-thin) solid transparent;
-		border-radius: var(--radius-round);
+		border-radius: var(--radius-s);
 		background: transparent;
+		color: inherit;
 		font-family: var(--font-ui);
 		font-size: var(--text-m);
 		font-weight: var(--weight-medium);
-		color: inherit;
+		font-variant-caps: all-small-caps;
+		letter-spacing: var(--tracking-display);
 		text-decoration: none;
 		cursor: pointer;
 		touch-action: manipulation;
@@ -71,6 +73,7 @@
 	}
 
 	.primary {
+		border-color: var(--color-accent);
 		background: var(--color-accent);
 		color: var(--color-accent-ink);
 	}
@@ -85,7 +88,7 @@
 	}
 
 	.danger {
-		border-color: var(--color-rule);
+		border-color: var(--color-danger);
 		color: var(--color-danger);
 	}
 

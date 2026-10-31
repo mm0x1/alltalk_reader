@@ -1,44 +1,54 @@
 /*
  * Readhouse design tokens: the only place raw values live. Components use these variables and
- * nothing else, so a change here reaches the whole app.
+ * nothing else (stylelint enforces it), so a change here reaches the whole app.
  *
- * Interim values: the visual identity is designed later (see docs/backlog.md). Names are meant
- * to last; values are expected to change.
+ * Visual identity: "Engraved". Two inks, like a banknote or a 19th-century plate: ink-blue on
+ * pale paper; reversed for dark (bone on navy); a sepia engraving as the third theme. Every
+ * text colour passes WCAG AA on every paper colour of its theme.
+ *
+ * When a theme's ink or paper changes, regenerate the dithered assets (scripts/dither-assets.sh).
  */
 
 :root {
 	/* Colour: paper and ink. */
-	--color-paper: #f6f1e7;
-	--color-paper-raised: #fbf8f1;
-	--color-paper-sunken: #ece5d6;
-	--color-ink: #1f1c18;
-	--color-ink-muted: #5f574b;
-	--color-ink-faint: #8c8273;
-	--color-rule: #d6ccb8;
-	--color-accent: #7b2d1e;
-	--color-accent-ink: #fbf8f1;
-	--color-highlight: #ecdcae;
+	--color-paper: #e7eef0;
+	--color-paper-raised: #eef3f5;
+	--color-paper-sunken: #dbe5e9;
+	--color-ink: #22355a;
+	--color-ink-muted: #3d5277;
+	--color-ink-faint: #52668a;
+	--color-rule: #22355a;
+	--color-rule-soft: #b9c6d4;
+	--color-accent: #22355a;
+	--color-accent-ink: #e7eef0;
+	--color-highlight: #22355a;
+	--color-highlight-ink: #e7eef0;
+	--color-highlight-soft: #cfdbe3;
 	--color-danger: #9a2a1f;
-	--color-focus: #2c5a96;
-	--color-scrim: rgb(20 17 14 / 0.45);
+	--color-focus: #22355a;
+	--color-scrim: rgb(14 22 38 / 0.5);
+	--dither-band: url('/dither/band-light.png');
 
-	/* Type. Self-hosted reading fonts come with the visual identity; system serifs for now. */
-	--font-reading: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
-	--font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-	--text-xs: 0.75rem;
-	--text-s: 0.875rem;
-	--text-m: 1rem;
-	--text-l: 1.25rem;
-	--text-xl: 1.5rem;
-	--text-2xl: 2rem;
-	--text-reading: 1.1875rem;
-	--leading-tight: 1.2;
-	--leading-ui: 1.4;
-	--leading-reading: 1.65;
+	/* Type: EB Garamond throughout, self-hosted (see +layout.svelte). */
+	--font-reading: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
+	--font-ui: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
+	--text-xs: 0.8125rem;
+	--text-s: 0.9375rem;
+	--text-m: 1.0625rem;
+	--text-l: 1.3125rem;
+	--text-xl: 1.625rem;
+	--text-2xl: 2.125rem;
+	--text-reading: 1.25rem;
+	--text-initial: 4rem;
+	--leading-tight: 1.15;
+	--leading-ui: 1.35;
+	--leading-reading: 1.6;
+	--leading-initial: 0.82;
 	--weight-regular: 400;
 	--weight-medium: 500;
-	--weight-bold: 650;
-	--tracking-display: 0.01em;
+	--weight-bold: 600;
+	--tracking-display: 0.04em;
+	--tracking-label: 0.2em;
 	--measure: 36rem;
 
 	/* Space, on a 4px grid. */
@@ -51,14 +61,24 @@
 	--space-7: 3rem;
 	--space-8: 4rem;
 
-	/* Shape and depth. */
-	--radius-s: 0.375rem;
-	--radius-m: 0.75rem;
-	--radius-l: 1.25rem;
+	/* Shape and depth: engraved plates have hard edges and ruled frames, not shadows. */
+	--radius-s: 0.125rem;
+	--radius-m: 0.25rem;
+	--radius-l: 0.375rem;
 	--radius-round: 999px;
 	--border-thin: 1px;
-	--shadow-raised: 0 1px 2px rgb(31 28 24 / 0.08), 0 4px 16px rgb(31 28 24 / 0.08);
-	--shadow-overlay: 0 8px 40px rgb(31 28 24 / 0.22);
+	--border-double: 3px;
+	--shadow-raised: 0 1px 0 rgb(34 53 90 / 0.12);
+	--shadow-overlay: 0 12px 48px rgb(14 22 38 / 0.28);
+	/* Paper outside the frame and between its two rules. */
+	--shadow-frame-mask:
+		0 0 0 100vmax var(--color-paper),
+		inset 0 0 0 calc(var(--frame-inner) - var(--frame-outer)) var(--color-paper);
+
+	/* The ruled frame around every page. */
+	--frame-outer: 0.5rem;
+	--frame-inner: 0.75rem;
+	--band-height: 4rem;
 
 	/* Motion. */
 	--duration-fast: 120ms;
@@ -72,62 +92,96 @@
 	--sheet-width: 32rem;
 	--shelf-column-min: 22rem;
 	--cover-width: 4.5rem;
-	--player-height: 4.5rem;
+	--plate-cover-width: 5rem;
+	--player-height: 7.5rem;
 	--content-max: 72rem;
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
-	--layer-player: 20;
+	--layer-player: 10;
+	--layer-frame: 20;
 	--layer-overlay: 30;
 
 	color-scheme: light;
 }
 
-/* Dark: the same object, ink and paper reversed. */
+/* Dark: the same plate printed in bone on navy. */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']):not([data-theme='sepia']) {
-		--color-paper: #17150f;
-		--color-paper-raised: #211e17;
-		--color-paper-sunken: #100e0a;
-		--color-ink: #ece4d4;
-		--color-ink-muted: #b5aa97;
-		--color-ink-faint: #857b6b;
-		--color-rule: #3a352b;
-		--color-accent: #e0a88f;
-		--color-accent-ink: #17150f;
-		--color-highlight: #4a3d22;
-		--color-danger: #f08b7c;
-		--color-focus: #8fb6ec;
-		--shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
-		--shadow-overlay: 0 8px 40px rgb(0 0 0 / 0.6);
+		--color-paper: #1b2232;
+		--color-paper-raised: #232b3e;
+		--color-paper-sunken: #151b28;
+		--color-ink: #e6dfcf;
+		--color-ink-muted: #c4bcaa;
+		--color-ink-faint: #9f9786;
+		--color-rule: #e6dfcf;
+		--color-rule-soft: #3c465c;
+		--color-accent: #e6dfcf;
+		--color-accent-ink: #1b2232;
+		--color-highlight: #e6dfcf;
+		--color-highlight-ink: #1b2232;
+		--color-highlight-soft: #2e3850;
+		--color-danger: #f0978a;
+		--color-focus: #e6dfcf;
+		--color-scrim: rgb(5 8 14 / 0.6);
+		--shadow-raised: 0 1px 0 rgb(0 0 0 / 0.3);
+		--shadow-overlay: 0 12px 48px rgb(0 0 0 / 0.55);
+		--dither-band: url('/dither/band-dark.png');
 		color-scheme: dark;
 	}
 }
 
 :root[data-theme='dark'] {
-	--color-paper: #17150f;
-	--color-paper-raised: #211e17;
-	--color-paper-sunken: #100e0a;
-	--color-ink: #ece4d4;
-	--color-ink-muted: #b5aa97;
-	--color-ink-faint: #857b6b;
-	--color-rule: #3a352b;
-	--color-accent: #e0a88f;
-	--color-accent-ink: #17150f;
-	--color-highlight: #4a3d22;
-	--color-danger: #f08b7c;
-	--color-focus: #8fb6ec;
-	--shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
-	--shadow-overlay: 0 8px 40px rgb(0 0 0 / 0.6);
+	--color-paper: #1b2232;
+	--color-paper-raised: #232b3e;
+	--color-paper-sunken: #151b28;
+	--color-ink: #e6dfcf;
+	--color-ink-muted: #c4bcaa;
+	--color-ink-faint: #9f9786;
+	--color-rule: #e6dfcf;
+	--color-rule-soft: #3c465c;
+	--color-accent: #e6dfcf;
+	--color-accent-ink: #1b2232;
+	--color-highlight: #e6dfcf;
+	--color-highlight-ink: #1b2232;
+	--color-highlight-soft: #2e3850;
+	--color-danger: #f0978a;
+	--color-focus: #e6dfcf;
+	--color-scrim: rgb(5 8 14 / 0.6);
+	--shadow-raised: 0 1px 0 rgb(0 0 0 / 0.3);
+	--shadow-overlay: 0 12px 48px rgb(0 0 0 / 0.55);
+	--dither-band: url('/dither/band-dark.png');
 	color-scheme: dark;
 }
 
+/* Sepia: the same plate in brown ink on warm paper. */
 :root[data-theme='sepia'] {
-	--color-paper: #f1e4c8;
-	--color-paper-raised: #f7ecd6;
-	--color-paper-sunken: #e6d5b2;
-	--color-ink: #3b2c1a;
-	--color-ink-muted: #6b5638;
-	--color-ink-faint: #93795a;
-	--color-rule: #d3bf98;
-	--color-highlight: #e3c98c;
+	--color-paper: #efe5d0;
+	--color-paper-raised: #f5ecda;
+	--color-paper-sunken: #e3d6bb;
+	--color-ink: #4a2f1b;
+	--color-ink-muted: #654530;
+	--color-ink-faint: #74543a;
+	--color-rule: #4a2f1b;
+	--color-rule-soft: #d3c09d;
+	--color-accent: #4a2f1b;
+	--color-accent-ink: #efe5d0;
+	--color-highlight: #4a2f1b;
+	--color-highlight-ink: #efe5d0;
+	--color-highlight-soft: #e6d5b4;
+	--color-focus: #4a2f1b;
+	--color-scrim: rgb(40 25 12 / 0.5);
+	--dither-band: url('/dither/band-sepia.png');
+}
+
+/*
+ * Metric-matched fallback so text doesn't jump when EB Garamond arrives.
+ * Approximate overrides for Georgia against EB Garamond's metrics.
+ */
+@font-face {
+	font-family: 'EB Garamond Fallback';
+	src: local('Georgia');
+	size-adjust: 88%;
+	ascent-override: 104%;
+	descent-override: 30%;
+	line-gap-override: 0%;
 }

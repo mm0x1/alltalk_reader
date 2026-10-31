@@ -313,7 +313,7 @@
 		gap: var(--space-2);
 		max-width: var(--measure);
 		margin: 0 auto;
-		padding: calc(var(--space-2) + var(--safe-top)) var(--space-2) var(--space-2);
+		padding: calc(var(--space-5) + var(--safe-top)) var(--space-5) var(--space-2);
 	}
 
 	h1 {
@@ -326,7 +326,7 @@
 		gap: var(--space-6);
 		max-width: var(--measure);
 		margin: 0 auto;
-		padding: var(--space-2) var(--space-4) calc(var(--player-height) + var(--space-7));
+		padding: var(--space-2) var(--space-6) calc(var(--player-height) + var(--space-7));
 	}
 
 	section,

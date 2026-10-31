@@ -45,7 +45,8 @@
 		margin: auto auto 0;
 		padding: 0;
 		border: none;
-		border-radius: var(--radius-l) var(--radius-l) 0 0;
+		border-top: var(--border-double) double var(--color-rule);
+		border-radius: 0;
 		background: var(--color-paper-raised);
 		color: var(--color-ink);
 		box-shadow: var(--shadow-overlay);
@@ -68,12 +69,13 @@
 		justify-content: space-between;
 		gap: var(--space-3);
 		padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
-		border-bottom: var(--border-thin) solid var(--color-rule);
+		border-bottom: var(--border-thin) solid var(--color-rule-soft);
 	}
 
 	h2 {
 		font-size: var(--text-l);
-		font-weight: var(--weight-bold);
+		font-weight: var(--weight-medium);
+		font-style: italic;
 	}
 
 	.body {
@@ -86,7 +88,9 @@
 		dialog {
 			width: min(var(--sheet-width), 100% - var(--space-6));
 			margin: auto;
-			border-radius: var(--radius-l);
+			border: var(--border-thin) solid var(--color-rule);
+			outline: var(--border-double) double var(--color-rule);
+			outline-offset: var(--space-1);
 		}
 	}
 </style>
