@@ -70,7 +70,7 @@
 
 <header class="top">
 	<h1 class="wordmark">Readhouse</h1>
-	<Button href={resolve('/settings')} icon="settings" aria-label="Settings" />
+	<Button href={resolve('/settings')} icon="settings">Settings</Button>
 </header>
 
 <main class="library">
@@ -150,7 +150,8 @@
 		border-bottom: var(--border-thin) solid var(--color-rule);
 	}
 
-	@media (min-width: 48rem) {
+	/* Tablets: two columns of rows. Desktop goes back to one, as an index. */
+	@media (min-width: 48rem) and (max-width: 63.99rem) {
 		.books {
 			grid-template-columns: repeat(auto-fill, minmax(var(--shelf-column-min), 1fr));
 			column-gap: var(--space-6);
@@ -182,5 +183,28 @@
 		font-size: var(--text-xl);
 		font-style: italic;
 		pointer-events: none;
+	}
+
+	/* Desktop: one centred column, set like a printed index (layout C). */
+	@media (min-width: 64rem) {
+		.top {
+			display: grid;
+			grid-template-columns: 1fr auto 1fr;
+			max-width: var(--index-width);
+			padding-top: var(--space-7);
+		}
+
+		.wordmark {
+			grid-column: 2;
+			font-size: var(--text-2xl);
+		}
+
+		.top > :global(:last-child) {
+			justify-self: end;
+		}
+
+		.library {
+			max-width: var(--index-width);
+		}
 	}
 </style>

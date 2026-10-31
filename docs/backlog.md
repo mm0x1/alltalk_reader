@@ -168,9 +168,10 @@ Order of work for the 2026-11-13 presentation:
   https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no and built for the reader: from 64rem a
   ruled sidebar (book, contents with save buttons, back to the shelf) and the player docked
   under the text column; CSS-only switch, so the server-rendered page is right on first load.
-  Still to do: a desktop library (the shelf uses the width already, but no sidebar; variants
-  A Folio shelf, B Title plates, C Printed index published for a pick at
-  https://claude.ai/artifact/LBYFHjcubQh5NempCXNpTc), and `/`
+  The library is layout **C, Printed index** (user's pick from
+  https://claude.ai/artifact/LBYFHjcubQh5NempCXNpTc, without the roman numerals, Settings
+  keeps its label): from 64rem one centred column, the continue plate as a ruled band, each
+  book a title over author with dot leaders to its place. Still to do: `/`
   to search once there is search. A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
@@ -182,6 +183,11 @@ Order of work for the 2026-11-13 presentation:
   developer jargon in the UI ("buffered mode", "session server").
 - [ ] **Accessibility.** WCAG AA contrast in every theme, focus-visible styles, labelled
   controls, screen-reader announcements for playback state, respects system font size.
+  *Type sizes raised (2026-10-31, user asked for accessible font sizes):* EB Garamond has a
+  small x-height, so the floor is now 14 px for spaced capitals (`--text-xs`), 16 px for
+  secondary text (`--text-s`) and 18 px for UI text (`--text-m`); reading text stays 20 px.
+  All in rem, so the system font size scales them. Settings has a visible label, not only an
+  icon.
 
 ## Books: EPUB and TXT
 
@@ -483,5 +489,6 @@ One line per work session: date, what was done, what's next.
   phone library overflowing its frame and the missing space after the author; book details
   now wrap instead of truncating. AllTalk v2 installed and running locally (XTTS v2.0.3, CPU;
   a subagent did the install, notes in `../alltalk_tts/READHOUSE-RUN.md`) and verified live
-  through Readhouse. Desktop library variants published; waiting on a pick. Next: README
-  screenshots and the device checklist meanwhile.
+  through Readhouse. Desktop library built as the printed index (user's pick); type sizes
+  raised for accessibility; every baseline reviewed again. Next: README screenshots, device
+  checklist.

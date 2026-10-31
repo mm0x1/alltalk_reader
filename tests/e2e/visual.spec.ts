@@ -154,6 +154,8 @@ for (const theme of THEMES) {
 			await page.getByRole('button', { name: 'Play' }).click();
 			await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
 			await expect(page.locator('article.page .speaking').first()).toBeVisible();
+			// Pause and the highlight show while the audio is still loading; wait until it plays.
+			await expect(page.getByText('Preparing the next passage')).toBeHidden();
 			await expect(page).toHaveScreenshot(`${theme}-reader-playing.png`);
 			// Paused looks like the reader screen above (the passage is tinted), so no second shot.
 			await page.getByRole('button', { name: 'Pause' }).click();

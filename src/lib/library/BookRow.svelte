@@ -8,7 +8,10 @@
 </script>
 
 <article class="row">
-	<a class="open" href={resolve('/book/[id=uuid]', { id: book.id })}>
+	<a
+		class={['open', book.author && 'has-author']}
+		href={resolve('/book/[id=uuid]', { id: book.id })}
+	>
 		{#if book.hasCover}
 			<img
 				class="mark cover"
@@ -23,9 +26,11 @@
 		<span class="text">
 			<span class="title">{book.title}</span>
 			<span class="detail">
-				{book.author ? `${book.author} \u00b7 ` : ''}{placeInBook(book)}
+				{#if book.author}<span class="author">{book.author}</span>{/if}
+				<span class="place">{placeInBook(book)}</span>
 			</span>
 		</span>
+		<span class="leader" aria-hidden="true"></span>
 	</a>
 	<Button icon="trash" aria-label={`Remove ${book.title}`} onclick={onremove} />
 </article>
@@ -82,8 +87,84 @@
 		line-height: var(--leading-tight);
 	}
 
-	.detail {
+	.author,
+	.place {
 		color: var(--color-ink-muted);
 		font-style: italic;
+	}
+
+	/* "Author · place" on one line; the dot is decoration, so screen readers skip it. */
+	.author::after {
+		content: ' \00b7 ' / '';
+	}
+
+	.leader {
+		display: none;
+	}
+
+	/*
+	 * Desktop, the printed index: title over author on the left, dot leaders running to the
+	 * place in the book on the right. No initials or covers; the column is narrow enough.
+	 */
+	@media (min-width: 64rem) {
+		.open {
+			display: grid;
+			grid-template-columns: fit-content(70%) minmax(var(--space-5), 1fr) auto;
+			align-items: baseline;
+			column-gap: var(--space-2);
+		}
+
+		.mark {
+			display: none;
+		}
+
+		.text,
+		.detail {
+			display: contents;
+		}
+
+		.title {
+			grid-row: 1;
+			grid-column: 1;
+		}
+
+		.author {
+			grid-row: 2;
+			grid-column: 1;
+		}
+
+		.author::after {
+			content: none;
+		}
+
+		.leader,
+		.place {
+			grid-row: 1;
+		}
+
+		.has-author .leader,
+		.has-author .place {
+			grid-row: 2;
+		}
+
+		.leader {
+			display: block;
+			grid-column: 2;
+			align-self: stretch;
+			/* Spaced dots on the baseline, as in Contents (ListRow). */
+			background-image: radial-gradient(
+				circle,
+				var(--color-ink-muted) calc(var(--border-leader) / 2),
+				transparent calc(var(--border-leader) / 2 + 0.5px)
+			);
+			background-position: left bottom 0.45em;
+			background-size: var(--space-2) var(--space-2);
+			background-repeat: space no-repeat;
+		}
+
+		.place {
+			grid-column: 3;
+			white-space: nowrap;
+		}
 	}
 </style>

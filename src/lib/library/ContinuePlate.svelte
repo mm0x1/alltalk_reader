@@ -21,8 +21,8 @@
 			<span class="title">{book.title}</span>
 			{#if book.author}<span class="author">{book.author}</span>{/if}
 			<span class="place">{placeInBook(book)}</span>
-			<span class="listen"><Icon name="play" /> Listen</span>
 		</span>
+		<span class="listen"><Icon name="play" /> Listen</span>
 	</a>
 </section>
 
@@ -33,14 +33,17 @@
 	}
 
 	.open {
-		display: flex;
+		display: grid;
+		grid-template-areas: 'cover text' 'cover listen';
+		grid-template-columns: var(--plate-cover-width) minmax(0, 1fr);
+		align-content: center;
 		align-items: center;
-		gap: var(--space-4);
+		column-gap: var(--space-4);
 		text-decoration: none;
 	}
 
 	.cover {
-		flex: none;
+		grid-area: cover;
 		width: var(--plate-cover-width);
 		aspect-ratio: 2 / 3;
 		object-fit: cover;
@@ -60,6 +63,7 @@
 	}
 
 	.text {
+		grid-area: text;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
@@ -87,10 +91,11 @@
 	}
 
 	.listen {
+		grid-area: listen;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		align-self: flex-start;
+		justify-self: start;
 		min-height: var(--tap-min);
 		margin-top: var(--space-2);
 		padding: 0 var(--space-4);
@@ -98,5 +103,27 @@
 		color: var(--color-accent-ink);
 		font-variant-caps: all-small-caps;
 		letter-spacing: var(--tracking-display);
+	}
+
+	/* Desktop, the printed index: a ruled band across the column, Listen at its end. */
+	@media (min-width: 64rem) {
+		.plate {
+			border-inline: 0;
+			padding-inline: 0;
+		}
+
+		.open {
+			grid-template-areas: 'text listen';
+			grid-template-columns: minmax(0, 1fr) auto;
+		}
+
+		.cover {
+			display: none;
+		}
+
+		.listen {
+			justify-self: end;
+			margin-top: 0;
+		}
 	}
 </style>

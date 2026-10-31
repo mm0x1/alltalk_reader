@@ -32,9 +32,9 @@
 	/* Type: EB Garamond throughout, self-hosted (see +layout.svelte). */
 	--font-reading: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
 	--font-ui: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
-	--text-xs: 0.8125rem;
-	--text-s: 0.9375rem;
-	--text-m: 1.0625rem;
+	--text-xs: 0.875rem;
+	--text-s: 1rem;
+	--text-m: 1.125rem;
 	--text-l: 1.3125rem;
 	--text-xl: 1.625rem;
 	--text-2xl: 2.125rem;
@@ -97,6 +97,8 @@
 	--plate-cover-width: 5rem;
 	--player-height: 7.5rem;
 	--content-max: 72rem;
+	/* The desktop library: one centred column, set like a printed index. */
+	--index-width: 46rem;
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
 	--layer-player: 10;
