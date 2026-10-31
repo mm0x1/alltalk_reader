@@ -126,6 +126,8 @@ Order of work for the 2026-11-13 presentation:
   Progress, Spinner, EmptyState, Field/Label, Badge. Each with states (hover, focus-visible,
   active, disabled, loading) and touch targets ≥ 44 px.
   *(in progress)* Interim Button (also renders links), Icon, Sheet (native dialog). The rest comes with the design phase.
+  Select/Field/Toggle/list-row styles waiting for the user's pick (A Ruled, B Plate,
+  C Double): https://claude.ai/artifact/M3AtEFvzbkEYY2rC6BhEeA
 - [ ] **Living reference page.** A dev-only route (or Storybook/Histoire) showing every token
   and component in every theme; also the target for visual regression tests.
 - [ ] **Share with the suite.** If a suite-wide house style is adopted, publish the tokens (and,
@@ -312,7 +314,7 @@ The app is reachable from other devices by design, so treat the network as untru
   validated, Content-Security-Policy header.
   *Done:* Book HTML reduced to text, covers sniffed and sandboxed, zip limits counted while inflating.
 - [x] **Dependencies.** `pnpm audit` clean and part of the check gate; Dependabot/Renovate.
-  *Done:* `pnpm audit --prod` and gitleaks in the gate. Dev-only advisories (eslint minimatch, vite-plugin deepmerge, no fix yet) reported by `mise run audit`. Renovate/Dependabot still to add.
+  *Done:* `pnpm audit --prod` and gitleaks in the gate. Dev-only advisories (eslint minimatch, vite-plugin deepmerge, no fix yet) reported by `mise run audit`. Dependabot (`.github/dependabot.yml`): weekly grouped npm updates, monthly Actions.
 - [ ] **Secrets and data.** Nothing sensitive in the repo or bundle; `data/` stays gitignored;
   no IPs or hostnames committed.
 - [ ] **Security checklist, applied to every change.** The items from the wider industry
