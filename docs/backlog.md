@@ -10,6 +10,40 @@ so the [demo-critical path](#demo-critical-path) comes first; everything else ca
 phone over the LAN or Tailscale. Mobile is the primary target, desktop has to be good too, and
 every decision below assumes the page is served from another machine, often over plain http.
 
+## How we work (read first, every session)
+
+- **Work through this backlog** in the demo-critical-path order. Only stop to ask the user
+  when an answer is genuinely theirs to give; otherwise use best judgement and note the
+  decision here.
+- **Track progress here.** Tick items when done and verified; mark started items with
+  *(in progress)* and a short note of where things stand. The [Progress log](#progress-log)
+  at the bottom gets one line per work session.
+- **Verify every change.** Run the check gate (types, lint, unit, e2e) and look the diff over
+  before committing. Never claim something works without having run it.
+- **After every change, review security and performance.** Ask: what input does this trust?
+  what does it expose on the network? what does it cost on a mid-range phone (bundle size,
+  main-thread work, memory, battery, requests)? Both are first-class requirements, not
+  polish. See the Security and Performance sections.
+- **Commit and push periodically** to the `readhouse` branch, in small, reviewed commits.
+- **Modern web platform, but only what modern devices support.** Prefer native platform
+  features (View Transitions, popover, `<dialog>`, container queries, `:has()`, anchor
+  positioning, `content-visibility`, scroll-driven animations, Media Session, OPFS) when they
+  work in current iOS Safari *and* Android Chrome, with graceful fallback otherwise.
+  Experimental APIs (e.g. HTML-in-canvas, still behind a flag/origin trial and absent from
+  Safari) are out until they ship broadly.
+- **UI design options as artifacts.** For any UI design decision, make side-by-side artifact
+  variants for the user to compare before building it into the app.
+- **Core before UI design.** Rewrite the app's core (server, storage, parsing, AllTalk
+  pipeline, tests) first; the visual design waits, because the user keeps adding inspiration
+  to `design-inspo.md`.
+- **Design inspiration lives in `design-inspo.md`** (repo root, plus images in
+  `design-inspo/`), excluded via `.git/info/exclude` and never committed. Re-read it before
+  any UI design work; it changes between sessions.
+- **UI work method** (from the inspiration notes): present interfaces at the noun/verb level
+  (book, chapter, passage, voice; read, listen, resume, import) and justify every container
+  before drawing it; try to break what we build (worst-case data); model states explicitly
+  (loading, success, error, offline, empty); make before/after screenshots; offer variants.
+
 ## Decisions
 
 - [x] **Name: Readhouse.** Joins Ditherhouse in the Motherhouse Inc suite. Rename everywhere:
@@ -234,6 +268,49 @@ The app is reachable from other devices by design, so treat the network as untru
 - [ ] **Dependencies.** `pnpm audit` clean and part of the check gate; Dependabot/Renovate.
 - [ ] **Secrets and data.** Nothing sensitive in the repo or bundle; `data/` stays gitignored;
   no IPs or hostnames committed.
+- [ ] **Security checklist, applied to every change.** The items from the wider industry
+  list that apply to a self-hosted, single-user app with SQLite:
+  - *Injection:* parameterized SQL only (no string-built queries); no shell calls with user
+    input; path traversal (uploaded and stored file names never become paths; files are
+    stored by generated id).
+  - *Browser:* XSS (book HTML is sanitized or rendered as text; no `{@html}` on untrusted
+    input), CSRF (SvelteKit origin check stays on; state changes only via POST/PUT/DELETE),
+    CORS (none: same origin), clickjacking (`frame-ancestors 'none'`), Content Security
+    Policy (SvelteKit `csp` with nonces/hashes), security headers (`X-Content-Type-Options`,
+    `Referrer-Policy`, `Permissions-Policy`), HSTS only when served over HTTPS.
+  - *Server:* input validation with schemas at every endpoint, mass assignment (whitelist
+    fields; never spread request bodies into rows), IDOR-safe ids (random, not sequential;
+    still checked), SSRF (the AllTalk proxy forwards only to the configured AllTalk origin
+    and an allow-list of paths; user-supplied URLs are never fetched server side), request
+    size limits, file upload validation (type sniffing, size, zip-bomb limits), brute-force
+    protection and timing-safe comparison for the access passcode, least privilege (runs as
+    a normal user; writes only to its data dir).
+  - *Supply chain:* lockfile committed, `pnpm audit` in the gate, minimal dependencies,
+    pnpm build-script allow-list, secret scanning (gitleaks) in the gate.
+  - *Data:* SQLite transactions, foreign keys on, unique constraints, migrations (forward
+    and tested), backups of the data dir documented and restore tested once.
+
+## Performance
+
+A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the gate.
+
+- [ ] **Budgets.** Initial JS for the reader ≤ 100 KB gzipped; LCP < 1.5 s and INP < 100 ms on
+  a mid-range phone over LAN; no layout shift while audio advances; 60 fps scrolling with a
+  1,000-paragraph chapter. Bundle size checked in CI.
+- [ ] **Rendering.** Long chapters render with `content-visibility: auto` (and
+  `contain-intrinsic-size`) instead of a JS virtualizer; highlight changes touch two
+  elements, not the list; no layout reads in scroll handlers.
+- [ ] **Network.** Audio cached by content hash (same text + voice + settings → same file)
+  so nothing is generated twice; `Cache-Control`/`ETag` on audio and immutable hashed
+  assets; compression (brotli/gzip) for text; HTTP keep-alive to AllTalk; prefetch only a
+  few paragraphs ahead (backpressure; no retry storms: retries with jittered backoff).
+- [ ] **Server.** Prepared statements, indexes for every lookup, no N+1 queries when
+  listing a library, streaming uploads and audio (never whole files in memory), graceful
+  shutdown.
+- [ ] **Battery and memory.** No polling loops (event-driven status), audio elements reused,
+  object URLs revoked, wake lock only while playing.
+- [ ] **Fonts and assets.** Self-hosted, subset WOFF2, `font-display: swap` with metric-matched
+  fallbacks; dithered PNG/WebP assets kept small.
 
 ## Feature audit
 
@@ -262,3 +339,10 @@ Verify each works on phone and desktop; fix, or trim if it isn't worth keeping.
 - [ ] **`pnpm` doesn't run in this repo.** `mise.toml` pins only Node; add pnpm.
 - [ ] **esbuild build script blocked under pnpm 12.** `pnpm install` exits with
   `ERR_PNPM_IGNORED_BUILDS`; approve it in config.
+
+## Progress log
+
+One line per work session: date, what was done, what's next.
+
+- 2026-10-31: Backlog, decisions and working rules written; `design-inspo.md` set up
+  (local only). Next: scaffold the SvelteKit app.
