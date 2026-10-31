@@ -14,7 +14,8 @@
 		book: 'M5 4.5h9a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3zM17 20H8a3 3 0 0 1 0-6h9',
 		follow: 'M12 5v10M7 11l5 5 5-5M5 20h14',
 		save: 'M12 4v11M7 10l5 5 5-5M5 19h14',
-		saved: 'M5 12.5l4.5 4.5L19 7.5'
+		saved: 'M5 12.5l4.5 4.5L19 7.5',
+		sleep: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'
 	} as const;
 	export type IconName = keyof typeof PATHS;
 </script>

@@ -126,7 +126,10 @@ Order of work for the 2026-11-13 presentation:
 
 ## UI rework
 
-- [ ] **Book-themed visual identity.** Replace the generic look with one that has personality
+- [ ] **Book-themed visual identity.** *(in progress)* Three directions with real Ditherhouse
+  dithering, waiting for the user's pick: https://claude.ai/artifact/M9ED11TvLfXVz5XKGhX32P
+  (A Engraved, B Lamplight, C Quiet).
+  Originally: Replace the generic look with one that has personality
   and evokes books: paper and ink palette, a proper reading serif for body text (e.g.
   Literata, Source Serif, Newsreader) with a contrasting UI face, restrained ornament,
   page-like surfaces. Light, dark and sepia themes. Readhouse wordmark.
@@ -231,7 +234,10 @@ Order of work for the 2026-11-13 presentation:
   *Done:* `tests/e2e/ui.spec.ts` on WebKit iPhone, Chromium Android and desktop: import, play, auto-advance across chapters, tap to read, contents, mini player, settings, theme, no sideways scroll, offline playback of a saved chapter.
 - [ ] **Visual regression.** Screenshot the design-system reference page and key screens in
   every theme; the build fails on unreviewed visual changes.
-- [ ] **Manual device checklist.** A short script to run on a real iPhone (Safari autoplay,
+- [ ] **Manual device checklist.** Include: playback continues across passages with the screen
+  locked; headphones unplugged pauses; lock-screen next/previous; offline chapter after toggling
+  airplane mode; first real AllTalk run (not yet verified: AllTalk was offline during the build).
+  Originally: A short script to run on a real iPhone (Safari autoplay,
   lock screen, background playback) before each release; those can't be fully automated.
 
 ## Code quality
@@ -403,3 +409,7 @@ One line per work session: date, what was done, what's next.
   unlock; offline chapters via service worker; AAC compression; PWA manifest; README; stylelint
   token enforcement; gate in CI and pre-push. 80 unit + 31 e2e tests. Next: design phase
   (artifacts for comparison), then sentence-level highlight, sleep timer, desktop layout.
+- 2026-10-31: Sentence-level highlight, sleep timer (minutes or end of chapter, fade-out),
+  desktop keyboard shortcuts. Found and fixed a real WebKit bug: media played from service-worker
+  responses got a stray pause on the second passage; media range requests now go to the network
+  while online. 80 unit + 38 e2e tests. Visual directions artifact published; waiting on a pick.

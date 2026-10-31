@@ -108,20 +108,40 @@ async function trim(cache: Cache, limit: number): Promise<void> {
 	for (const key of keys.slice(0, Math.max(0, keys.length - limit))) await cache.delete(key);
 }
 
+/**
+ * Audio. Range requests come from the <audio> element: online they go straight to the server
+ * (which answers ranges itself and is HTTP-cached), because WebKit mishandles media played from
+ * responses a service worker builds; the cached copy only answers when the network fails.
+ * Whole-file requests come from prefetching and saving, and fill the caches.
+ */
 async function audio(request: Request, url: URL): Promise<Response> {
 	const key = url.pathname;
 	const saved = await caches.open(SAVED_AUDIO_CACHE);
 	const recent = await caches.open(RECENT_AUDIO_CACHE);
-	const cached = (await saved.match(key)) ?? (await recent.match(key));
-	if (cached) return withRange(cached, request.headers.get('range'));
+	const range = request.headers.get('range');
 
-	// Not cached: fetch the whole file once, keep it, then answer the range asked for.
+	if (range) {
+		try {
+			return await fetch(request);
+		} catch (error) {
+			const cached = (await saved.match(key)) ?? (await recent.match(key));
+			if (cached) return withRange(cached, range);
+			throw error;
+		}
+	}
+
+	const cached = (await saved.match(key)) ?? (await recent.match(key));
+	const target = request.headers.has(SAVE_HEADER) ? saved : recent;
+	if (cached) {
+		// Saving something already heard moves it to the kept cache.
+		if (target === saved && !(await saved.match(key))) await saved.put(key, cached.clone());
+		return cached;
+	}
 	const response = await fetch(key);
 	if (response.status !== 200) return response;
-	const target = request.headers.has(SAVE_HEADER) ? saved : recent;
 	await target.put(key, response.clone());
 	if (target === recent) void trim(recent, RECENT_AUDIO_LIMIT);
-	return withRange(response, request.headers.get('range'));
+	return response;
 }
 
 /** Answers a single `bytes=` range from a full response, as <audio> expects. */

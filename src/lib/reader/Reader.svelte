@@ -7,6 +7,7 @@
 	import Button from '#lib/ui/Button.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import PlayerBar from './PlayerBar.svelte';
+	import { splitIntoSegments } from '#lib/text/segments.js';
 	import type { Position } from './position.js';
 	import { session } from './session.svelte.js';
 
@@ -29,6 +30,19 @@
 	const chapter = $derived(player?.chapter ?? initialChapter);
 	const position = $derived(player?.position ?? start);
 	const showingCurrent = $derived(chapter.position === position.chapter);
+
+	/**
+	 * The passage being read, split the way the server splits it, so the sentence being spoken
+	 * can be marked. Only for single-line paragraphs: splitting joins lines, which would lose a
+	 * poem's line breaks.
+	 */
+	const currentSegments = $derived.by(() => {
+		if (!showingCurrent) return null;
+		const block = chapter.blocks[position.block];
+		if (!block || block.type !== 'text' || block.text.includes('\n')) return null;
+		const segments = splitIntoSegments(block.text, segmentMaxChars);
+		return segments.length > 1 ? segments : null;
+	});
 	let contentsOpen = $state(false);
 	let follow = $state(true);
 	let canSave = $state(false);
@@ -98,6 +112,23 @@
 		);
 	}
 
+	/** Space plays and pauses, arrows move by passage; never while typing or in a dialog. */
+	function shortcut(event: KeyboardEvent) {
+		if (!player || event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
+		const target = event.target as HTMLElement;
+		if (target.closest('input, textarea, select, button, a, [contenteditable], dialog')) return;
+		if (event.key === ' ') {
+			event.preventDefault();
+			player.toggle();
+		} else if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			void player.next();
+		} else if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			void player.previous();
+		}
+	}
+
 	function openChapter(index: number) {
 		contentsOpen = false;
 		follow = true;
@@ -106,7 +137,7 @@
 	}
 </script>
 
-<svelte:window onwheel={stopFollowing} ontouchmove={stopFollowing} />
+<svelte:window onwheel={stopFollowing} ontouchmove={stopFollowing} onkeydown={shortcut} />
 <svelte:document
 	onvisibilitychange={() => {
 		if (document.visibilityState === 'hidden') player?.saveNow();
@@ -137,12 +168,16 @@
 				{block.text}
 			</h2>
 		{:else}
-			<p
-				id={`block-${index}`}
-				data-block={index}
-				aria-current={showingCurrent && index === position.block ? 'true' : undefined}
-			>
-				{block.text}
+			{@const current = showingCurrent && index === position.block}
+			<p id={`block-${index}`} data-block={index} aria-current={current ? 'true' : undefined}>
+				{#if current && currentSegments}
+					{#each currentSegments as segment, i (i)}<span
+							class={['segment', i === position.segment && 'speaking']}
+							>{segment}{i < currentSegments.length - 1 ? ' ' : ''}</span
+						>{/each}
+				{:else}
+					{block.text}
+				{/if}
 			</p>
 		{/if}
 	{/each}
@@ -287,6 +322,22 @@
 	}
 
 	.page [aria-current='true'] {
+		background: var(--color-highlight);
+	}
+
+	/* In a long paragraph, the sentence being spoken stands out from the rest of it. */
+	.page [aria-current='true']:has(.speaking) {
+		background: none;
+	}
+
+	.segment {
+		border-radius: var(--radius-s);
+		transition: background-color var(--duration-medium) var(--ease-out);
+		box-decoration-break: clone;
+		-webkit-box-decoration-break: clone;
+	}
+
+	.speaking {
 		background: var(--color-highlight);
 	}
 

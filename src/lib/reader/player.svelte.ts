@@ -29,6 +29,10 @@ import {
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
+/** Stop after some minutes, or at the end of the current chapter. */
+export type SleepTimer = { kind: 'minutes'; endsAt: number } | { kind: 'chapter' } | null;
+const SLEEP_FADE_MS = 8_000;
+
 const PREFETCH_AHEAD = 3;
 const SAVE_INTERVAL_MS = 5_000;
 const CHAPTER_CACHE = 6;
@@ -68,6 +72,7 @@ export class Player {
 	/** The chapter being shown/read. Raw: large and never mutated, so no deep proxy. */
 	chapter = $state.raw<ChapterContent | null>(null);
 	rate = $state(1);
+	sleep = $state<SleepTimer>(null);
 
 	readonly book: BookDetail;
 	readonly #maxChars: number;
@@ -83,6 +88,8 @@ export class Player {
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	readonly #chapters = new Map<number, Promise<ChapterContent>>();
 	#lastSaved = 0;
+	#sleepTimer: ReturnType<typeof setTimeout> | null = null;
+	#fadeTimer: ReturnType<typeof setInterval> | null = null;
 
 	constructor(book: BookDetail, maxChars: number, start: Position, chapter: ChapterContent) {
 		this.book = book;
@@ -168,12 +175,63 @@ export class Player {
 		}
 	}
 
+	/** Pauses after `minutes`, at the end of this chapter (`'chapter'`), or never (`null`). */
+	setSleepTimer(choice: number | 'chapter' | null): void {
+		this.#clearSleep();
+		if (choice === null) {
+			this.sleep = null;
+		} else if (choice === 'chapter') {
+			this.sleep = { kind: 'chapter' };
+		} else {
+			const endsAt = Date.now() + choice * 60_000;
+			this.sleep = { kind: 'minutes', endsAt };
+			this.#sleepTimer = setTimeout(
+				() => this.#fadeToSleep(),
+				Math.max(0, endsAt - Date.now() - SLEEP_FADE_MS)
+			);
+		}
+	}
+
+	/**
+	 * Lowers the volume over a few seconds, then pauses: kinder than a cut when falling asleep.
+	 * (iOS doesn't let pages change the volume, so there it simply pauses on time.)
+	 */
+	#fadeToSleep(): void {
+		const audio = this.#audio;
+		if (!audio || !this.active) {
+			this.#sleepNow();
+			return;
+		}
+		const started = Date.now();
+		this.#fadeTimer = setInterval(() => {
+			const progress = (Date.now() - started) / SLEEP_FADE_MS;
+			if (progress >= 1) this.#sleepNow();
+			else audio.volume = Math.max(0, 1 - progress);
+		}, 200);
+	}
+
+	#sleepNow(): void {
+		// Pause before restoring the volume, or the last moment plays at full volume.
+		this.pause();
+		this.#clearSleep();
+		this.sleep = null;
+		this.message = 'Sleep timer: paused. Sleep well.';
+	}
+
+	#clearSleep(): void {
+		if (this.#sleepTimer) clearTimeout(this.#sleepTimer);
+		if (this.#fadeTimer) clearInterval(this.#fadeTimer);
+		this.#sleepTimer = this.#fadeTimer = null;
+		if (this.#audio) this.#audio.volume = 1;
+	}
+
 	/** Saves the reading position now, surviving page close (keepalive). */
 	saveNow(): void {
 		this.#save(true, true);
 	}
 
 	destroy(): void {
+		this.#clearSleep();
 		this.#generation++;
 		this.#abort();
 		this.#save(true, true);
@@ -267,6 +325,13 @@ export class Player {
 			this.status = 'idle';
 			this.message = 'The end.';
 			this.#save(true);
+			return;
+		}
+		if (this.sleep?.kind === 'chapter' && next.chapter !== this.position.chapter) {
+			// Stop at the chapter's end, but resume from the next chapter's start.
+			this.position = next;
+			this.#loaded = null;
+			this.#sleepNow();
 			return;
 		}
 		void this.#start(next);

@@ -188,3 +188,58 @@ test('a saved chapter keeps playing without a connection', async ({ page, contex
 		await context.setOffline(false);
 	}
 });
+
+test('marks the sentence being read in a long paragraph', async ({ page }, testInfo) => {
+	await page.goto('/');
+	const long =
+		'The first sentence is here and it is fairly long, to make the point. ' +
+		'The second sentence follows on, and it is also long enough to need room. ' +
+		'A third sentence closes the paragraph neatly.';
+	const response = await page.request.post('/api/books/paste', {
+		data: { title: `Long ${testInfo.project.name}`, text: `${long}\n\nAfter.` },
+		headers: { 'content-type': 'application/json' }
+	});
+	const { id } = await response.json();
+	await page.goto(`/book/${id}`);
+	await page.getByRole('button', { name: 'Play' }).click();
+	const speaking = page.locator('article.page .speaking');
+	await expect(speaking.first()).toContainText(/sentence/);
+	await page.getByRole('button', { name: /^(Pause|Play)$/ }).click();
+});
+
+test('the sleep timer can stop at the end of the chapter', async ({ page }, testInfo) => {
+	await addPastedBook(page, `Sleep ${testInfo.project.name}`);
+	await page.getByRole('button', { name: 'Sleep timer' }).click();
+	await page
+		.getByRole('dialog', { name: 'Sleep timer' })
+		.getByRole('button', { name: 'End of chapter' })
+		.click();
+	await expect(page.getByRole('button', { name: 'Sleep timer: End of chapter' })).toBeVisible();
+	await page.getByRole('button', { name: 'Play' }).click();
+	await expect(page.getByText('Sleep timer: paused. Sleep well.')).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Sleep timer', exact: true })).toBeVisible();
+});
+
+test('keyboard: space plays and pauses, arrows move between passages', async ({
+	page,
+	isMobile
+}, testInfo) => {
+	test.skip(isMobile, 'Keyboard shortcuts are for desktop');
+	await addPastedBook(page, `Keys ${testInfo.project.name}`);
+	await page
+		.locator('article.page')
+		.click({ position: { x: 5, y: 5 } })
+		.catch(() => undefined);
+	await page.getByRole('button', { name: /^(Pause|Play)$/ }).focus();
+	await page.locator('body').press('Escape');
+	await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+	await page.keyboard.press(' ');
+	await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+	await page.keyboard.press(' ');
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	await page.keyboard.press('ArrowRight');
+	await expect(page.locator('article.page [aria-current="true"]')).toContainText(
+		'A second paragraph'
+	);
+});
