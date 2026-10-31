@@ -123,6 +123,8 @@
 
 	.library {
 		display: grid;
+		/* minmax(0, …): a long unwrapped detail line must ellipsize, not widen the column. */
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-5);
 		max-width: var(--content-max);
 		margin: 0 auto;
@@ -144,6 +146,7 @@
 
 	.books {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		border-bottom: var(--border-thin) solid var(--color-rule);
 	}
 

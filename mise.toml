@@ -40,3 +40,7 @@ run = [
 [tasks.audit]
 description = "Audit all dependencies, including build tools (informational)"
 run = "pnpm audit"
+
+[tasks."visual:update"]
+description = "Refresh the visual regression baselines (review the new screenshots first)"
+run = "pnpm exec playwright test --project='visual-*' --update-snapshots"

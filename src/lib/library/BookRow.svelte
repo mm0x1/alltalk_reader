@@ -23,8 +23,7 @@
 		<span class="text">
 			<span class="title">{book.title}</span>
 			<span class="detail">
-				{#if book.author}{book.author} &middot;
-				{/if}{placeInBook(book)}
+				{book.author ? `${book.author} \u00b7 ` : ''}{placeInBook(book)}
 			</span>
 		</span>
 	</a>
@@ -72,16 +71,19 @@
 		min-width: 0;
 	}
 
+	/* Wrap rather than truncate: the place in the book is the useful end of the line. */
+	.title,
+	.detail {
+		overflow-wrap: anywhere;
+	}
+
 	.title {
 		font-size: var(--text-l);
 		line-height: var(--leading-tight);
 	}
 
 	.detail {
-		overflow: hidden;
 		color: var(--color-ink-muted);
 		font-style: italic;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 </style>

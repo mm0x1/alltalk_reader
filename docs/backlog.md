@@ -259,8 +259,17 @@ Order of work for the 2026-11-13 presentation:
   reload and resume position; settings persist; AllTalk offline shows the right state;
   offline session plays without AllTalk.
   *Done:* `tests/e2e/ui.spec.ts` on WebKit iPhone, Chromium Android and desktop: import, play, auto-advance across chapters, tap to read, contents, mini player, settings, theme, no sideways scroll, offline playback of a saved chapter.
-- [ ] **Visual regression.** Screenshot the design-system reference page and key screens in
+- [x] **Visual regression.** Screenshot the design-system reference page and key screens in
   every theme; the build fails on unreviewed visual changes.
+  *Done:* `tests/e2e/visual.spec.ts`: library (empty, and stocked with a worst-case AO3 title),
+  Add a book, reader, reader while playing, Contents, Settings (top and end), Unlock, in light,
+  dark and sepia on iPhone, Pixel and desktop (66 baselines, ~4 MB, committed in
+  `tests/visual/`). Its own server and fake AllTalk (one-minute passages, so the playing state
+  holds still). Local and pre-push only: CI skips it (`CI` set), since Mac baselines don't match
+  Linux font rendering; a pinned Linux container in CI is the later option. Refresh with
+  `mise run visual:update` after reviewing. Add the reference page once it exists. It caught
+  two real bugs at once: the library overflowed the frame on phones (grid track sized by an
+  unwrapped detail line) and the author separator lost its space.
 - [ ] **Manual device checklist.** Include: playback continues across passages with the screen
   locked; headphones unplugged pauses; lock-screen next/previous; offline chapter after toggling
   airplane mode; first real AllTalk run (not yet verified: AllTalk was offline during the build).
@@ -461,3 +470,8 @@ One line per work session: date, what was done, what's next.
 - 2026-10-31: Folio desktop reader built (sidebar contents shared with the phone sheet via a
   snippet; e2e helpers find Contents in either). Chapter bands now Bayer 8×8 (~200 bytes each).
   Next: visual regression screenshots, README screenshots, device checklist.
+- 2026-10-31: Visual regression suite (66 baselines, local + pre-push, CI skips). Fixed the
+  phone library overflowing its frame and the missing space after the author; book details
+  now wrap instead of truncating. AllTalk v2 installed and running locally (XTTS v2.0.3, CPU;
+  a subagent did the install, notes in `../alltalk_tts/READHOUSE-RUN.md`). Next: first live
+  AllTalk run, then the desktop library.

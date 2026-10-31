@@ -13,6 +13,8 @@ export interface FakeAllTalkOptions {
 	/** Delay before each generation answers. */
 	delayMs?: number;
 	voices?: string[];
+	/** Shortest passage, in seconds: long passages keep a "playing" screen still for screenshots. */
+	minSeconds?: number;
 }
 
 export interface FakeAllTalk {
@@ -29,9 +31,10 @@ export interface FakeAllTalk {
 }
 
 /** A mono 16-bit PCM WAV of silence: 0.5 s plus 10 ms per character, so tests can observe each passage. */
-export function silentWav(text: string): Buffer {
+export function silentWav(text: string, minSeconds = 0): Buffer {
 	const sampleRate = 8000;
-	const samples = Math.round(sampleRate * (0.5 + Math.min(text.length, 2000) * 0.01));
+	const seconds = Math.max(minSeconds, 0.5 + Math.min(text.length, 2000) * 0.01);
+	const samples = Math.round(sampleRate * seconds);
 	const data = samples * 2;
 	const wav = Buffer.alloc(44 + data);
 	wav.write('RIFF', 0);
@@ -110,7 +113,7 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 			}
 			state.generated.push(text);
 			const name = `readhouse_${++counter}.wav`;
-			files.set(name, silentWav(text));
+			files.set(name, silentWav(text, options.minSeconds));
 			json(200, {
 				status: 'generate-success',
 				output_file_path: `/outputs/${name}`,
@@ -158,6 +161,10 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 
 if (import.meta.url === `file://${process.argv[1]}`) {
 	const port = Number(process.argv[2] ?? 7851);
-	const fake = await startFakeAllTalk({ port, delayMs: Number(process.env.FAKE_DELAY_MS ?? 300) });
+	const fake = await startFakeAllTalk({
+		port,
+		delayMs: Number(process.env.FAKE_DELAY_MS ?? 300),
+		minSeconds: Number(process.env.FAKE_MIN_SECONDS ?? 0)
+	});
 	console.log(`Fake AllTalk listening on ${fake.url}`);
 }
