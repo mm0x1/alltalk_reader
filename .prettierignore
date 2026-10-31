@@ -1,4 +1,13 @@
-**/build
-**/public
+# Package Managers
+package-lock.json
 pnpm-lock.yaml
-routeTree.gen.ts
+yarn.lock
+bun.lock
+bun.lockb
+
+# Miscellaneous
+/static/
+
+# Docs are wrapped by hand
+/docs/
+*.md

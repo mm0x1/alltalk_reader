@@ -1,50 +1,56 @@
 {
-  "name": "tanstack-start-example-basic-react-query",
-  "private": true,
-  "sideEffects": false,
-  "type": "module",
-  "scripts": {
-    "dev": "vite dev --host",
-    "build": "vite build && tsc --noEmit",
-    "start": "vite start",
-    "start:all": "./start.sh"
-  },
-  "dependencies": {
-    "@soundtouchjs/audio-worklet": "^1.0.10",
-    "@tanstack/react-query": "^5.66.0",
-    "@tanstack/react-query-devtools": "^5.66.0",
-    "@tanstack/react-router": "^1.128.3",
-    "@tanstack/react-router-devtools": "^1.128.3",
-    "@tanstack/react-router-with-query": "^1.128.3",
-    "@tanstack/react-start": "^1.128.3",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@xstate/react": "^6.0.0",
-    "body-parser": "^2.2.0",
-    "cheerio": "^1.1.0",
-    "clsx": "^2.1.1",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "fflate": "^0.8.2",
-    "idb": "^8.0.3",
-    "lowdb": "^7.0.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "redaxios": "^0.5.1",
-    "tailwind-merge": "^2.6.0",
-    "xstate": "^5.26.0",
-    "zustand": "^5.0.11"
-  },
-  "devDependencies": {
-    "@types/node": "^22.5.4",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-    "@vitejs/plugin-react": "^5.1.2",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.1",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2",
-    "vite": "^6.3.5",
-    "vite-tsconfig-paths": "^5.1.4"
-  }
+	"name": "readhouse",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Readhouse: a reading room that reads your books aloud with AllTalk. By Motherhouse Inc.",
+	"type": "module",
+	"engines": {
+		"node": ">=26"
+	},
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"test:unit": "vitest",
+		"test": "vitest run && playwright test",
+		"test:e2e": "playwright test",
+		"gate": "pnpm check && pnpm lint && vitest run && playwright test"
+	},
+	"dependencies": {
+		"fflate": "^0.8.3",
+		"htmlparser2": "^12.0.0",
+		"valibot": "^1.5.0"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.60.0",
+		"@sveltejs/adapter-node": "^6.0.0",
+		"@sveltejs/kit": "^3.0.0",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@types/node": "^24",
+		"@vitest/browser-playwright": "^4.1.8",
+		"eslint": "^10.4.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.19.0",
+		"globals": "^17.6.0",
+		"playwright": "^1.60.0",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^4.1.0",
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.6.0",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.60.1",
+		"vite": "^8.3.0",
+		"vitest": "^4.1.8",
+		"vitest-browser-svelte": "^2.1.1"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	}
 }
