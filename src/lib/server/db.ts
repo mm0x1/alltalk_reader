@@ -53,6 +53,7 @@ const MIGRATIONS: readonly string[] = [
 
 	CREATE TABLE audio (
 		hash       TEXT PRIMARY KEY CHECK (length(hash) = 64),
+		mime       TEXT NOT NULL,
 		bytes      INTEGER NOT NULL CHECK (bytes > 0),
 		created_at INTEGER NOT NULL,
 		used_at    INTEGER NOT NULL

@@ -56,7 +56,12 @@ function toSummary(row: BookRow): BookSummary {
 	};
 }
 
+/** Parsed chapters kept in memory: playback asks for the same chapter once per segment. */
+const CHAPTER_CACHE_SIZE = 16;
+
 export class Library {
+	readonly #chapters = new Map<string, ChapterContent>();
+
 	constructor(private readonly db: Database) {}
 
 	list(): BookSummary[] {
@@ -80,11 +85,28 @@ export class Library {
 	}
 
 	chapter(id: string, position: number): ChapterContent | null {
+		const key = `${id}:${position}`;
+		const cached = this.#chapters.get(key);
+		if (cached) {
+			// Re-insert to mark as most recently used.
+			this.#chapters.delete(key);
+			this.#chapters.set(key, cached);
+			return cached;
+		}
 		const row = this.db
 			.statement(`SELECT title, blocks FROM chapters WHERE book_id = ? AND position = ?`)
 			.get(id, position) as { title: string; blocks: string } | undefined;
 		if (!row) return null;
-		return { position, title: row.title, blocks: v.parse(BlocksSchema, JSON.parse(row.blocks)) };
+		const chapter = {
+			position,
+			title: row.title,
+			blocks: v.parse(BlocksSchema, JSON.parse(row.blocks))
+		};
+		this.#chapters.set(key, chapter);
+		if (this.#chapters.size > CHAPTER_CACHE_SIZE) {
+			this.#chapters.delete(this.#chapters.keys().next().value!);
+		}
+		return chapter;
 	}
 
 	cover(id: string): { mime: string; bytes: Uint8Array } | null {
@@ -143,6 +165,8 @@ export class Library {
 
 	/** Returns false when there was no such book. */
 	remove(id: string): boolean {
+		for (const key of this.#chapters.keys())
+			if (key.startsWith(`${id}:`)) this.#chapters.delete(key);
 		return this.db.statement(`DELETE FROM books WHERE id = ?`).run(id).changes > 0;
 	}
 

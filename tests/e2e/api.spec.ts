@@ -1,0 +1,260 @@
+/**
+ * The HTTP API against a real production build, with the fake AllTalk behind it.
+ * Covers the happy paths and the ways a hostile or broken client could misuse each endpoint.
+ */
+
+import { expect, test, type APIRequestContext } from '@playwright/test';
+import { strToU8, zipSync } from 'fflate';
+
+const LOCKED = 'http://127.0.0.1:4174';
+
+function epub(): Buffer {
+	const xhtml = (body: string) =>
+		`<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>x</title></head><body>${body}</body></html>`;
+	return Buffer.from(
+		zipSync({
+			mimetype: strToU8('application/epub+zip'),
+			'META-INF/container.xml': strToU8(
+				'<container><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>'
+			),
+			'content.opf':
+				strToU8(`<package version="3.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+				<dc:title>Fixture Book</dc:title><dc:creator>Ann Author</dc:creator></metadata>
+				<manifest>
+					<item id="a" href="a.xhtml" media-type="application/xhtml+xml"/>
+					<item id="b" href="b.xhtml" media-type="application/xhtml+xml"/>
+					<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+					<item id="cover" href="cover.png" media-type="image/png" properties="cover-image"/>
+				</manifest><spine><itemref idref="a"/><itemref idref="b"/></spine></package>`),
+			'nav.xhtml': strToU8(
+				xhtml(
+					'<nav epub:type="toc" xmlns:epub="http://www.idpf.org/2007/ops"><ol><li><a href="a.xhtml">First</a></li><li><a href="b.xhtml">Second</a></li></ol></nav>'
+				)
+			),
+			'a.xhtml': strToU8(
+				xhtml(
+					'<p>The first paragraph is long enough that it has to be split into several segments before it can be spoken by the engine. A second sentence makes quite sure of that, whatever the limit happens to be today.</p><hr/><p>After the break.</p>'
+				)
+			),
+			'b.xhtml': strToU8(xhtml('<p>Second chapter.</p>')),
+			'cover.png': new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
+		})
+	);
+}
+
+async function upload(request: APIRequestContext, body: Buffer, name: string) {
+	return request.post('/api/books', {
+		data: body,
+		headers: { 'content-type': 'application/octet-stream', 'x-filename': encodeURIComponent(name) }
+	});
+}
+
+test.describe.configure({ mode: 'serial' });
+
+let bookId: string;
+
+test('reports AllTalk status and voices', async ({ request }) => {
+	const response = await request.get('/api/status');
+	expect(response.ok()).toBe(true);
+	const status = await response.json();
+	expect(status.alltalk).toMatchObject({ reachable: true, ready: true });
+	expect(status.alltalk.voices).toContain('female_01.wav');
+	expect(status.segmentMaxChars).toBe(120);
+});
+
+test('sends security headers', async ({ request }) => {
+	const page = await request.get('/');
+	const headers = page.headers();
+	expect(headers['content-security-policy']).toContain("default-src 'self'");
+	expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+	expect(headers['content-security-policy']).toMatch(/script-src 'self' 'nonce-/);
+	expect(headers['x-content-type-options']).toBe('nosniff');
+	expect(headers['x-frame-options']).toBe('DENY');
+	expect(headers['referrer-policy']).toBe('no-referrer');
+	expect(headers['access-control-allow-origin']).toBeUndefined();
+	const api = await request.get('/api/books');
+	expect(api.headers()['cache-control']).toBe('no-store');
+});
+
+test('imports an EPUB and serves its chapters and cover', async ({ request }) => {
+	const response = await upload(request, epub(), 'fixture.epub');
+	expect(response.status()).toBe(201);
+	bookId = (await response.json()).id;
+
+	const book = await (await request.get(`/api/books/${bookId}`)).json();
+	expect(book).toMatchObject({ title: 'Fixture Book', author: 'Ann Author', chapterCount: 2 });
+	expect(book.chapters.map((c: { title: string }) => c.title)).toEqual(['First', 'Second']);
+
+	const chapter = await request.get(`/api/books/${bookId}/chapters/0`);
+	expect(chapter.headers()['cache-control']).toContain('immutable');
+	expect((await chapter.json()).blocks[1]).toEqual({ type: 'break' });
+
+	const cover = await request.get(`/api/books/${bookId}/cover`);
+	expect(cover.headers()['content-type']).toBe('image/png');
+	expect(cover.headers()['content-security-policy']).toContain('sandbox');
+});
+
+test('imports plain text and AO3 pastes', async ({ request }) => {
+	const txt = await upload(
+		request,
+		Buffer.from('Chapter 1\n\nHello.\n\nChapter 2\n\nBye.'),
+		't.txt'
+	);
+	expect(txt.status()).toBe(201);
+	const paste = await request.post('/api/books/paste', {
+		data: {
+			text: 'Archive of Our Own\nWork Header\nRating:\nChapter 2: Snow\nChapter Text\nIt snowed.\nActions'
+		}
+	});
+	expect(paste.status()).toBe(201);
+	const book = await (await request.get(`/api/books/${(await paste.json()).id}`)).json();
+	expect(book.title).toBe('Chapter 2: Snow');
+});
+
+test('rejects files it cannot read and files that are too large', async ({ request }) => {
+	const binary = await upload(request, Buffer.from([0, 1, 2, 0, 0, 3]), 'x.bin');
+	expect(binary.status()).toBe(422);
+	expect((await binary.json()).message).toContain('EPUB');
+	const huge = await upload(request, Buffer.alloc(1.5 * 1024 * 1024, 'a'), 'big.txt');
+	expect(huge.status()).toBe(413);
+	const zip = await upload(request, Buffer.from(zipSync({ 'a.txt': strToU8('x') })), 'x.epub');
+	expect(zip.status()).toBe(422);
+});
+
+test('blocks cross-site state changes', async ({ request }) => {
+	const evil = await request.delete(`/api/books/${bookId}`, {
+		headers: { origin: 'http://evil.example' }
+	});
+	expect(evil.status()).toBe(403);
+	const fetchMeta = await request.put(`/api/books/${bookId}/progress`, {
+		data: { chapter: 0, block: 0 },
+		headers: { 'sec-fetch-site': 'cross-site' }
+	});
+	expect(fetchMeta.status()).toBe(403);
+	expect((await request.get(`/api/books/${bookId}`)).status()).toBe(200);
+});
+
+test('validates every input', async ({ request }) => {
+	const progress = (data: unknown, headers?: Record<string, string>) =>
+		request.put(`/api/books/${bookId}/progress`, { data: data as object, headers });
+	expect((await progress({ chapter: 0, block: 2 })).status()).toBe(204);
+	expect((await progress({ chapter: 0, block: 99 })).status()).toBe(422);
+	expect((await progress({ chapter: -1, block: 0 })).status()).toBe(400);
+	expect((await progress({ chapter: 0, block: 0, extra: true })).status()).toBe(400);
+	expect((await progress({ chapter: '0', block: 0 })).status()).toBe(400);
+	const notJson = await request.put(`/api/books/${bookId}/progress`, {
+		data: 'chapter=0',
+		headers: { 'content-type': 'text/plain' }
+	});
+	// SvelteKit's CSRF guard (403) or our JSON check (415): either way, refused.
+	expect([403, 415]).toContain(notJson.status());
+
+	expect((await request.get('/api/books/not-a-uuid')).status()).toBe(404);
+	expect((await request.get(`/api/books/${bookId}/chapters/01`)).status()).toBe(404);
+	expect((await request.get(`/api/books/${bookId}/chapters/9`)).status()).toBe(404);
+	expect((await request.get('/api/audio/../../etc/passwd')).status()).toBe(404);
+
+	const voice = await request.put('/api/settings/voice', {
+		data: { ...(await (await request.get('/api/settings/voice')).json()), temperature: 5 }
+	});
+	expect(voice.status()).toBe(400);
+});
+
+test('speaks a segment and serves the audio with ranges and caching', async ({ request }) => {
+	const speech = await request.post('/api/speech', {
+		data: { bookId, chapter: 0, block: 0, segment: 0, priority: 'now' }
+	});
+	expect(speech.status()).toBe(200);
+	const { audio, segments } = await speech.json();
+	expect(segments).toBeGreaterThan(1);
+	expect(audio).toMatch(/^\/api\/audio\/[0-9a-f]{64}$/);
+
+	const full = await request.get(audio);
+	expect(full.status()).toBe(200);
+	expect(full.headers()['content-type']).toBe('audio/wav');
+	expect(full.headers()['cache-control']).toContain('immutable');
+	const body = await full.body();
+	expect(body.subarray(0, 4).toString()).toBe('RIFF');
+
+	const partial = await request.get(audio, { headers: { range: 'bytes=0-9' } });
+	expect(partial.status()).toBe(206);
+	expect(partial.headers()['content-range']).toBe(`bytes 0-9/${body.length}`);
+	expect((await partial.body()).length).toBe(10);
+
+	const suffix = await request.get(audio, { headers: { range: 'bytes=-4' } });
+	expect((await suffix.body()).equals(body.subarray(-4))).toBe(true);
+
+	const unsatisfiable = await request.get(audio, { headers: { range: `bytes=${body.length}-` } });
+	expect(unsatisfiable.status()).toBe(416);
+
+	const notModified = await request.get(audio, {
+		headers: { 'if-none-match': full.headers()['etag'] }
+	});
+	expect(notModified.status()).toBe(304);
+});
+
+test('refuses to speak what is not there', async ({ request }) => {
+	const speak = (data: object) => request.post('/api/speech', { data });
+	const base = { bookId, chapter: 0, block: 0, segment: 0, priority: 'soon' };
+	expect((await speak({ ...base, block: 1 })).status()).toBe(422);
+	expect((await speak({ ...base, segment: 50 })).status()).toBe(422);
+	expect((await speak({ ...base, chapter: 7 })).status()).toBe(404);
+	expect((await speak({ ...base, priority: 'urgent' })).status()).toBe(400);
+	expect((await speak({ ...base, text: 'arbitrary text' })).status()).toBe(400);
+});
+
+// The reader always sends JSON, even without a body: SvelteKit's own CSRF guard compares full
+// origins (scheme included) for body-less requests, which fails behind an HTTPS proxy such as
+// `tailscale serve`. Our hook checks those requests by host instead.
+const JSON_HEADERS = { 'content-type': 'application/json' };
+
+test('deletes a book completely', async ({ request }) => {
+	expect((await request.delete(`/api/books/${bookId}`, { headers: JSON_HEADERS })).status()).toBe(
+		204
+	);
+	expect((await request.get(`/api/books/${bookId}`)).status()).toBe(404);
+	expect((await request.get(`/api/books/${bookId}/chapters/0`)).status()).toBe(404);
+	expect((await request.get(`/api/books/${bookId}/cover`)).status()).toBe(404);
+	expect((await request.delete(`/api/books/${bookId}`, { headers: JSON_HEADERS })).status()).toBe(
+		404
+	);
+});
+
+test('accepts same-host requests through an HTTPS proxy', async ({ request }) => {
+	const response = await request.post('/api/speech/stop', {
+		headers: { ...JSON_HEADERS, origin: 'https://127.0.0.1:4173' }
+	});
+	expect(response.status()).toBe(204);
+});
+
+test.describe('with a passcode', () => {
+	test('locks the API and pages until unlocked', async ({ playwright }) => {
+		const request = await playwright.request.newContext({ baseURL: LOCKED });
+		expect((await request.get('/api/books')).status()).toBe(401);
+		const page = await request.get('/', { maxRedirects: 0 });
+		expect(page.status()).toBe(303);
+		expect(page.headers()['location']).toBe('/unlock?next=%2F');
+
+		const wrong = await request.post('/api/unlock', { data: { passcode: 'nope' } });
+		expect(wrong.status()).toBe(401);
+		const right = await request.post('/api/unlock', { data: { passcode: 'correct horse' } });
+		expect(right.status()).toBe(204);
+		const cookie = right.headers()['set-cookie'];
+		expect(cookie).toContain('HttpOnly');
+		expect(cookie).toContain('SameSite=Strict');
+		expect((await request.get('/api/books')).status()).toBe(200);
+
+		await request.post('/api/lock', { headers: JSON_HEADERS });
+		expect((await request.get('/api/books')).status()).toBe(401);
+		await request.dispose();
+	});
+
+	test('rejects forged and expired session cookies', async ({ playwright }) => {
+		const forged = await playwright.request.newContext({
+			baseURL: LOCKED,
+			extraHTTPHeaders: { cookie: `readhouse_session=${Date.now()}.AAAA` }
+		});
+		expect((await forged.get('/api/books')).status()).toBe(401);
+		await forged.dispose();
+	});
+});

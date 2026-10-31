@@ -32,3 +32,4 @@ vite.config.ts.timestamp-*
 # Local tooling
 .claude/
 .aider*
+/.e2e
