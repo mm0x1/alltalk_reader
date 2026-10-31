@@ -13,12 +13,12 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 
-# Chapter-opening band: ink fading into paper, a fine blue-noise screen like an engraving.
+# Chapter-opening band: ink fading into paper in a fine Bayer crosshatch, like an engraving.
 band() { # name ink paper
 	printf '%s\n%s\n' "$2" "$3" > "$TMP/$1.hex"
 	"$CLI" gradient --palette "$TMP/$1.hex" --shape linear --angle 90 \
 		--stops "$2@0,$3@1" --width 800 --height 64 \
-		--algorithm ordered-blue-noise --pixel-scale 1 --indexed \
+		--algorithm ordered-bayer-8x8 --pixel-scale 1 --indexed \
 		-o "$OUT/band-$1.png"
 }
 

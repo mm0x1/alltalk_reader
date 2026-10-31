@@ -34,6 +34,31 @@ async function addPastedBook(page: Page, title: string) {
 }
 
 /**
+ * The book's contents: a sheet on phones, the sidebar on desktop (always open). `close` closes
+ * the sheet and does nothing on desktop.
+ */
+async function openContents(page: Page) {
+	const button = page.getByRole('button', { name: 'Contents' });
+	if (await button.isVisible()) {
+		await button.click();
+		const sheet = page.getByRole('dialog', { name: 'Contents' });
+		return {
+			list: sheet,
+			sheet: true,
+			close: () => sheet.getByRole('button', { name: 'Close' }).click()
+		};
+	}
+	return {
+		list: page.getByRole('navigation', { name: 'Contents' }),
+		sheet: false,
+		close: async () => {}
+	};
+}
+
+/** The way back to the library: the header's back button, or the sidebar's on desktop. */
+const libraryLink = (page: Page) => page.getByRole('link', { name: /^(Library|The shelf)$/ });
+
+/**
  * Records every passage marked as being read from now on, as "<chapter heading>: <passage text>", however
  * fast playback runs: headless browsers without an audio device can finish a passage almost
  * instantly, too fast to catch by polling the page.
@@ -93,14 +118,13 @@ test('reads a pasted book aloud and keeps going between passages and chapters', 
 	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 
 	// Contents jumps to a chapter.
-	await page.getByRole('button', { name: 'Contents' }).click();
-	const contents = page.getByRole('dialog', { name: 'Contents' });
-	await contents.getByRole('button', { name: /^Chapter 3/ }).click();
-	await expect(contents).toBeHidden();
+	const contents = await openContents(page);
+	await contents.list.getByRole('button', { name: /^Chapter 3/ }).click();
+	if (contents.sheet) await expect(contents.list).toBeHidden();
 	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 3' })).toBeVisible();
 
 	// Back in the library the book shows its place, and the session continues in a mini player.
-	await page.getByRole('link', { name: 'Library' }).click();
+	await libraryLink(page).click();
 	await expect(page.getByRole('link', { name: new RegExp(title) }).first()).toContainText(
 		'Chapter 3 of 3'
 	);
@@ -163,13 +187,12 @@ test('a saved chapter keeps playing without a connection', async ({ page, contex
 	await page.reload();
 	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 1' })).toBeVisible();
 
-	await page.getByRole('button', { name: 'Contents' }).click();
-	const contents = page.getByRole('dialog', { name: 'Contents' });
-	await contents.getByRole('button', { name: 'Save Chapter 1 for offline listening' }).click();
-	await expect(contents.getByRole('button', { name: /Chapter 1 is saved/ })).toBeVisible({
+	const contents = await openContents(page);
+	await contents.list.getByRole('button', { name: 'Save Chapter 1 for offline listening' }).click();
+	await expect(contents.list.getByRole('button', { name: /Chapter 1 is saved/ })).toBeVisible({
 		timeout: 15_000
 	});
-	await contents.getByRole('button', { name: 'Close' }).click();
+	await contents.close();
 
 	const seen = await recordPassages(page);
 	await context.setOffline(true);

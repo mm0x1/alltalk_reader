@@ -111,7 +111,8 @@
 <style>
 	.bar {
 		position: fixed;
-		inset: auto 0 0;
+		/* Beside the reader's desktop sidebar, if there is one. */
+		inset: auto 0 0 var(--reader-side, 0);
 		z-index: var(--layer-player);
 		display: grid;
 		gap: var(--space-2);

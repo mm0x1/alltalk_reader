@@ -88,7 +88,9 @@ every decision below assumes the page is served from another machine, often over
 - [x] **Visual direction: A, Engraved.** Picked from https://claude.ai/artifact/M9ED11TvLfXVz5XKGhX32P.
   Ink-blue on pale paper, bone on navy in dark, a sepia engraving as the third theme;
   EB Garamond throughout (self-hosted); a ruled double frame around every page; drop caps;
-  one dithered band per chapter opening with its roman numeral in a cartouche; the sentence
+  one dithered band per chapter opening with its roman numeral in a cartouche (Bayer 8×8
+  crosshatch at 1×, the user's preference over blue-noise stipple; Floyd–Steinberg is the
+  alternative); the sentence
   being spoken in reverse ink. Decided while building it: prose is ragged right (with
   hyphenation) on phones and justified only from 40rem up, since a ~35-character justified
   line opens rivers; a paused passage is tinted, reverse ink only while the voice reads.
@@ -162,8 +164,12 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Mobile first.** Designed at 360–430 px wide before desktop. Bottom sheets instead of
   modals, safe-area insets (notch, home bar), no horizontal scroll, no hover-only UI, `dvh`
   units so the browser bar doesn't hide the player, works in iOS Safari and Android Chrome.
-- [ ] **Good on desktop.** *(in progress)* Three layouts waiting for the user's pick (A Folio,
-  B Margins, C Wide phone): https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no A layout that uses the width (library/chapter sidebar + reading
+- [ ] **Good on desktop.** *(in progress)* Layout **A, Folio** picked from
+  https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no and built for the reader: from 64rem a
+  ruled sidebar (book, contents with save buttons, back to the shelf) and the player docked
+  under the text column; CSS-only switch, so the server-rendered page is right on first load.
+  Still to do: a desktop library (the shelf uses the width already, but no sidebar), and `/`
+  to search once there is search. A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
 - [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
@@ -452,3 +458,6 @@ One line per work session: date, what was done, what's next.
 - 2026-10-31: Desktop layout variants published for a pick. Android share target with a
   confirm step (CSRF-safe), e2e-tested on all three profiles. Next: desktop layout once picked;
   visual regression screenshots; README screenshots; device checklist.
+- 2026-10-31: Folio desktop reader built (sidebar contents shared with the phone sheet via a
+  snippet; e2e helpers find Contents in either). Chapter bands now Bayer 8×8 (~200 bytes each).
+  Next: visual regression screenshots, README screenshots, device checklist.

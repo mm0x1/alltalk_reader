@@ -94,6 +94,14 @@
 			?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 	});
 
+	// In the desktop sidebar, keep the chapter being read in view.
+	$effect(() => {
+		void position.chapter;
+		document
+			.querySelector('.side-contents [aria-current="true"]')
+			?.scrollIntoView({ block: 'nearest' });
+	});
+
 	function stopFollowing() {
 		if (player?.active) follow = false;
 	}
@@ -147,81 +155,102 @@
 	}}
 />
 
-<header class="top">
-	<Button href={resolve('/')} icon="back" aria-label="Library" />
-	<div class="titles">
-		<p class="book-title">{book.title}</p>
-		<h1 class="chapter-title">{chapter.title}</h1>
-	</div>
-	<Button icon="contents" aria-label="Contents" onclick={() => (contentsOpen = true)} />
-</header>
+<div class="reader">
+	<!-- Desktop (Folio): the book and its contents in a ruled sidebar, always open. -->
+	<aside class="side" aria-label="Book">
+		<p class="wordmark">Readhouse</p>
+		<div class="now">
+			<span class="kicker">Now reading</span>
+			<span class="side-title">{book.title}</span>
+			{#if book.author}<span class="side-author">{book.author}</span>{/if}
+		</div>
+		<nav class="side-contents" aria-label="Contents">{@render contentsList()}</nav>
+		<Button href={resolve('/')} icon="back">The shelf</Button>
+	</aside>
 
-<!-- Keyboard and screen-reader users start reading with the player controls and Contents. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<article
-	class={['page', player?.active && 'playing']}
-	lang={book.language ?? undefined}
-	onclick={readFrom}
->
-	<div class="band" aria-hidden="true">
-		<span>{toRoman(chapter.position + 1)}.</span>
-	</div>
-	{#each chapter.blocks as block, index (index)}
-		{#if block.type === 'break'}
-			<hr />
-		{:else if block.type === 'heading'}
-			<h2
-				id={`block-${index}`}
-				data-block={index}
-				aria-current={showingCurrent && index === position.block ? 'true' : undefined}
-			>
-				{block.text}
-			</h2>
-		{:else}
-			{@const current = showingCurrent && index === position.block}
-			<p
-				id={`block-${index}`}
-				class={{ opening: index === openingBlock }}
-				data-block={index}
-				aria-current={current ? 'true' : undefined}
-			>
-				{#if current && currentSegments}
-					{#each currentSegments as segment, i (i)}<span
-							class={['segment', i === position.segment && 'speaking']}
-							>{segment}{i < currentSegments.length - 1 ? ' ' : ''}</span
-						>{/each}
+	<div class="main">
+		<header class="top">
+			<Button class="phone-only" href={resolve('/')} icon="back" aria-label="Library" />
+			<div class="titles">
+				<p class="book-title">{book.title}</p>
+				<h1 class="chapter-title">{chapter.title}</h1>
+			</div>
+			<Button
+				class="phone-only"
+				icon="contents"
+				aria-label="Contents"
+				onclick={() => (contentsOpen = true)}
+			/>
+		</header>
+
+		<!-- Keyboard and screen-reader users start reading with the player controls and Contents. -->
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+		<article
+			class={['page', player?.active && 'playing']}
+			lang={book.language ?? undefined}
+			onclick={readFrom}
+		>
+			<div class="band" aria-hidden="true">
+				<span>{toRoman(chapter.position + 1)}.</span>
+			</div>
+			{#each chapter.blocks as block, index (index)}
+				{#if block.type === 'break'}
+					<hr />
+				{:else if block.type === 'heading'}
+					<h2
+						id={`block-${index}`}
+						data-block={index}
+						aria-current={showingCurrent && index === position.block ? 'true' : undefined}
+					>
+						{block.text}
+					</h2>
 				{:else}
-					{block.text}
+					{@const current = showingCurrent && index === position.block}
+					<p
+						id={`block-${index}`}
+						class={{ opening: index === openingBlock }}
+						data-block={index}
+						aria-current={current ? 'true' : undefined}
+					>
+						{#if current && currentSegments}
+							{#each currentSegments as segment, i (i)}<span
+									class={['segment', i === position.segment && 'speaking']}
+									>{segment}{i < currentSegments.length - 1 ? ' ' : ''}</span
+								>{/each}
+						{:else}
+							{block.text}
+						{/if}
+					</p>
 				{/if}
-			</p>
-		{/if}
-	{/each}
+			{/each}
 
-	<nav class="chapter-nav" aria-label="Chapters">
-		{#if chapter.position > 0}
-			<Button variant="outline" onclick={() => openChapter(chapter.position - 1)}>
-				Previous chapter
-			</Button>
-		{/if}
-		{#if chapter.position < book.chapterCount - 1}
-			<Button variant="outline" onclick={() => openChapter(chapter.position + 1)}>
-				Next chapter
-			</Button>
-		{/if}
-	</nav>
-</article>
-
-{#if !follow && player?.active}
-	<div class="follow">
-		<Button variant="outline" icon="follow" onclick={resumeFollowing}>Back to the voice</Button>
+			<nav class="chapter-nav" aria-label="Chapters">
+				{#if chapter.position > 0}
+					<Button variant="outline" onclick={() => openChapter(chapter.position - 1)}>
+						Previous chapter
+					</Button>
+				{/if}
+				{#if chapter.position < book.chapterCount - 1}
+					<Button variant="outline" onclick={() => openChapter(chapter.position + 1)}>
+						Next chapter
+					</Button>
+				{/if}
+			</nav>
+		</article>
 	</div>
-{/if}
 
-{#if player}
-	<PlayerBar {player} />
-{/if}
+	{#if !follow && player?.active}
+		<div class="follow">
+			<Button variant="outline" icon="follow" onclick={resumeFollowing}>Back to the voice</Button>
+		</div>
+	{/if}
 
-<Sheet bind:open={contentsOpen} title="Contents">
+	{#if player}
+		<PlayerBar {player} />
+	{/if}
+</div>
+
+{#snippet contentsList()}
 	{#if saveProblem}<p class="save-problem" role="alert">{saveProblem}</p>{/if}
 	<ol class="contents">
 		{#each book.chapters as entry, index (index)}
@@ -261,9 +290,80 @@
 			</li>
 		{/each}
 	</ol>
+{/snippet}
+
+<Sheet bind:open={contentsOpen} title="Contents">
+	{#if contentsOpen}{@render contentsList()}{/if}
 </Sheet>
 
 <style>
+	.side {
+		display: none;
+	}
+
+	@media (min-width: 64rem) {
+		.reader {
+			/* Read by the docked player bar and the follow button, which are fixed. */
+			--reader-side: var(--sidebar-width);
+			display: grid;
+			grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		}
+
+		.side {
+			position: sticky;
+			top: 0;
+			display: grid;
+			grid-template-rows: auto auto minmax(0, 1fr) auto;
+			gap: var(--space-4);
+			height: 100dvh;
+			padding: calc(var(--space-6) + var(--safe-top)) var(--space-4)
+				calc(var(--space-5) + var(--safe-bottom)) var(--space-6);
+			border-right: var(--border-thin) solid var(--color-rule);
+		}
+
+		.side > :global(.button) {
+			justify-self: start;
+		}
+
+		.top :global(.phone-only) {
+			visibility: hidden;
+		}
+	}
+
+	.wordmark {
+		font-size: var(--text-xl);
+		font-weight: var(--weight-medium);
+		letter-spacing: var(--tracking-display);
+	}
+
+	.now {
+		display: grid;
+		gap: var(--space-1);
+		padding-bottom: var(--space-4);
+		border-bottom: var(--border-thin) solid var(--color-rule-soft);
+	}
+
+	.kicker {
+		font-size: var(--text-xs);
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+	}
+
+	.side-title {
+		font-size: var(--text-l);
+		line-height: var(--leading-tight);
+	}
+
+	.side-author {
+		color: var(--color-ink-muted);
+		font-style: italic;
+	}
+
+	.side-contents {
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
 	.top {
 		position: sticky;
 		top: 0;
@@ -418,7 +518,8 @@
 
 	.follow {
 		position: fixed;
-		inset: auto 0 calc(var(--player-height) + var(--space-5) + var(--safe-bottom));
+		inset: auto 0 calc(var(--player-height) + var(--space-5) + var(--safe-bottom))
+			var(--reader-side, 0);
 		z-index: var(--layer-player);
 		display: flex;
 		justify-content: center;
