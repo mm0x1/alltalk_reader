@@ -168,7 +168,9 @@ Order of work for the 2026-11-13 presentation:
   https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no and built for the reader: from 64rem a
   ruled sidebar (book, contents with save buttons, back to the shelf) and the player docked
   under the text column; CSS-only switch, so the server-rendered page is right on first load.
-  Still to do: a desktop library (the shelf uses the width already, but no sidebar), and `/`
+  Still to do: a desktop library (the shelf uses the width already, but no sidebar; variants
+  A Folio shelf, B Title plates, C Printed index published for a pick at
+  https://claude.ai/artifact/LBYFHjcubQh5NempCXNpTc), and `/`
   to search once there is search. A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
@@ -481,4 +483,5 @@ One line per work session: date, what was done, what's next.
   phone library overflowing its frame and the missing space after the author; book details
   now wrap instead of truncating. AllTalk v2 installed and running locally (XTTS v2.0.3, CPU;
   a subagent did the install, notes in `../alltalk_tts/READHOUSE-RUN.md`) and verified live
-  through Readhouse. Next: the desktop library.
+  through Readhouse. Desktop library variants published; waiting on a pick. Next: README
+  screenshots and the device checklist meanwhile.
