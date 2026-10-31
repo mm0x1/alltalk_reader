@@ -22,6 +22,11 @@
 	let dragging = $state(false);
 	let addBook = $state<ReturnType<typeof AddBook>>();
 
+	// Coming back from a book whose place is still being saved: show the shelf once it lands.
+	onMount(() => {
+		void session.player?.saved()?.then(() => invalidateAll());
+	});
+
 	// Something shared to Readhouse from another app arrives here (see the service worker).
 	onMount(() => {
 		if (!page.url.searchParams.has('shared')) return;

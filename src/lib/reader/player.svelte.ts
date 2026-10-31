@@ -88,6 +88,8 @@ export class Player {
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	readonly #chapters = new Map<number, Promise<ChapterContent>>();
 	#lastSaved = 0;
+	/** The chain of progress saves still in flight, or null when all have landed. */
+	#saving: Promise<void> | null = null;
 	#sleepTimer: ReturnType<typeof setTimeout> | null = null;
 	#fadeTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -142,10 +144,11 @@ export class Player {
 		this.#loaded = null;
 		this.position = position;
 		if (this.status !== 'idle') this.status = 'paused';
+		// Save the new place now, not after its chapter loads: the reader may leave at once.
+		this.#save(true);
 		const generation = this.#generation;
 		const chapter = await this.#chapter(position.chapter).catch(() => null);
 		if (chapter && generation === this.#generation) this.chapter = chapter;
-		this.#save(true);
 	}
 
 	async next(): Promise<void> {
@@ -456,7 +459,24 @@ export class Player {
 		if (!force && now - this.#lastSaved < SAVE_INTERVAL_MS) return;
 		this.#lastSaved = now;
 		const { chapter, block } = this.position;
-		api.saveProgress(this.book.id, chapter, block, keepalive).catch(() => undefined);
+		// A page being hidden can't wait its turn; keepalive lets it finish after the page goes.
+		if (keepalive) {
+			api.saveProgress(this.book.id, chapter, block, true).catch(() => undefined);
+			return;
+		}
+		// One at a time, so an older place can never land after a newer one.
+		const saving: Promise<void> = (this.#saving ?? Promise.resolve())
+			.then(() => api.saveProgress(this.book.id, chapter, block))
+			.catch(() => undefined)
+			.finally(() => {
+				if (this.#saving === saving) this.#saving = null;
+			});
+		this.#saving = saving;
+	}
+
+	/** Resolves when every progress save made so far has landed; null when none is in flight. */
+	saved(): Promise<void> | null {
+		return this.#saving;
 	}
 
 	#setupMediaSession(): void {
