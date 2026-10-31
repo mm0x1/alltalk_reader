@@ -1,5 +1,5 @@
 #!/bin/sh
-# Regenerates Readhouse's dithered assets with Ditherhouse (Motherhouse Inc).
+# Regenerates Readhouse's dithered assets with Ditherhouse (Motherhouse).
 # The outputs in static/dither/ are committed; rerun this after changing a theme's ink or paper
 # in src/lib/design/tokens.css, and keep the colours below in step with the tokens.
 #

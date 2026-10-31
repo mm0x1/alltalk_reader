@@ -1,6 +1,6 @@
 # Backlog
 
-The upgrade from "AllTalk Reader" to **Readhouse**, a Motherhouse Inc app. Nothing here is started
+The upgrade from "AllTalk Reader" to **Readhouse**, a Motherhouse app. Nothing here is started
 unless marked.
 
 **Deadline:** AO3 is down until about **2026-11-13**. The app is presented when it comes back,
@@ -46,7 +46,7 @@ every decision below assumes the page is served from another machine, often over
 
 ## Decisions
 
-- [x] **Name: Readhouse.** Joins Ditherhouse in the Motherhouse Inc suite. Rename everywhere:
+- [x] **Name: Readhouse.** Joins Ditherhouse in the Motherhouse suite. Rename everywhere:
   wordmark, `package.json` name (still `tanstack-start-example-basic-react-query`), page
   titles, PWA manifest, README, docs, GitHub repo (`alltalk_reader` → `readhouse`). Check
   domain/handle availability.

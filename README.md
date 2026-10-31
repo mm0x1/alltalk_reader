@@ -4,7 +4,7 @@
 reading room that reads to you, in voices you choose, with [AllTalk](https://github.com/erew123/alltalk_tts/tree/alltalkbeta)
 doing the speaking. It runs on your computer and you listen on your phone.
 
-A Motherhouse Inc app, alongside Ditherhouse.
+A Motherhouse app, alongside Ditherhouse.
 
 <p>
   <img src="docs/screenshots/phone-library.png" width="260" alt="The library on a phone: the book to continue, then the shelf">
@@ -106,14 +106,14 @@ All settings live in `.env` (see `.env.example`) and are checked when Readhouse 
 
 ## Keeping it running
 
-macOS (`~/Library/LaunchAgents/inc.motherhouse.readhouse.plist`):
+macOS (`~/Library/LaunchAgents/com.motherhousehq.readhouse.plist`):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Label</key><string>inc.motherhouse.readhouse</string>
+	<key>Label</key><string>com.motherhousehq.readhouse</string>
 	<key>WorkingDirectory</key><string>/path/to/readhouse</string>
 	<key>ProgramArguments</key>
 	<array><string>/opt/homebrew/bin/mise</string><string>run</string><string>start</string></array>
@@ -123,7 +123,7 @@ macOS (`~/Library/LaunchAgents/inc.motherhouse.readhouse.plist`):
 </plist>
 ```
 
-Then `launchctl load ~/Library/LaunchAgents/inc.motherhouse.readhouse.plist`.
+Then `launchctl load ~/Library/LaunchAgents/com.motherhousehq.readhouse.plist`.
 
 Linux (systemd user service, `~/.config/systemd/user/readhouse.service`):
 

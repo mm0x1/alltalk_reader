@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Readhouse (Motherhouse Inc): a reading room that reads books aloud with AllTalk TTS. It runs on
+Readhouse (Motherhouse): a reading room that reads books aloud with AllTalk TTS. It runs on
 a computer next to AllTalk and is opened on a phone over LAN or Tailscale. Mobile first.
 
 ## Start here, every session
