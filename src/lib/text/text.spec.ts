@@ -229,6 +229,17 @@ describe('splitChapters', () => {
 			'Intro.\n\nPart of me wanted to leave, but I stayed for a very long time indeed.\n\nEnd.';
 		expect(splitChapters(text, 'T')).toHaveLength(1);
 	});
+
+	it('knows the staves of A Christmas Carol, after its contents list', () => {
+		const staves = ['I', 'II', 'III', 'IV', 'V'];
+		const text = [
+			staves.map((n) => `Stave ${n.padStart(3)}: Spirit`).join('\n'),
+			...staves.map((n) => `STAVE ${n}:  SPIRIT\n\nScrooge awoke.`)
+		].join('\n\n\n');
+		expect(splitChapters(text, 'T').map((c) => c.title)).toEqual(
+			staves.map((n) => `STAVE ${n}: SPIRIT`)
+		);
+	});
 });
 
 describe('cleanChapterTitle', () => {

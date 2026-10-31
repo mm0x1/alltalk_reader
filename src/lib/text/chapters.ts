@@ -1,4 +1,4 @@
-/** Finds chapters in plain text by their headings ("Chapter 3", "PART TWO", "Prologue", "IV"). */
+/** Finds chapters in plain text by their headings ("Chapter 3", "PART TWO", "Stave I", "Prologue", "IV"). */
 
 import type { ParsedChapter } from '#lib/book.js';
 import { collapseWhitespace, normalizeText } from './normalize';
@@ -8,7 +8,7 @@ const NUMBER_WORDS =
 	'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|' +
 	'sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|' +
 	'hundred|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|last|final';
-const LABEL = '(?:chapter|chap\\.|part|book|volume|vol\\.|act|canto)';
+const LABEL = '(?:chapter|chap\\.|part|book|volume|vol\\.|act|canto|stave)';
 const NUMBER = `(?:\\d{1,4}|[ivxlcdm]{1,8}|the\\s+\\w+|(?:${NUMBER_WORDS})(?:[-\\s](?:${NUMBER_WORDS}))?)`;
 
 /** "Chapter 1", "CHAPTER XII. The Storm", "Part Two: Ashes", "Book the First". */

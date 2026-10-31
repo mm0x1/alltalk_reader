@@ -198,9 +198,13 @@ Order of work for the 2026-11-13 presentation:
   get title, author, cover, chapter list in spine order. Turn chapter XHTML into
   paragraphs. Sanitize all EPUB HTML (it is untrusted; never inject it as HTML).
   *Done:* On the server (fflate + htmlparser2): spine, nav/NCX titles incl. anchor-split chapters, covers, Gutenberg cleanup; tested on real Gutenberg books.
-- [ ] **"Stave" chapter headings.** Gutenberg's *A Christmas Carol* uses "STAVE ONE"; TXT
+- [x] **"Stave" chapter headings.** Gutenberg's *A Christmas Carol* uses "STAVE ONE"; TXT
   chapter detection doesn't know it yet, so the book imports as one chapter. Also consider
   smart quotes for TXT with straight ASCII quotes (display only; speech is unaffected).
+  *Done:* "Stave" is a chapter label; the real Gutenberg text (#46) now imports as Preface and
+  five staves. Smart quotes left out for now: display-only curling must keep the spoken
+  segments and the sentence highlight in step, and narrator mode splits on straight quotes, so
+  it isn't worth the risk before the demo.
 - [x] **Load TXT files.** Detect encoding (UTF-8/UTF-16/Latin-1), detect chapters by common
   headings ("Chapter 1", "CHAPTER ONE", "Part II", `***`), fall back to one chapter.
   *Done:* BOM/UTF-8/Windows-1252, Gutenberg header/footer, chapter headings, contents lists and subtitles.
