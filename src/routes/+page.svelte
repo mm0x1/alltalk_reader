@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { api } from '#lib/client/api.js';
 	import { forgetBook } from '#lib/client/offline.js';
+	import { takeShared } from '#lib/client/share.js';
 	import AddBook from '#lib/library/AddBook.svelte';
 	import BookRow from '#lib/library/BookRow.svelte';
 	import ContinuePlate from '#lib/library/ContinuePlate.svelte';
@@ -18,6 +21,19 @@
 	let adding = $state(false);
 	let dragging = $state(false);
 	let addBook = $state<ReturnType<typeof AddBook>>();
+
+	// Something shared to Readhouse from another app arrives here (see the service worker).
+	onMount(() => {
+		if (!page.url.searchParams.has('shared')) return;
+		replaceState(resolve('/'), {});
+		void takeShared().then((shared) => {
+			if (!shared) return;
+			adding = true;
+			if (shared.kind === 'file') addBook?.offerFile(shared.file);
+			else if (shared.kind === 'text') addBook?.offerText(shared.text, shared.title);
+			else addBook?.explainLink();
+		});
+	});
 
 	async function remove(id: string, title: string) {
 		if (!confirm(`Remove “${title}” from your library?`)) return;

@@ -13,6 +13,8 @@
 	let problem = $state<string | null>(null);
 	let pasted = $state('');
 	let pastedTitle = $state('');
+	/** A file shared from another app, waiting for the reader to confirm it. */
+	let sharedFile = $state<File | null>(null);
 
 	async function add(work: () => Promise<{ id: string }>) {
 		busy = true;
@@ -30,7 +32,29 @@
 	}
 
 	export function addFile(file: File) {
+		sharedFile = null;
 		void add(() => api.upload(file));
+	}
+
+	/*
+	 * Shared from another app. Never added without a tap: any website can POST to the share
+	 * target, so what arrives there is only offered, like a file the reader still has to confirm.
+	 */
+	export function offerFile(file: File) {
+		problem = null;
+		sharedFile = file;
+	}
+
+	export function offerText(text: string, title: string) {
+		problem = null;
+		pasted = text;
+		pastedTitle = title;
+	}
+
+	/** A link was shared: Readhouse never fetches web pages, so say what works instead. */
+	export function explainLink() {
+		problem =
+			'Readhouse can\u2019t open web links. On AO3, download the work as EPUB and share the file, or copy the whole page and paste it here.';
 	}
 </script>
 
@@ -39,12 +63,22 @@
 		<section>
 			<h3>From a file</h3>
 			<p class="hint">EPUB or plain text (.txt). AO3 downloads work too.</p>
-			<FilePicker
-				label="Choose a file"
-				accept=".epub,.txt,application/epub+zip,text/plain"
-				disabled={busy}
-				onpick={addFile}
-			/>
+			{#if sharedFile}
+				{@const file = sharedFile}
+				<div class="shared">
+					<p>Shared with Readhouse: <span class="file-name">{file.name}</span></p>
+					<Button variant="primary" disabled={busy} onclick={() => addFile(file)}>
+						Add this book
+					</Button>
+				</div>
+			{:else}
+				<FilePicker
+					label="Choose a file"
+					accept=".epub,.txt,application/epub+zip,text/plain"
+					disabled={busy}
+					onpick={addFile}
+				/>
+			{/if}
 		</section>
 
 		<section>
@@ -106,6 +140,19 @@
 	form {
 		display: grid;
 		gap: var(--space-2);
+	}
+
+	.shared {
+		display: grid;
+		gap: var(--space-3);
+		justify-items: start;
+		padding: var(--space-3);
+		border: var(--border-thin) solid var(--color-rule);
+	}
+
+	.file-name {
+		font-style: italic;
+		overflow-wrap: anywhere;
 	}
 
 	.status {

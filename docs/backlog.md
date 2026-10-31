@@ -162,7 +162,8 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Mobile first.** Designed at 360–430 px wide before desktop. Bottom sheets instead of
   modals, safe-area insets (notch, home bar), no horizontal scroll, no hover-only UI, `dvh`
   units so the browser bar doesn't hide the player, works in iOS Safari and Android Chrome.
-- [ ] **Good on desktop.** A layout that uses the width (library/chapter sidebar + reading
+- [ ] **Good on desktop.** *(in progress)* Three layouts waiting for the user's pick (A Folio,
+  B Margins, C Wide phone): https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
 - [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
@@ -191,9 +192,13 @@ Order of work for the 2026-11-13 presentation:
   computer share them, with cover, progress and last read; the service worker caches what's
   needed offline. Delete and re-import.
   *Done:* Server-side SQLite, shared by all devices; cover, progress, last opened; delete.
-- [ ] **Open from anywhere.** File picker, drag and drop on desktop, Share-to/Open-with on
+- [x] **Open from anywhere.** File picker, drag and drop on desktop, Share-to/Open-with on
   mobile via PWA share target if feasible.
-  *(in progress)* File picker and desktop drag and drop done. Share target (Android) pending.
+  *Done:* File picker, desktop drag and drop, and an Android share target (installed PWA):
+  the service worker receives the POST on the device and the library offers the file or text
+  in Add a book; it is never added without a tap, since any website can POST to `/share`.
+  Shared links get an explanation (Readhouse never fetches URLs). Known gap: with a passcode
+  and a locked device, the unlock redirect drops the share. Not on iOS (no share target).
 - [ ] **AO3 still first-class.** Keep the AO3 parser (paste/HTML download) and give AO3 works
   the same chapter UI as EPUB; AO3's own EPUB downloads should import cleanly. Test with AO3
   downloads before 2026-11-13.
@@ -444,3 +449,6 @@ One line per work session: date, what was done, what's next.
   Radio, Slider, FilePicker, ListRow (table-of-contents leaders), Badge, Button `text`;
   replaced every raw control; ESLint now forbids raw controls outside `src/lib/ui/`. Narrator
   marked Experimental with a warning, off by default. Next: desktop layout (variants first).
+- 2026-10-31: Desktop layout variants published for a pick. Android share target with a
+  confirm step (CSRF-safe), e2e-tested on all three profiles. Next: desktop layout once picked;
+  visual regression screenshots; README screenshots; device checklist.

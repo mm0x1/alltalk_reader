@@ -189,6 +189,47 @@ test('a saved chapter keeps playing without a connection', async ({ page, contex
 	}
 });
 
+test('a file or link shared from another app arrives in the library', async ({
+	page
+}, testInfo) => {
+	await page.goto('/');
+	await page.evaluate(async () => {
+		await navigator.serviceWorker.ready;
+	});
+	await page.reload();
+
+	// What Android does with the manifest's share_target: a multipart POST to /share.
+	const share = (fields: Record<string, string>, file?: { name: string; text: string }) =>
+		page.evaluate(
+			async ({ fields, file }) => {
+				const form = new FormData();
+				for (const [key, value] of Object.entries(fields)) form.append(key, value);
+				if (file) form.append('book', new File([file.text], file.name, { type: 'text/plain' }));
+				const response = await fetch('/share', { method: 'POST', body: form, redirect: 'manual' });
+				return response.type === 'opaqueredirect' || response.redirected;
+			},
+			{ fields, file }
+		);
+
+	const title = `Shared ${testInfo.project.name}`;
+	expect(await share({}, { name: `${title}.txt`, text: STORY })).toBe(true);
+	await page.goto('/?shared');
+	// Offered, not added: any website could have posted it, so it waits for a tap.
+	const sheet = page.getByRole('dialog', { name: 'Add a book' });
+	await expect(sheet).toContainText(`${title}.txt`);
+	await sheet.getByRole('button', { name: 'Add this book' }).click();
+	await expect(page).toHaveURL(/\/book\/[0-9a-f-]{36}$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 1' })).toBeVisible();
+
+	// A bare link can't become a book; the sheet says what to do instead.
+	expect(await share({ text: 'https://archiveofourown.org/works/1' })).toBe(true);
+	await page.goto('/?shared');
+	await expect(page.getByRole('dialog', { name: 'Add a book' })).toContainText(
+		'can\u2019t open web links'
+	);
+	await expect(page).toHaveURL(/\/$/);
+});
+
 test('marks the sentence being read in a long paragraph', async ({ page }, testInfo) => {
 	await page.goto('/');
 	const long =

@@ -25,7 +25,10 @@ import {
 	RECENT_AUDIO_CACHE,
 	RECENT_AUDIO_LIMIT,
 	SAVE_HEADER,
-	SAVED_AUDIO_CACHE
+	SAVED_AUDIO_CACHE,
+	SHARE_CACHE,
+	SHARE_KEY,
+	SHARE_PATH
 } from '#lib/offline-shared.js';
 
 const SHELL_CACHE = `readhouse-shell-${version}`;
@@ -38,7 +41,14 @@ const SHELL = [
 	...immutable.map((asset) => resolve(asset.path)).filter((path) => !OTHER_SCRIPT_FONT.test(path)),
 	...assets.map((asset) => resolve(asset.path))
 ];
-const KEEP = new Set([SHELL_CACHE, RECENT_AUDIO_CACHE, SAVED_AUDIO_CACHE, BOOK_CACHE, PAGE_CACHE]);
+const KEEP = new Set([
+	SHELL_CACHE,
+	RECENT_AUDIO_CACHE,
+	SAVED_AUDIO_CACHE,
+	BOOK_CACHE,
+	PAGE_CACHE,
+	SHARE_CACHE
+]);
 
 const AUDIO = /^\/api\/audio\/[0-9a-f]{64}$/;
 const BOOK_FILES = /^\/api\/books\/[0-9a-f-]{36}\/(?:chapters\/\d+|cover)$/;
@@ -63,9 +73,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
 	const { request } = event;
-	if (request.method !== 'GET') return;
 	const url = new URL(request.url);
 	if (url.origin !== self.location.origin) return;
+	if (request.method === 'POST' && url.pathname === SHARE_PATH) {
+		event.respondWith(receiveShare(request));
+		return;
+	}
+	if (request.method !== 'GET') return;
 
 	if (SHELL.includes(url.pathname)) {
 		event.respondWith(fromCache(SHELL_CACHE, url.pathname, request));
@@ -77,6 +91,42 @@ self.addEventListener('fetch', (event) => {
 		event.respondWith(networkFirst(PAGE_CACHE, request, PAGE_LIMIT));
 	}
 });
+
+/**
+ * The share target (manifest `share_target`): keeps what was shared on this device and opens
+ * the library, which adds it. Handled here so the POST never reaches the server.
+ */
+async function receiveShare(request: Request): Promise<Response> {
+	const cache = await caches.open(SHARE_CACHE);
+	await cache.delete(SHARE_KEY);
+	try {
+		const form = await request.formData();
+		const file = form.get('book');
+		if (file instanceof File && file.size > 0) {
+			await cache.put(
+				SHARE_KEY,
+				new Response(file, {
+					headers: {
+						'content-type': file.type || 'application/octet-stream',
+						'x-file-name': encodeURIComponent(file.name)
+					}
+				})
+			);
+		} else {
+			const field = (name: string) => {
+				const value = form.get(name);
+				return typeof value === 'string' ? value : '';
+			};
+			await cache.put(
+				SHARE_KEY,
+				Response.json({ title: field('title'), text: field('text'), url: field('url') })
+			);
+		}
+	} catch {
+		// Nothing usable was shared; the library opens as usual.
+	}
+	return Response.redirect(resolve('/') + '?shared', 303);
+}
 
 async function fromCache(name: string, key: string, request: Request): Promise<Response> {
 	return (await (await caches.open(name)).match(key)) ?? fetch(request);
