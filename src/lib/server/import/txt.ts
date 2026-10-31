@@ -55,9 +55,21 @@ function build(text: string, title: string, author: string | null, source: 'txt'
 	return { title, author, language: null, source, chapters, cover: null } satisfies ParsedBook;
 }
 
+/**
+ * Plain-text emphasis (`_word_`, the Project Gutenberg convention) loses its markers: they would
+ * otherwise show on the page. Only underscores hugging a word at both ends are removed.
+ */
+export function stripUnderscoreEmphasis(text: string): string {
+	return text.replace(
+		/(^|[\s([{"'\u2018\u201C\u2014])_(?=\S)([^_\n]*?\S)_(?=$|[\s)\]}.,;:!?"'\u2019\u201D\u2014-])/gm,
+		'$1$2'
+	);
+}
+
 export function parseTxt(bytes: Uint8Array, filename: string): ParsedBook {
 	const cleaned = stripGutenberg(decodeText(bytes));
-	return build(cleaned.text, cleaned.title ?? titleFromFilename(filename), cleaned.author, 'txt');
+	const title = cleaned.title ?? titleFromFilename(filename);
+	return build(stripUnderscoreEmphasis(cleaned.text), title, cleaned.author, 'txt');
 }
 
 /** Pasted text. A copied AO3 page is recognised and reduced to the story. */

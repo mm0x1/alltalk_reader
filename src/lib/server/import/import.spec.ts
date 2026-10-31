@@ -3,7 +3,7 @@ import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { htmlToBlocks } from './html';
 import { parseEpub, resolvePath } from './epub';
 import { readZip, ZipLimitError } from './zip';
-import { decodeText, parsePaste, stripGutenberg } from './txt';
+import { decodeText, parsePaste, stripGutenberg, stripUnderscoreEmphasis } from './txt';
 import { importFile, ImportError } from './index';
 import { sniffImage } from './sniff';
 
@@ -296,6 +296,16 @@ describe('text import', () => {
 		expect(cleaned.title).toBe('Example Tale');
 		expect(cleaned.author).toBe('Jane Doe');
 		expect(cleaned.text.trim()).toBe('Story text.');
+	});
+
+	it('removes underscore emphasis markers but keeps other underscores', () => {
+		expect(stripUnderscoreEmphasis("I'm sure _I_ shan't. (_very_ odd)")).toBe(
+			"I'm sure I shan't. (very odd)"
+		);
+		expect(stripUnderscoreEmphasis('_Two words_, said she.')).toBe('Two words, said she.');
+		expect(stripUnderscoreEmphasis('snake_case_name and __init__')).toBe(
+			'snake_case_name and __init__'
+		);
 	});
 
 	it('detects the format from content, not the file name', () => {

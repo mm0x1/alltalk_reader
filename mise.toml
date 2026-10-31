@@ -1,3 +1,42 @@
 [tools]
 node = "26"
 pnpm = "12.16.1"
+gitleaks = "8.30.1"
+
+[tasks.setup]
+description = "Install dependencies, test browsers and the pre-push hook"
+run = [
+  "pnpm install",
+  "pnpm exec playwright install chromium webkit",
+  "git config core.hooksPath .githooks",
+]
+
+[tasks.dev]
+description = "Dev server (needs AllTalk, or run `mise run fake-alltalk` alongside)"
+run = "pnpm dev --host"
+
+[tasks.fake-alltalk]
+description = "A fake AllTalk on port 7851 for UI work without a GPU"
+run = "node tests/fake-alltalk.ts 7851"
+
+[tasks.build]
+run = "pnpm build"
+
+[tasks.start]
+description = "Run the production build (reads .env)"
+run = "node --env-file-if-exists=.env build"
+
+[tasks.check]
+description = "The full quality gate: also the pre-push hook and CI"
+run = [
+  "pnpm check",
+  "pnpm lint",
+  "pnpm exec vitest run",
+  "pnpm audit --prod",
+  "gitleaks git --no-banner --redact",
+  "pnpm exec playwright test",
+]
+
+[tasks.audit]
+description = "Audit all dependencies, including build tools (informational)"
+run = "pnpm audit"

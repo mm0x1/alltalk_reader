@@ -19,7 +19,7 @@
 		"test:unit": "vitest",
 		"test": "vitest run && playwright test",
 		"test:e2e": "playwright test",
-		"gate": "pnpm check && pnpm lint && vitest run && playwright test"
+		"gate": "mise run check"
 	},
 	"dependencies": {
 		"fflate": "^0.8.3",

@@ -1,0 +1,128 @@
+/*
+ * Readhouse design tokens: the only place raw values live. Components use these variables and
+ * nothing else, so a change here reaches the whole app.
+ *
+ * Interim values: the visual identity is designed later (see docs/backlog.md). Names are meant
+ * to last; values are expected to change.
+ */
+
+:root {
+	/* Colour: paper and ink. */
+	--color-paper: #f6f1e7;
+	--color-paper-raised: #fbf8f1;
+	--color-paper-sunken: #ece5d6;
+	--color-ink: #1f1c18;
+	--color-ink-muted: #5f574b;
+	--color-ink-faint: #8c8273;
+	--color-rule: #d6ccb8;
+	--color-accent: #7b2d1e;
+	--color-accent-ink: #fbf8f1;
+	--color-highlight: #ecdcae;
+	--color-danger: #9a2a1f;
+	--color-focus: #2c5a96;
+	--color-scrim: rgb(20 17 14 / 0.45);
+
+	/* Type. Self-hosted reading fonts come with the visual identity; system serifs for now. */
+	--font-reading: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+	--font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--text-xs: 0.75rem;
+	--text-s: 0.875rem;
+	--text-m: 1rem;
+	--text-l: 1.25rem;
+	--text-xl: 1.5rem;
+	--text-2xl: 2rem;
+	--text-reading: 1.1875rem;
+	--leading-tight: 1.2;
+	--leading-ui: 1.4;
+	--leading-reading: 1.65;
+	--weight-regular: 400;
+	--weight-medium: 500;
+	--weight-bold: 650;
+	--measure: 36rem;
+
+	/* Space, on a 4px grid. */
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-5: 1.5rem;
+	--space-6: 2rem;
+	--space-7: 3rem;
+	--space-8: 4rem;
+
+	/* Shape and depth. */
+	--radius-s: 0.375rem;
+	--radius-m: 0.75rem;
+	--radius-l: 1.25rem;
+	--radius-round: 999px;
+	--border-thin: 1px;
+	--shadow-raised: 0 1px 2px rgb(31 28 24 / 0.08), 0 4px 16px rgb(31 28 24 / 0.08);
+	--shadow-overlay: 0 8px 40px rgb(31 28 24 / 0.22);
+
+	/* Motion. */
+	--duration-fast: 120ms;
+	--duration-medium: 220ms;
+	--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+	/* Layout. */
+	--tap-min: 2.75rem;
+	--cover-width: 4.5rem;
+	--player-height: 4.5rem;
+	--content-max: 72rem;
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--layer-player: 20;
+	--layer-overlay: 30;
+
+	color-scheme: light;
+}
+
+/* Dark: the same object, ink and paper reversed. */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']):not([data-theme='sepia']) {
+		--color-paper: #17150f;
+		--color-paper-raised: #211e17;
+		--color-paper-sunken: #100e0a;
+		--color-ink: #ece4d4;
+		--color-ink-muted: #b5aa97;
+		--color-ink-faint: #857b6b;
+		--color-rule: #3a352b;
+		--color-accent: #e0a88f;
+		--color-accent-ink: #17150f;
+		--color-highlight: #4a3d22;
+		--color-danger: #f08b7c;
+		--color-focus: #8fb6ec;
+		--shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
+		--shadow-overlay: 0 8px 40px rgb(0 0 0 / 0.6);
+		color-scheme: dark;
+	}
+}
+
+:root[data-theme='dark'] {
+	--color-paper: #17150f;
+	--color-paper-raised: #211e17;
+	--color-paper-sunken: #100e0a;
+	--color-ink: #ece4d4;
+	--color-ink-muted: #b5aa97;
+	--color-ink-faint: #857b6b;
+	--color-rule: #3a352b;
+	--color-accent: #e0a88f;
+	--color-accent-ink: #17150f;
+	--color-highlight: #4a3d22;
+	--color-danger: #f08b7c;
+	--color-focus: #8fb6ec;
+	--shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
+	--shadow-overlay: 0 8px 40px rgb(0 0 0 / 0.6);
+	color-scheme: dark;
+}
+
+:root[data-theme='sepia'] {
+	--color-paper: #f1e4c8;
+	--color-paper-raised: #f7ecd6;
+	--color-paper-sunken: #e6d5b2;
+	--color-ink: #3b2c1a;
+	--color-ink-muted: #6b5638;
+	--color-ink-faint: #93795a;
+	--color-rule: #d3bf98;
+	--color-highlight: #e3c98c;
+}

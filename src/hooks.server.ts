@@ -1,5 +1,5 @@
 import { json, redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { app } from '#lib/server/app.js';
 import { SESSION_COOKIE } from '#lib/server/access.js';
 
@@ -64,4 +64,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 		response.headers.set('cache-control', 'no-store');
 	}
 	return response;
+};
+
+/** A client that hangs up mid-request (a cancelled prefetch, a closed tab) is normal here. */
+function isClientAbort(error: unknown): boolean {
+	const code = (error as { code?: unknown } | null)?.code;
+	return (
+		(error instanceof Error && error.message === 'aborted') ||
+		code === 'ECONNRESET' ||
+		code === 'ABORT_ERR'
+	);
+}
+
+/**
+ * Errors thrown with `error()` keep their status and message. Anything unexpected is logged on
+ * the server, and the browser only gets SvelteKit's generic message.
+ */
+export const handleError: HandleServerError = ({ kind, error }) => {
+	if (kind !== 'unknown' || isClientAbort(error)) return;
+	console.error(error);
 };

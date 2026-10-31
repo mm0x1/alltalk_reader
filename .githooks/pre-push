@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs the quality gate before every push. Skip in an emergency with `git push --no-verify`.
+exec mise run check
