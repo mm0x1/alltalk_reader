@@ -16,6 +16,8 @@ const shared = {
  * baselines are made on macOS, and Linux CI renders fonts differently.
  */
 const visual = !process.env.CI;
+/** README screenshots (`mise run screenshots`): only when asked for, never in the gate. */
+const shots = visual && !!process.env.SHOTS;
 const visualUse = { baseURL: `http://127.0.0.1:${VISUAL_PORT}` };
 
 export default defineConfig({
@@ -51,6 +53,25 @@ export default defineConfig({
 						name: 'visual-desktop',
 						testMatch: /visual\.spec\.ts/,
 						use: { ...devices['Desktop Chrome'], ...visualUse }
+					}
+				]
+			: []),
+		...(shots
+			? [
+					{
+						name: 'readme-phone',
+						testMatch: /readme\.spec\.ts/,
+						use: { ...devices['iPhone 15'], deviceScaleFactor: 2, ...visualUse }
+					},
+					{
+						name: 'readme-desktop',
+						testMatch: /readme\.spec\.ts/,
+						use: {
+							...devices['Desktop Chrome'],
+							viewport: { width: 1280, height: 800 },
+							deviceScaleFactor: 2,
+							...visualUse
+						}
 					}
 				]
 			: [])

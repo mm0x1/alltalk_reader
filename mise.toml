@@ -44,3 +44,8 @@ run = "pnpm audit"
 [tasks."visual:update"]
 description = "Refresh the visual regression baselines (review the new screenshots first)"
 run = "pnpm exec playwright test --project='visual-*' --update-snapshots"
+
+[tasks.screenshots]
+description = "Retake the README screenshots in docs/screenshots (review them before committing)"
+env = { SHOTS = "1" }
+run = "pnpm exec playwright test --project='readme-*'"

@@ -6,6 +6,16 @@ doing the speaking. It runs on your computer and you listen on your phone.
 
 A Motherhouse Inc app, alongside Ditherhouse.
 
+<p>
+  <img src="docs/screenshots/phone-library.png" width="260" alt="The library on a phone: the book to continue, then the shelf">
+  <img src="docs/screenshots/phone-reader.png" width="260" alt="Reading Pride and Prejudice on a phone, the sentence being read aloud in reverse ink">
+  <img src="docs/screenshots/phone-reader-dark.png" width="260" alt="The same page in the dark theme">
+</p>
+
+<p>
+  <img src="docs/screenshots/desktop-reader.png" alt="The reader on a desktop: contents in a sidebar, the text column with the player under it">
+</p>
+
 - **Bring any book.** EPUB (including AO3 downloads), plain text (Project Gutenberg files are
   cleaned up automatically), or paste a chapter straight from an AO3 page.
 - **Chapters, not walls of text.** Readhouse finds the chapters and gives you a table of
@@ -36,8 +46,23 @@ mise run build
 mise run start          # http://localhost:3000
 ```
 
-Start AllTalk first. Readhouse talks to AllTalk from the computer itself, so AllTalk can stay on
-`127.0.0.1` and never needs to be reachable from your phone.
+Start AllTalk first.
+
+## Connecting to AllTalk
+
+AllTalk is installed and set up on its own (see its documentation). Readhouse needs one value
+from it: **`ALLTALK_URL`**, the address of AllTalk's API as seen from the computer running
+Readhouse, not from your phone. AllTalk's API uses port 7851 unless you changed it.
+
+| AllTalk runs on…       | Put in `.env`                                     |
+| ---------------------- | ------------------------------------------------- |
+| the same computer      | nothing (the default is `http://127.0.0.1:7851`)  |
+| another computer       | `ALLTALK_URL=http://<that computer's address>:7851` |
+| a different port       | `ALLTALK_URL=http://127.0.0.1:<port>`             |
+
+To check it, open **Settings** in Readhouse: it says **Connected**, followed by AllTalk's engine
+and model. If it says it can't reach AllTalk, check that AllTalk is running and that the address
+and port match. Tested with AllTalk v2 (`alltalkbeta`) and the XTTS v2 engine.
 
 ## Listening on your phone
 
@@ -78,9 +103,6 @@ All settings live in `.env` (see `.env.example`) and are checked when Readhouse 
 | `SEGMENT_MAX_CHARS`  | `500`                   | Longest text per AllTalk request. Shorter starts sooner.     |
 | `UPLOAD_MAX_MB`      | `64`                    | Largest book file you can add.                               |
 | `HOST` / `PORT`      | `0.0.0.0` / `3000`      | Where Readhouse listens.                                     |
-
-**AllTalk tips.** In AllTalk's settings, consider turning on deletion of old output files:
-Readhouse keeps its own copy of everything it generates.
 
 ## Keeping it running
 
@@ -134,7 +156,8 @@ Readhouse is meant for you and your devices. It still treats the network as host
   they stream; EPUB archives are unpacked with hard limits (no zip bombs).
 - With `ACCESS_PASSCODE`, devices get a signed, HttpOnly, SameSite=Strict cookie for 90 days.
   Wrong guesses are rate-limited. Changing the passcode signs every device out.
-- AllTalk is only ever called by the server, at the address you configured.
+- AllTalk is only ever called by the server, at the address you configured; the browser never
+  talks to it.
 
 ## Development
 
@@ -142,7 +165,13 @@ Readhouse is meant for you and your devices. It still treats the network as host
 mise run fake-alltalk   # a stand-in AllTalk on :7851, no GPU needed
 mise run dev            # dev server with hot reload
 mise run check          # the full gate: types, lint, unit, audit, secrets, end-to-end
+mise run visual:update  # accept reviewed visual changes (new screenshot baselines)
+mise run screenshots    # retake the README screenshots in docs/screenshots
 ```
+
+The gate includes screenshot comparisons of every key screen in every theme. They run on your
+machine and in the pre-push hook but not in CI, since the baselines are made on macOS and Linux
+renders fonts differently.
 
 The plan, decisions and progress live in [`docs/backlog.md`](docs/backlog.md). Agent notes are
 in [`CLAUDE.md`](CLAUDE.md). The AllTalk API reference is [`docs/alltalk-api.md`](docs/alltalk-api.md).

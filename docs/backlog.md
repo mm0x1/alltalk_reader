@@ -80,6 +80,9 @@ every decision below assumes the page is served from another machine, often over
   - Light on phones (small PNG/WebP, lossless so the pattern isn't smeared) and right in
     every theme (one asset per theme where needed).
   Whether dithering becomes a suite-wide house style is still open.
+- [x] **AllTalk is third-party (user, 2026-10-31).** Users install and configure it
+  themselves; Readhouse gives no support for AllTalk's own setup (ports, interfaces, exposure)
+  and only documents which values to enter in Readhouse (`ALLTALK_URL`).
 - [x] **AllTalk: v2, the `alltalkbeta` branch.**
   (https://github.com/erew123/alltalk_tts/tree/alltalkbeta), not `main` (v1, last updated
   2025-03). `../alltalk_tts` is already on `alltalkbeta` and up to date with the remote
@@ -195,6 +198,9 @@ Order of work for the 2026-11-13 presentation:
   get title, author, cover, chapter list in spine order. Turn chapter XHTML into
   paragraphs. Sanitize all EPUB HTML (it is untrusted; never inject it as HTML).
   *Done:* On the server (fflate + htmlparser2): spine, nav/NCX titles incl. anchor-split chapters, covers, Gutenberg cleanup; tested on real Gutenberg books.
+- [ ] **"Stave" chapter headings.** Gutenberg's *A Christmas Carol* uses "STAVE ONE"; TXT
+  chapter detection doesn't know it yet, so the book imports as one chapter. Also consider
+  smart quotes for TXT with straight ASCII quotes (display only; speech is unaffected).
 - [x] **Load TXT files.** Detect encoding (UTF-8/UTF-16/Latin-1), detect chapters by common
   headings ("Chapter 1", "CHAPTER ONE", "Part II", `***`), fall back to one chapter.
   *Done:* BOM/UTF-8/Windows-1252, Gutenberg header/footer, chapter headings, contents lists and subtitles.
@@ -322,6 +328,10 @@ Order of work for the 2026-11-13 presentation:
   whether to commit it so every session gets the same rules. Update the rest of `docs/`
   (architecture, API reference) at the same time and delete what no longer applies.
   *(in progress)* README rewritten (setup, Tailscale, config, running as a service, security). CLAUDE.md rewritten and committed; refresh after the design phase.
+  README screenshots (phone light and dark reader, phone library, desktop reader; plus desktop
+  library and sepia Contents in `docs/screenshots/`) are made by `mise run screenshots` from
+  `tests/e2e/readme.spec.ts`, at 2x, with public-domain books. README now has "Connecting to
+  AllTalk": only what to put in `ALLTALK_URL` and how to check it in Settings.
 - [x] **Tooling.** ESLint + Prettier (or Biome), strict TypeScript, pin Node and pnpm in
   `mise.toml` (pnpm is unpinned, so the `pnpm` shim fails), `pnpm approve-builds` for
   esbuild, commit conventions, one up-to-date architecture doc.
@@ -490,5 +500,8 @@ One line per work session: date, what was done, what's next.
   now wrap instead of truncating. AllTalk v2 installed and running locally (XTTS v2.0.3, CPU;
   a subagent did the install, notes in `../alltalk_tts/READHOUSE-RUN.md`) and verified live
   through Readhouse. Desktop library built as the printed index (user's pick); type sizes
-  raised for accessibility; every baseline reviewed again. Next: README screenshots, device
-  checklist.
+  raised for accessibility; every baseline reviewed again. README screenshots and a
+  "Connecting to AllTalk" section. Fixed a lost-place bug the e2e suite caught intermittently:
+  jumping to a chapter saved only after the chapter loaded, so leaving at once kept the old
+  place; saves now go out at once and in order, and the library refreshes when the last one
+  lands. Next: device checklist, then the remaining components.

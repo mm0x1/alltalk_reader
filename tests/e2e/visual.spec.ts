@@ -8,79 +8,19 @@
  */
 
 import { expect, test, type Page } from '@playwright/test';
+import {
+	addBook,
+	CAROL,
+	emptyLibrary,
+	JSON_HEADERS,
+	MOBY,
+	PRIDE,
+	settle,
+	useTheme
+} from './books.js';
 
 const LOCKED = 'http://127.0.0.1:4174';
 const THEMES = ['light', 'dark', 'sepia'] as const;
-
-const JSON_HEADERS = { 'content-type': 'application/json' };
-
-const PRIDE = [
-	'Chapter 1',
-	'',
-	'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.',
-	'',
-	'However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered the rightful property of some one or other of their daughters.',
-	'',
-	'"My dear Mr. Bennet," said his lady to him one day, "have you heard that Netherfield Park is let at last?"',
-	'',
-	'Mr. Bennet replied that he had not.',
-	'',
-	'"But it is," returned she; "for Mrs. Long has just been here, and she told me all about it."',
-	'',
-	'Mr. Bennet made no answer.',
-	'',
-	'"Do you not want to know who has taken it?" cried his wife impatiently.',
-	'',
-	'"You want to tell me, and I have no objection to hearing it."',
-	'',
-	'This was invitation enough.',
-	'',
-	'Chapter 2',
-	'',
-	'Mr. Bennet was among the earliest of those who waited on Mr. Bingley. He had always intended to visit him, though to the last always assuring his wife that he should not go.',
-	'',
-	'Chapter 3',
-	'',
-	'Not all that Mrs. Bennet, however, with the assistance of her five daughters, could ask on the subject, was sufficient to draw from her husband any satisfactory description of Mr. Bingley.'
-].join('\n');
-
-const MOBY = [
-	'Chapter 1',
-	'',
-	'Call me Ishmael. Some years ago, never mind how long precisely, having little or no money in my purse, I thought I would sail about a little and see the watery part of the world.'
-].join('\n');
-
-const CAROL = [
-	'Stave 1',
-	'',
-	'Marley was dead: to begin with. There is no doubt whatever about that.'
-].join('\n');
-
-async function addBook(page: Page, title: string, author: string, text: string): Promise<string> {
-	const response = await page.request.post('/api/books/paste', {
-		data: { title, text },
-		headers: JSON_HEADERS
-	});
-	expect(response.status()).toBe(201);
-	const { id } = (await response.json()) as { id: string };
-	const renamed = await page.request.patch(`/api/books/${id}`, {
-		data: { title, author },
-		headers: JSON_HEADERS
-	});
-	expect(renamed.status()).toBe(204);
-	return id;
-}
-
-/** Empties the visual server's library, so each screen starts from the same books. */
-async function emptyLibrary(page: Page) {
-	const response = await page.request.get('/api/books');
-	const books = (await response.json()) as { id: string }[];
-	for (const { id } of books) {
-		const deleted = await page.request.delete(`/api/books/${id}`, { headers: JSON_HEADERS });
-		expect(deleted.status()).toBe(204);
-	}
-}
-
 /** The shelf: four books, one of them part read, one with the longest names we expect (AO3). */
 async function stockLibrary(page: Page): Promise<string> {
 	await addBook(
@@ -103,18 +43,10 @@ async function stockLibrary(page: Page): Promise<string> {
 	return pride;
 }
 
-async function settle(page: Page) {
-	await page.evaluate(() => document.fonts.ready);
-	await page.waitForLoadState('networkidle');
-}
-
 for (const theme of THEMES) {
 	test.describe(theme, () => {
 		test.beforeEach(async ({ page }) => {
-			await page.emulateMedia({ colorScheme: theme === 'dark' ? 'dark' : 'light' });
-			await page.addInitScript((theme) => {
-				localStorage.setItem('readhouse:theme', theme);
-			}, theme);
+			await useTheme(page, theme);
 			await emptyLibrary(page);
 		});
 
