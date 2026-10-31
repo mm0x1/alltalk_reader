@@ -155,11 +155,13 @@ Order of work for the 2026-11-13 presentation:
 
 ## Books: EPUB and TXT
 
-- [ ] **Load EPUB files.** Parse in the browser (zip via the existing `fflate` + OPF/NCX/nav),
+- [x] **Load EPUB files.** Parse in the browser (zip via the existing `fflate` + OPF/NCX/nav),
   get title, author, cover, chapter list in spine order. Turn chapter XHTML into
   paragraphs. Sanitize all EPUB HTML (it is untrusted; never inject it as HTML).
-- [ ] **Load TXT files.** Detect encoding (UTF-8/UTF-16/Latin-1), detect chapters by common
+  *Done:* On the server (fflate + htmlparser2): spine, nav/NCX titles incl. anchor-split chapters, covers, Gutenberg cleanup; tested on real Gutenberg books.
+- [x] **Load TXT files.** Detect encoding (UTF-8/UTF-16/Latin-1), detect chapters by common
   headings ("Chapter 1", "CHAPTER ONE", "Part II", `***`), fall back to one chapter.
+  *Done:* BOM/UTF-8/Windows-1252, Gutenberg header/footer, chapter headings, contents lists and subtitles.
 - [ ] **Chapter picker.** A table of contents sheet/sidebar: chapters with progress per chapter,
   tap to read from there, select a range to pre-generate audio, resume where you stopped.
   Long books stay fast (virtualized list, chapters loaded on demand).
@@ -192,20 +194,25 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Generation pipeline.** One queue/controller for live, buffered and batch generation
   (today three paths: `useAudioPlayer`, `useBufferedPlayback`, batch). Cancel on seek,
   prefetch N paragraphs ahead, retries with backoff, clear errors when AllTalk is down.
-- [ ] **Proxy AllTalk through the app server.** The phone talks only to the app's origin; the
+  *(in progress)* Server queue, dedupe, cancellation and cache done; reader-side prefetch next.
+- [x] **Proxy AllTalk through the app server.** The phone talks only to the app's origin; the
   server forwards to AllTalk on localhost. AllTalk no longer needs to listen on the LAN, and
   audio URLs stop breaking when the host's address differs between LAN and Tailscale.
+  *Done:* The browser only talks to Readhouse; audio is cached and served by hash.
 
 ## Stability testing
 
 - [ ] **Test tooling and a check gate.** Vitest for units, Playwright for end-to-end; one
   `check` command (types, lint incl. design-system rules, unit, e2e) run by a pre-push hook
   and CI (GitHub Actions), like Ditherhouse's `mise run check`.
-- [ ] **Fake AllTalk server.** A test double that serves the API with short fixed WAVs, slow
+  *(in progress)* `pnpm gate` exists; CI and pre-push hook pending.
+- [x] **Fake AllTalk server.** A test double that serves the API with short fixed WAVs, slow
   responses and errors on demand, so tests are fast and deterministic without a GPU.
-- [ ] **Unit tests for the core.** Text processing and paragraph splitting, AO3 parser, EPUB
+  *Done:* `tests/fake-alltalk.ts`, also runnable standalone for UI work.
+- [x] **Unit tests for the core.** Text processing and paragraph splitting, AO3 parser, EPUB
   and TXT parsing (with real sample books, including malformed ones), chapter detection,
   the playback state machine, session (de)serialization, import/export round trips.
+  *Done:* For text, import, library, settings, AllTalk client, speech and access (74 tests).
 - [ ] **End-to-end flows** on a phone viewport (iPhone + Android profiles, WebKit and Chromium)
   and desktop: import a book → pick a chapter → play → auto-advance → pause/resume →
   reload and resume position; settings persist; AllTalk offline shows the right state;
@@ -230,9 +237,10 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Logic outside components.** Text processing, AO3/EPUB/TXT parsing, the generation
   queue, the AllTalk client and the library schema live in `$lib` / `$lib/server` modules,
   tested directly; components only render and dispatch.
-- [ ] **Clean dependency list.** Start from zero; today's list carries unused packages
+- [x] **Clean dependency list.** Start from zero; today's list carries unused packages
   (`cheerio`, `lowdb`, `redaxios`, `@tanstack/react-query`, `body-parser`) and TanStack
   starter remnants. Every dependency in the new app is justified.
+  *Done:* Runtime deps are valibot, htmlparser2, fflate. Drizzle dropped (stable has no node:sqlite driver).
 - [ ] **Rewrite `README.md` and `CLAUDE.md` for Readhouse.** Both describe AllTalk Reader's
   React/Express app. README: what Readhouse is, screenshots (phone and desktop), setup with
   AllTalk `alltalkbeta`, running it on a computer and opening it from a phone over LAN or
@@ -244,27 +252,31 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Tooling.** ESLint + Prettier (or Biome), strict TypeScript, pin Node and pnpm in
   `mise.toml` (pnpm is unpinned, so the `pnpm` shim fails), `pnpm approve-builds` for
   esbuild, commit conventions, one up-to-date architecture doc.
-- [ ] **Config in one place.** All settings validated at startup (`src/config/`), no
+- [x] **Config in one place.** All settings validated at startup (`src/config/`), no
   hard-coded hosts; the old `localhost:7851` / LAN IP defaults live only in `.env`.
+  *Done:* `src/env.ts` validates everything at startup.
 
 ## Security
 
 The app is reachable from other devices by design, so treat the network as untrusted.
 
-- [ ] **Lock down the server.** Today's `server.js` allows any origin (`cors()`), binds
+- [x] **Lock down the server.** Today's `server.js` allows any origin (`cors()`), binds
   `0.0.0.0`, has no authentication, accepts 50 MB JSON and stores `req.body` unvalidated.
   The SvelteKit server is same-origin only; every endpoint validates its input with a schema
   (e.g. zod/valibot) and has size limits; uploads are streamed with a cap; rate limits on
   write and AllTalk endpoints; SQLite transactions instead of rewriting a JSON file.
+  *Done:* See Security checklist; API tests cover cross-site, validation and size limits.
 - [ ] **Access control for LAN/Tailscale.** At minimum an optional passcode/token; recommend
   serving over Tailscale (`tailscale serve` gives HTTPS and limits access to the tailnet)
   and document it. Bind to localhost when only Tailscale serve is used.
+  *(in progress)* Passcode, signed cookies, rate limit done; Tailscale docs pending.
 - [ ] **HTTPS story.** Plain http over LAN isn't a secure context: pitch shift (AudioWorklet)
   is disabled, and PWA install, service workers and some media APIs won't work. Make
   `tailscale serve` (or a local cert via mkcert/Caddy) the documented default.
-- [ ] **Untrusted input.** EPUB/HTML/AO3 content sanitized (DOMPurify or text-only
+- [x] **Untrusted input.** EPUB/HTML/AO3 content sanitized (DOMPurify or text-only
   rendering), size and entry limits on zip/EPUB import (zip bombs), session import
   validated, Content-Security-Policy header.
+  *Done:* Book HTML reduced to text, covers sniffed and sandboxed, zip limits counted while inflating.
 - [ ] **Dependencies.** `pnpm audit` clean and part of the check gate; Dependabot/Renovate.
 - [ ] **Secrets and data.** Nothing sensitive in the repo or bundle; `data/` stays gitignored;
   no IPs or hostnames committed.
@@ -289,6 +301,7 @@ The app is reachable from other devices by design, so treat the network as untru
     pnpm build-script allow-list, secret scanning (gitleaks) in the gate.
   - *Data:* SQLite transactions, foreign keys on, unique constraints, migrations (forward
     and tested), backups of the data dir documented and restore tested once.
+  *(in progress)* Applied so far to the server; CSP and headers in place.
 
 ## Performance
 
@@ -304,9 +317,11 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   so nothing is generated twice; `Cache-Control`/`ETag` on audio and immutable hashed
   assets; compression (brotli/gzip) for text; HTTP keep-alive to AllTalk; prefetch only a
   few paragraphs ahead (backpressure; no retry storms: retries with jittered backoff).
+  *(in progress)* Content-hash audio cache, immutable caching, ranges and ETags done; compression pending.
 - [ ] **Server.** Prepared statements, indexes for every lookup, no N+1 queries when
   listing a library, streaming uploads and audio (never whole files in memory), graceful
   shutdown.
+  *(in progress)* Prepared statements, indexes, no N+1 in the library list, streaming audio, chapter LRU.
 - [ ] **Battery and memory.** No polling loops (event-driven status), audio elements reused,
   object URLs revoked, wake lock only while playing.
 - [ ] **Fonts and assets.** Self-hosted, subset WOFF2, `font-display: swap` with metric-matched
@@ -331,14 +346,17 @@ Verify each works on phone and desktop; fix, or trim if it isn't worth keeping.
   of showing a disabled control.
 - [ ] **RVC voices and advanced TTS settings.** Keep behind "Advanced"; show only when
   `currentsettings` says the engine supports them.
-- [ ] **AO3 parser.** Keep (core use case); add tests.
+- [x] **AO3 parser.** Keep (core use case); add tests.
+  *Done:* Kept and tested; pasted AO3 pages become books.
 - [ ] **Safari/iOS audio handling** (`SafariAdapter`). Keep; cover with the device checklist.
 
 ## Bugs
 
-- [ ] **`pnpm` doesn't run in this repo.** `mise.toml` pins only Node; add pnpm.
-- [ ] **esbuild build script blocked under pnpm 12.** `pnpm install` exits with
+- [x] **`pnpm` doesn't run in this repo.** `mise.toml` pins only Node; add pnpm.
+  *Done:* Node 26 and pnpm 12.16.1 pinned.
+- [x] **esbuild build script blocked under pnpm 12.** `pnpm install` exits with
   `ERR_PNPM_IGNORED_BUILDS`; approve it in config.
+  *Done:* `allowBuilds` in `pnpm-workspace.yaml`.
 
 ## Progress log
 
@@ -346,3 +364,7 @@ One line per work session: date, what was done, what's next.
 
 - 2026-10-31: Backlog, decisions and working rules written; `design-inspo.md` set up
   (local only). Next: scaffold the SvelteKit app.
+- 2026-10-31: SvelteKit 3 scaffold; text core and EPUB/TXT/AO3 import; SQLite library;
+  AllTalk client, speech cache and queue; JSON API with CSP, cross-site checks, passcode;
+  74 unit + 13 API e2e tests. Decided: no ORM (node:sqlite direct), server-side import.
+  Next: reader client (player, prefetch, Media Session), interim UI on tokens.
