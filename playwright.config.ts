@@ -5,6 +5,8 @@ const APP_PORT = 4173;
 const LOCKED_PORT = 4174;
 const VISUAL_ALLTALK_PORT = 7998;
 const VISUAL_PORT = 4175;
+const DEMO_ALLTALK_PORT = 7996;
+const DEMO_PORT = 4176;
 const shared = {
 	ALLTALK_URL: `http://127.0.0.1:${ALLTALK_PORT}`,
 	SEGMENT_MAX_CHARS: '120',
@@ -19,6 +21,8 @@ const visual = !process.env.CI;
 /** README screenshots (`mise run screenshots`): only when asked for, never in the gate. */
 const shots = visual && !!process.env.SHOTS;
 const visualUse = { baseURL: `http://127.0.0.1:${VISUAL_PORT}` };
+/** The presentation recording (`mise run demo`): passages at speaking pace, only when asked for. */
+const demo = visual && !!process.env.DEMO;
 
 export default defineConfig({
 	testDir: 'tests/e2e',
@@ -53,6 +57,20 @@ export default defineConfig({
 						name: 'visual-desktop',
 						testMatch: /visual\.spec\.ts/,
 						use: { ...devices['Desktop Chrome'], ...visualUse }
+					}
+				]
+			: []),
+		...(demo
+			? [
+					{
+						name: 'demo',
+						testMatch: /demo\.spec\.ts/,
+						timeout: 180_000,
+						use: {
+							...devices['iPhone 15'],
+							baseURL: `http://127.0.0.1:${DEMO_PORT}`,
+							video: { mode: 'on' as const, size: { width: 786, height: 1318 } }
+						}
 					}
 				]
 			: []),
@@ -102,6 +120,27 @@ export default defineConfig({
 			},
 			reuseExistingServer: false
 		},
+		...(demo
+			? [
+					{
+						command: `node tests/fake-alltalk.ts ${DEMO_ALLTALK_PORT}`,
+						url: `http://127.0.0.1:${DEMO_ALLTALK_PORT}/api/ready`,
+						env: { FAKE_DELAY_MS: '700', FAKE_SECONDS_PER_CHAR: '0.05' },
+						reuseExistingServer: false
+					},
+					{
+						command: 'node build',
+						url: `http://127.0.0.1:${DEMO_PORT}/api/status`,
+						env: {
+							ALLTALK_URL: `http://127.0.0.1:${DEMO_ALLTALK_PORT}`,
+							PORT: String(DEMO_PORT),
+							HOST: '127.0.0.1',
+							DATA_DIR: '.e2e/demo'
+						},
+						reuseExistingServer: false
+					}
+				]
+			: []),
 		...(visual
 			? [
 					{

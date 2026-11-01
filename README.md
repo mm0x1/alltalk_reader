@@ -12,6 +12,8 @@ A Motherhouse app, alongside Ditherhouse.
   <img src="docs/screenshots/phone-reader-dark.png" width="260" alt="The same page in the dark theme">
 </p>
 
+▶ **[Watch a 30-second walk-through](docs/media/readhouse-phone.mp4)** (phone, no sound).
+
 <p>
   <img src="docs/screenshots/desktop-reader.png" alt="The reader on a desktop: contents in a sidebar, the text column with the player under it">
 </p>

@@ -583,5 +583,8 @@ One line per work session: date, what was done, what's next.
   playback announcements for screen readers, a reader script budget in the gate (54.8 KB of
   100), the database closed on graceful shutdown, a tested restore from `readhouse.db` alone,
   secrets audit, plain words in Settings, CLAUDE.md design rules. Next needs the user or the
-  world: the device checklist on real phones, AO3 downloads once AO3 is back (2026-11-13), and
-  packaging for the presentation (pitch, screen recording).
+  world: the device checklist on real phones, AO3 downloads once AO3 is back (2026-11-13).
+- 2026-10-31: Packaging: the pitch and a 32-second phone recording (`mise run demo`,
+  `docs/presentation.md` with a talk track, linked from the README). Recording it caught a real
+  bug: a pause tapped just as a passage ended was undone by the `ended` event already on its
+  way, so playback resumed by itself; now e2e-tested on all three profiles and fixed.
