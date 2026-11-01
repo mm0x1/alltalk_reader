@@ -28,6 +28,8 @@
 	--color-focus: #22355a;
 	--color-scrim: rgb(14 22 38 / 0.5);
 	--dither-band: url('/dither/band-light.png');
+	/* The foot of a cover for a book without one. */
+	--dither-cover: url('/dither/cover-light.png');
 
 	/* Type: EB Garamond throughout, self-hosted (see +layout.svelte). */
 	--font-reading: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
@@ -134,6 +136,8 @@
 		--shadow-raised: 0 1px 0 rgb(0 0 0 / 0.3);
 		--shadow-overlay: 0 12px 48px rgb(0 0 0 / 0.55);
 		--dither-band: url('/dither/band-dark.png');
+		--dither-cover: url('/dither/cover-dark.png');
+		--dither-cover: url('/dither/cover-dark.png');
 		color-scheme: dark;
 	}
 }
@@ -199,6 +203,7 @@
 	--color-focus: #4a2f1b;
 	--color-scrim: rgb(40 25 12 / 0.5);
 	--dither-band: url('/dither/band-sepia.png');
+	--dither-cover: url('/dither/cover-sepia.png');
 }
 
 /*

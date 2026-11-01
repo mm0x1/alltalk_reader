@@ -300,6 +300,20 @@ Order of work for the 2026-11-13 presentation:
   about 7 s) under Voice; the buffer shows seconds too. `SEGMENT_MAX_CHARS` retired.
   E2e: four dialogue lines read as one passage and highlighted together; a new length reaches
   the speech requests. Visual baseline for the dialogue highlight.
+- [x] **Prepare the whole book (user, 2026-11-01).** The old app's "download entire book
+  audio", reworked for a server library. Contents > Whole book: every passage generated on the
+  computer in the background ("later" priority, behind listening and prefetching), with the
+  library's voice settings, passage length, engine and model of that moment saved with the book
+  (its snapshot); the book is read with them from then on, whatever the settings become. Its
+  audio is pinned (never evicted, not counted in `AUDIO_CACHE_MAX_MB`), and because the snapshot
+  names the engine and model, the cache key needs no AllTalk: **a prepared book plays with
+  AllTalk switched off**, over plain http, on any device. If AllTalk switches model mid-way it
+  pauses with the reason (never mixes models); also Stop, Continue, Prepare again with current
+  settings, Forget. Restarts leave it paused. Unit tests (whole book pinned, plays with AllTalk
+  closed, snapshot survives settings change, model switch pauses, pins survive a 1-byte budget,
+  queue order) and e2e. Export/import file not needed for now (user).
+  Correction recorded: before this, cached audio could NOT play with AllTalk off (the cache key
+  asked AllTalk for its model); only prepared books can.
 - [x] **AllTalk listening controls in Settings (user, 2026-11-01).** Model switch (`/api/reload`;
   XTTS and APITTS), voice preview (`/api/previewvoice`), low VRAM (`/api/lowvramsetting`),
   DeepSpeed where available, pitch for engines that support it, RVC for the narrator, "silent"

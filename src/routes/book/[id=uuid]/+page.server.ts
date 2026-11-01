@@ -4,12 +4,13 @@ import { passageForBlock } from '#lib/text/passages.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {
-	const { library, settings } = app();
+	const { library, settings, preparer } = app();
 	const book = library.get(params.id);
 	if (!book) error(404, 'This book is not in your library.');
 	library.markOpened(book.id);
 
-	const passageChars = settings.voice().passageChars;
+	// A prepared book keeps the passage length it was prepared with.
+	const passageChars = (preparer.voice(book.id)?.settings ?? settings.voice()).passageChars;
 	const saved = book.progress;
 	const chapterIndex =
 		saved && saved.chapter < book.chapterCount ? saved.chapter : book.startChapter;

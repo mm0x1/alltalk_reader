@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import { app } from '#lib/server/app.js';
 import { AllTalkError } from '#lib/server/alltalk.js';
 import { readJson } from '#lib/server/http.js';
-import { SpeechCancelled } from '#lib/server/speech.js';
+import { ModelChanged, SpeechCancelled } from '#lib/server/speech.js';
 import type { SpeechResult } from '#lib/speech.js';
 import { PASSAGE_MAX_CHARS, PASSAGE_MIN_CHARS, passageText } from '#lib/text/passages.js';
 import type { RequestHandler } from './$types';
@@ -29,7 +29,9 @@ const SpeechSchema = v.strictObject({
  */
 export const POST: RequestHandler = async ({ request }) => {
 	const input = await readJson(request, SpeechSchema, 1024);
-	const { library, settings, speech } = app();
+	const { library, settings, speech, preparer } = app();
+	// A prepared book is read with what it was prepared with: no need to ask AllTalk.
+	const prepared = preparer.voice(input.bookId);
 
 	const chapter = library.chapter(input.bookId, input.chapter, input.chars);
 	if (!chapter) error(404, 'No such chapter.');
@@ -38,13 +40,20 @@ export const POST: RequestHandler = async ({ request }) => {
 	const text = passageText(chapter.blocks, passage);
 
 	try {
-		const hash = await speech.speak(text, settings.voice(), input.priority, request.signal);
+		const hash = await speech.speak(
+			text,
+			prepared?.settings ?? settings.voice(),
+			input.priority,
+			request.signal,
+			prepared?.snapshot ?? null
+		);
 		return json({
 			audio: `/api/audio/${hash}`,
 			passages: chapter.passages.length
 		} satisfies SpeechResult);
 	} catch (cause) {
 		if (cause instanceof SpeechCancelled) error(409, 'Cancelled.');
+		if (cause instanceof ModelChanged) error(409, cause.message);
 		if (cause instanceof AllTalkError) {
 			error(cause.kind === 'unreachable' ? 503 : 502, cause.message);
 		}

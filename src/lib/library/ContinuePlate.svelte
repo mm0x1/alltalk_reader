@@ -12,7 +12,9 @@
 		{#if book.hasCover}
 			<img class="cover" src={`/api/books/${book.id}/cover`} alt="" decoding="async" />
 		{:else}
-			<span class="cover title-plate" aria-hidden="true">{book.title}</span>
+			<span class="cover title-plate" aria-hidden="true"
+				><span class="cover-title">{book.title}</span></span
+			>
 		{/if}
 		<span class="text">
 			<span class="label" id="continue-heading">
@@ -50,16 +52,36 @@
 		border: var(--border-double) double var(--color-rule);
 	}
 
+	/*
+	 * A book without a cover gets an engraved one: its title on plain paper, ink rising from the
+	 * foot in the same dither as the chapter band. The one dithered element on the shelf.
+	 */
 	.title-plate {
 		display: grid;
-		place-items: center;
-		padding: var(--space-2);
+		place-items: start center;
+		padding: var(--space-2) var(--space-1);
+		background-color: var(--color-paper);
+		background-image: var(--dither-cover);
+		background-position: bottom;
+		background-repeat: no-repeat;
+		background-size: 100% 40%;
+		image-rendering: pixelated;
 		overflow: hidden;
 		font-size: var(--text-xs);
 		font-style: italic;
 		line-height: var(--leading-tight);
 		text-align: center;
 		overflow-wrap: anywhere;
+	}
+
+	/* On its own paper, so a long title stays readable where it meets the dots. */
+	.cover-title {
+		display: -webkit-box;
+		overflow: hidden;
+		background: var(--color-paper);
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		line-clamp: 4;
 	}
 
 	.text {

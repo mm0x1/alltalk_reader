@@ -18,6 +18,7 @@ import { AllTalk, type EngineInfo } from './alltalk.js';
 import { Database } from './db.js';
 import { Library } from './library.js';
 import { SettingsStore } from './settings.js';
+import { Preparer } from './prepare.js';
 import { Speech } from './speech.js';
 import { findTranscoder } from './transcode.js';
 
@@ -35,6 +36,8 @@ export interface Services {
 	settings: SettingsStore;
 	alltalk: AllTalk;
 	speech: Speech;
+	/** Whole books prepared ahead with the settings of that moment. */
+	preparer: Preparer;
 	access: Access;
 	/** AllTalk's engine and model, cached briefly; they key the audio cache. */
 	engineInfo(): Promise<EngineInfo>;
@@ -68,23 +71,27 @@ export function createServices(options: {
 		return engineCache.value;
 	};
 
+	const library = new Library(db);
+	const speech = new Speech({
+		db,
+		alltalk,
+		dir: join(dataDir, 'audio'),
+		maxCacheBytes: options.audioCacheMaxBytes,
+		engineInfo,
+		transcoder: findTranscoder(options.audioFormat)
+	});
+
 	return {
 		config: {
 			dataDir,
 			uploadMaxBytes: options.uploadMaxBytes
 		},
 		db,
-		library: new Library(db),
+		library,
 		settings: new SettingsStore(db),
 		alltalk,
-		speech: new Speech({
-			db,
-			alltalk,
-			dir: join(dataDir, 'audio'),
-			maxCacheBytes: options.audioCacheMaxBytes,
-			engineInfo,
-			transcoder: findTranscoder(options.audioFormat)
-		}),
+		speech,
+		preparer: new Preparer(db, library, speech),
 		access: new Access(options.passcode, dataDir),
 		engineInfo,
 		forgetEngine: () => (engineCache = null)

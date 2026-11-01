@@ -253,6 +253,18 @@ test('the reference sheet is not served unless asked for', async ({ request }) =
 	expect((await request.get('/reference')).status()).toBe(404);
 });
 
+test('prepare checks the book and the action', async ({ request }) => {
+	const book = await upload(request, Buffer.from('Chapter 1\n\nShort.'), 'p.txt');
+	const { id } = await book.json();
+	const prepare = (target: string, action: unknown) =>
+		request.post(`/api/books/${target}/prepare`, { data: { action } });
+	expect((await prepare(id, 'explode')).status()).toBe(400);
+	expect((await prepare('00000000-0000-4000-8000-000000000000', 'start')).status()).toBe(404);
+	const status = await request.get(`/api/books/${id}/prepare`);
+	expect(status.status()).toBe(200);
+	expect(await status.json()).toBeNull();
+});
+
 test.describe('with a passcode', () => {
 	test('locks the API and pages until unlocked', async ({ playwright }) => {
 		const request = await playwright.request.newContext({ baseURL: LOCKED });

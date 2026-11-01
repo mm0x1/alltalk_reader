@@ -347,6 +347,23 @@ test('AllTalk\u2019s model, low VRAM mode and voice previews from Settings', asy
 	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('');
 });
 
+test('the whole book can be prepared ahead, and forgotten', async ({ page }, testInfo) => {
+	await addPastedBook(page, `Whole ${testInfo.project.name}`);
+	const contents = await openContents(page);
+	const whole = contents.list.getByRole('region', { name: 'Whole book' });
+	await whole.getByRole('button', { name: 'Prepare the whole book' }).click();
+	// The fake AllTalk is quick: it soon says what the book was prepared with.
+	await expect(whole).toContainText(
+		/Prepared with AllTalk\u2019s default voice, xtts - xttsv2_2\.0\.3/,
+		{
+			timeout: 15_000
+		}
+	);
+	await expect(whole).toContainText('Plays even with AllTalk off.');
+	await whole.getByRole('button', { name: 'Forget' }).click();
+	await expect(whole.getByRole('button', { name: 'Prepare the whole book' })).toBeVisible();
+});
+
 test('removing a book asks first', async ({ page }, testInfo) => {
 	const title = `Remove ${testInfo.project.name}`;
 	await addPastedBook(page, title);

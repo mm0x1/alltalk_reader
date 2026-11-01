@@ -365,3 +365,125 @@ describe('Speech', () => {
 		expect(fake.generated.length - before).toBe(1);
 	});
 });
+
+describe('Preparing a whole book', () => {
+	const prose: ParsedBook = {
+		title: 'Whole',
+		author: null,
+		language: 'en',
+		source: 'txt',
+		startChapter: 0,
+		cover: null,
+		chapters: [
+			{ title: 'One', blocks: [{ type: 'text', text: 'The first chapter has one passage.' }] },
+			{
+				title: 'Two',
+				blocks: [
+					{
+						type: 'text',
+						text: 'The second chapter is longer. ' + 'It goes on a while. '.repeat(12)
+					}
+				]
+			}
+		]
+	};
+
+	it('generates and pins every passage, then reads with its snapshot after settings change', async () => {
+		const id = services.library.add(prose);
+		const engine = await services.alltalk.engine();
+		services.preparer.start(id, DEFAULT_VOICE_SETTINGS, engine);
+		await services.preparer.idle();
+		const status = services.preparer.status(id)!;
+		expect(status).toMatchObject({ state: 'ready', model: 'xtts - xttsv2_2.0.3' });
+		expect(status.done).toBe(status.total);
+		expect(status.total).toBeGreaterThan(2);
+		const pins = services.db
+			.statement(`SELECT count(*) AS n FROM pinned_audio WHERE book_id = ?`)
+			.get(id) as { n: number };
+		expect(pins.n).toBe(status.total);
+
+		// The library's voice changes; the book keeps the voice it was prepared with.
+		services.settings.saveVoice({ ...DEFAULT_VOICE_SETTINGS, voice: 'male_01.wav' });
+		expect(services.preparer.voice(id)!.settings.voice).toBe('');
+	});
+
+	it('plays a prepared book with AllTalk switched off', async () => {
+		const own = await startFakeAllTalk();
+		const ownDir = mkdtempSync(join(tmpdir(), 'readhouse-prep-'));
+		const local = createServices({
+			dataDir: ownDir,
+			alltalkUrl: own.url,
+			uploadMaxBytes: 1024 * 1024,
+			audioCacheMaxBytes: 64 * 1024 * 1024,
+			audioFormat: 'original',
+			passcode: undefined
+		});
+		try {
+			const id = local.library.add(prose);
+			local.preparer.start(id, DEFAULT_VOICE_SETTINGS, await local.alltalk.engine());
+			await local.preparer.idle();
+			await own.close();
+			const voice = local.preparer.voice(id)!;
+			const chapter = local.library.chapter(id, 1, voice.settings.passageChars)!;
+			const { passageText } = await import('#lib/text/passages.js');
+			const text = passageText(chapter.blocks, chapter.passages[0]);
+			// No AllTalk at all: the snapshot names the model, the audio is already there.
+			const hash = await local.speech.speak(text, voice.settings, 'now', undefined, voice.snapshot);
+			expect(local.speech.cached(hash)).not.toBeNull();
+		} finally {
+			local.db.close();
+			rmSync(ownDir, { recursive: true, force: true });
+		}
+	});
+
+	it('pauses with a reason when AllTalk switches to another model', async () => {
+		// Slow enough that the switch lands while the book is still being prepared.
+		fake.setDelay(150);
+		const id = services.library.add(prose);
+		services.preparer.start(id, DEFAULT_VOICE_SETTINGS, await services.alltalk.engine());
+		await services.alltalk.loadModel('apitts - xttsv2_2.0.3');
+		try {
+			await services.preparer.idle();
+			const status = services.preparer.status(id)!;
+			expect(status.state).toBe('paused');
+			expect(status.message).toContain('apitts - xttsv2_2.0.3');
+			// Switched back, it continues with its own settings and finishes.
+			await services.alltalk.loadModel('xtts - xttsv2_2.0.3');
+			services.preparer.continue(id);
+			await services.preparer.idle();
+			expect(services.preparer.status(id)!.state).toBe('ready');
+		} finally {
+			await services.alltalk.loadModel('xtts - xttsv2_2.0.3');
+		}
+	});
+
+	it('keeps pinned audio when the cache is over budget, and forgets on request', async () => {
+		make({ audioCacheMaxBytes: 1 });
+		const id = services.library.add(prose);
+		services.preparer.start(id, DEFAULT_VOICE_SETTINGS, await services.alltalk.engine());
+		await services.preparer.idle();
+		const total = services.preparer.status(id)!.total;
+		// Unpinned audio over a one-byte budget is evicted; the book's isn't.
+		await services.speech.speak('Something else entirely.', DEFAULT_VOICE_SETTINGS, 'now');
+		const kept = services.db
+			.statement(
+				`SELECT count(*) AS n FROM audio WHERE hash IN (SELECT hash FROM pinned_audio WHERE book_id = ?)`
+			)
+			.get(id) as { n: number };
+		expect(kept.n).toBe(total);
+		services.preparer.forget(id);
+		expect(services.preparer.status(id)).toBeNull();
+	});
+
+	it('prepares behind prefetching ("later" after "soon")', async () => {
+		fake.setDelay(30);
+		const start = fake.generated.length;
+		const later = ['L1', 'L2'].map((t) =>
+			services.speech.speak(t, DEFAULT_VOICE_SETTINGS, 'later')
+		);
+		await new Promise((r) => setTimeout(r, 5));
+		const soon = services.speech.speak('SOON', DEFAULT_VOICE_SETTINGS, 'soon');
+		await Promise.all([...later, soon]);
+		expect(fake.generated.slice(start)).toEqual(['L1', 'SOON', 'L2']);
+	});
+});

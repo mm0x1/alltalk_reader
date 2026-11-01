@@ -10,6 +10,8 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.js';
 	import PlayerBar from './PlayerBar.svelte';
+	import PrepareBook from './PrepareBook.svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { passageForBlock } from '#lib/text/passages.js';
 	import type { Position } from './position.js';
 	import { session } from './session.svelte.js';
@@ -252,6 +254,7 @@
 {/snippet}
 
 {#snippet contentsList()}
+	<PrepareBook bookId={book.id} onchange={() => invalidateAll()} />
 	<ol class="contents">
 		{#each book.chapters as entry, index (index)}
 			<li>

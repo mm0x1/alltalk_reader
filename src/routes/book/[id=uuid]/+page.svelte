@@ -9,6 +9,7 @@
 	<title>{data.book.title} &middot; Readhouse</title>
 </svelte:head>
 
-{#key data.book.id}
+<!-- A new player when the book or its passage length changes (preparing it can change that). -->
+{#key `${data.book.id}:${data.passageChars}`}
 	<Reader book={data.book} chapter={data.chapter} start={data.start} />
 {/key}

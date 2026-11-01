@@ -5,7 +5,7 @@
  * checks compare full origins, which breaks behind an HTTPS proxy like `tailscale serve`.
  */
 
-import type { BookDetail, BookSummary, ChapterContent } from '#lib/library.js';
+import type { BookDetail, BookSummary, ChapterContent, Preparation } from '#lib/library.js';
 import type { VoiceSettings } from '#lib/settings.js';
 import type { SpeechResult } from '#lib/speech.js';
 import type { EngineSummary, ServerStatus } from '#lib/status.js';
@@ -79,6 +79,9 @@ export const api = {
 	speech: (request: SpeechRequest, signal?: AbortSignal) =>
 		send<SpeechResult>('POST', '/api/speech', request, { signal }),
 	stopSpeech: () => send<void>('POST', '/api/speech/stop'),
+	preparation: (id: string) => send<Preparation | null>('GET', `/api/books/${id}/prepare`),
+	prepare: (id: string, action: 'start' | 'continue' | 'stop' | 'forget') =>
+		send<Preparation | null>('POST', `/api/books/${id}/prepare`, { action }),
 	/** Switches AllTalk's model; resolves with the engine as AllTalk then reports it. */
 	loadModel: (model: string) => send<EngineSummary>('POST', '/api/alltalk/model', { model }),
 	setModes: (modes: { lowVram?: boolean; deepSpeed?: boolean }) =>

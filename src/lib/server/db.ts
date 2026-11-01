@@ -62,7 +62,31 @@ const MIGRATIONS: readonly string[] = [
 	CREATE INDEX audio_by_use ON audio (used_at);
 	`,
 	// Where the story starts, past front matter: a new book opens there.
-	`ALTER TABLE books ADD COLUMN start_chapter INTEGER NOT NULL DEFAULT 0;`
+	`ALTER TABLE books ADD COLUMN start_chapter INTEGER NOT NULL DEFAULT 0;`,
+	// Books prepared in full: the settings, engine and model they were made with, and the audio
+	// they keep (never evicted from the cache).
+	`
+	CREATE TABLE prepared_books (
+		book_id     TEXT PRIMARY KEY REFERENCES books (id) ON DELETE CASCADE,
+		settings    TEXT NOT NULL,
+		engine      TEXT,
+		model       TEXT,
+		state       TEXT NOT NULL CHECK (state IN ('preparing', 'paused', 'ready')),
+		done        INTEGER NOT NULL DEFAULT 0,
+		total       INTEGER NOT NULL DEFAULT 0,
+		message     TEXT,
+		started_at  INTEGER NOT NULL,
+		finished_at INTEGER
+	) STRICT;
+
+	CREATE TABLE pinned_audio (
+		book_id TEXT NOT NULL REFERENCES books (id) ON DELETE CASCADE,
+		hash    TEXT NOT NULL,
+		PRIMARY KEY (book_id, hash)
+	) STRICT, WITHOUT ROWID;
+
+	CREATE INDEX pinned_audio_by_hash ON pinned_audio (hash);
+	`
 ];
 
 export class Database {

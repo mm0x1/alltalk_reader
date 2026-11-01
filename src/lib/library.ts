@@ -42,3 +42,17 @@ export interface ChapterContent {
 	passages: Passage[];
 	passageChars: number;
 }
+
+/** A book prepared in full: every passage made ahead with the settings of that moment. */
+export interface Preparation {
+	state: 'preparing' | 'paused' | 'ready';
+	done: number;
+	total: number;
+	/** Why it is paused, in plain words. */
+	message: string | null;
+	/** What it was made with, shown in Contents. */
+	voice: string;
+	model: string | null;
+	passageChars: number;
+	finishedAt: number | null;
+}

@@ -4,10 +4,14 @@
  * - Audio is cached by a hash of everything that shapes it (text, voice settings, engine and
  *   model), so the same passage is never generated twice and the URL can be cached forever.
  * - AllTalk works on one request at a time, so requests go through one queue. "now" (the
- *   passage someone is waiting to hear) jumps ahead of "soon" (prefetching).
+ *   passage someone is waiting to hear) jumps ahead of "soon" (prefetching), which jumps
+ *   ahead of "later" (preparing a whole book in the background).
  * - Identical requests share one generation. A queued request that every caller has abandoned
  *   is dropped before it reaches AllTalk.
- * - The cache is capped; the least recently played audio is removed first.
+ * - The cache is capped; the least recently played audio is removed first. Audio pinned by a
+ *   prepared book is never removed and doesn't count against the cap.
+ * - A prepared book brings its own engine and model (`Snapshot`), so its audio is found
+ *   without asking AllTalk, and is only generated while AllTalk still runs that model.
  */
 
 import { createHash } from 'node:crypto';
@@ -22,7 +26,23 @@ import type { AllTalk, EngineInfo } from './alltalk.js';
 import type { Database } from './db.js';
 import type { Transcoder } from './transcode.js';
 
-export type Priority = 'now' | 'soon';
+export type Priority = 'now' | 'soon' | 'later';
+const RANK: Record<Priority, number> = { now: 0, soon: 1, later: 2 };
+
+/** The engine and model a prepared book was made with. */
+export type Snapshot = Pick<EngineInfo, 'engine' | 'model'>;
+
+/** AllTalk is running another model than the one a prepared book was made with. */
+export class ModelChanged extends Error {
+	constructor(
+		readonly expected: string | null,
+		readonly actual: string | null
+	) {
+		super(
+			`This book was prepared with ${expected ?? 'another model'}, and AllTalk is now using ${actual ?? 'a different one'}. Switch AllTalk back to continue.`
+		);
+	}
+}
 
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -51,6 +71,8 @@ interface Job {
 	hash: string;
 	text: string;
 	settings: VoiceSettings;
+	/** Only generate while AllTalk runs this engine and model (a prepared book's). */
+	expected: Snapshot | null;
 	priority: Priority;
 	started: boolean;
 	listeners: Set<Listener>;
@@ -93,8 +115,8 @@ export class Speech {
 	}
 
 	/** The cache key: everything that changes what the audio sounds like. */
-	async key(text: string, settings: VoiceSettings): Promise<string> {
-		const engine = await this.engineInfo();
+	async key(text: string, settings: VoiceSettings, snapshot?: Snapshot | null): Promise<string> {
+		const engine = snapshot ?? (await this.engineInfo());
 		const parts: unknown[] = [
 			1,
 			engine.engine,
@@ -133,21 +155,30 @@ export class Speech {
 		text: string,
 		settings: VoiceSettings,
 		priority: Priority,
-		signal?: AbortSignal
+		signal?: AbortSignal,
+		snapshot: Snapshot | null = null
 	): Promise<string> {
-		const hash = await this.key(text, settings);
+		const hash = await this.key(text, settings, snapshot);
 		const hit = this.cached(hash);
 		if (hit && (await fileExists(hit.path, hit.bytes))) return hash;
 		if (hit) this.db.statement(`DELETE FROM audio WHERE hash = ?`).run(hash);
 
 		let job = this.#jobs.get(hash);
 		if (!job) {
-			job = { hash, text, settings, priority, started: false, listeners: new Set() };
+			job = {
+				hash,
+				text,
+				settings,
+				expected: snapshot,
+				priority,
+				started: false,
+				listeners: new Set()
+			};
 			this.#jobs.set(hash, job);
 			this.#enqueue(job);
-		} else if (priority === 'now' && job.priority === 'soon' && !job.started) {
+		} else if (RANK[priority] < RANK[job.priority] && !job.started) {
 			this.#queue.splice(this.#queue.indexOf(job), 1);
-			job.priority = 'now';
+			job.priority = priority;
 			this.#enqueue(job);
 		}
 		return this.#wait(job, signal);
@@ -164,13 +195,10 @@ export class Speech {
 		return this.#queue.length + (this.#running ? 1 : 0);
 	}
 
+	/** After everything of its own priority or higher, before anything lower. */
 	#enqueue(job: Job): void {
-		if (job.priority === 'now') {
-			const firstSoon = this.#queue.findIndex((queued) => queued.priority === 'soon');
-			this.#queue.splice(firstSoon === -1 ? this.#queue.length : firstSoon, 0, job);
-		} else {
-			this.#queue.push(job);
-		}
+		const lower = this.#queue.findIndex((queued) => RANK[queued.priority] > RANK[job.priority]);
+		this.#queue.splice(lower === -1 ? this.#queue.length : lower, 0, job);
 		void this.#pump();
 	}
 
@@ -238,6 +266,13 @@ export class Speech {
 	async #generate(job: Job): Promise<void> {
 		this.#dirReady ??= mkdir(this.dir, { recursive: true });
 		await this.#dirReady;
+		if (job.expected) {
+			// Asked fresh: the model may have been switched in AllTalk's own interface.
+			const live = await this.alltalk.engine();
+			if (live.engine !== job.expected.engine || live.model !== job.expected.model) {
+				throw new ModelChanged(job.expected.model, live.model);
+			}
+		}
 
 		const file = await this.alltalk.generate(job.text, job.settings);
 		const extension = file.split('.').pop()?.toLowerCase() ?? '';
@@ -288,15 +323,21 @@ export class Speech {
 		await this.#evict(job.hash);
 	}
 
-	/** Removes least recently used audio until the cache is back under 90% of its budget. */
+	/**
+	 * Removes least recently used audio until the cache is back under 90% of its budget. Audio
+	 * pinned by prepared books is never removed and doesn't count.
+	 */
 	async #evict(keep: string): Promise<void> {
+		const unpinned = `hash NOT IN (SELECT hash FROM pinned_audio)`;
 		const { total } = this.db
-			.statement(`SELECT coalesce(sum(bytes), 0) AS total FROM audio`)
+			.statement(`SELECT coalesce(sum(bytes), 0) AS total FROM audio WHERE ${unpinned}`)
 			.get() as { total: number };
 		if (total <= this.maxCacheBytes) return;
 		let excess = total - this.maxCacheBytes * 0.9;
 		const oldest = this.db
-			.statement(`SELECT hash, bytes FROM audio WHERE hash != ? ORDER BY used_at LIMIT 500`)
+			.statement(
+				`SELECT hash, bytes FROM audio WHERE hash != ? AND ${unpinned} ORDER BY used_at LIMIT 500`
+			)
 			.all(keep) as unknown as { hash: string; bytes: number }[];
 		for (const { hash, bytes } of oldest) {
 			if (excess <= 0) break;
