@@ -5,8 +5,18 @@
 	let {
 		open = $bindable(false),
 		title,
-		children
-	}: { open?: boolean; title: string; children: Snippet } = $props();
+		alert = false,
+		children,
+		actions
+	}: {
+		open?: boolean;
+		title: string;
+		/** A question that needs an answer (see Confirm): no close button, buttons at the end. */
+		alert?: boolean;
+		children: Snippet;
+		/** Full-width buttons under the body, within thumb reach. */
+		actions?: Snippet;
+	} = $props();
 
 	const titleId = $props.id();
 
@@ -20,20 +30,24 @@
 <!-- A native modal dialog: focus trap, Escape and an inert page come from the browser. -->
 <dialog
 	{@attach sync}
+	role={alert ? 'alertdialog' : undefined}
 	aria-labelledby={titleId}
 	onclose={() => (open = false)}
 	onclick={(event) => {
 		if (event.target === event.currentTarget) open = false;
 	}}
 >
-	<div class="sheet">
+	<div class={['sheet', alert && 'alert']}>
 		<header>
 			<h2 id={titleId}>{title}</h2>
-			<Button icon="close" aria-label="Close" onclick={() => (open = false)} />
+			{#if !alert}<Button icon="close" aria-label="Close" onclick={() => (open = false)} />{/if}
 		</header>
 		<div class="body">
 			{@render children()}
 		</div>
+		{#if actions}
+			<div class="actions">{@render actions()}</div>
+		{/if}
 	</div>
 </dialog>
 
@@ -76,6 +90,25 @@
 		font-size: var(--text-l);
 		font-weight: var(--weight-medium);
 		font-style: italic;
+	}
+
+	.alert header {
+		padding: var(--space-4) var(--space-5) var(--space-2);
+		border-bottom: none;
+	}
+
+	.alert .body {
+		padding-top: 0;
+	}
+
+	.actions {
+		display: grid;
+		gap: var(--space-2);
+		padding: 0 var(--space-5) var(--space-5);
+	}
+
+	.actions :global(.button) {
+		width: 100%;
 	}
 
 	.body {

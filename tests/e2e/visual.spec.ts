@@ -21,14 +21,11 @@ import {
 
 const LOCKED = 'http://127.0.0.1:4174';
 const THEMES = ['light', 'dark', 'sepia'] as const;
+const LONG_TITLE =
+	'The Entirely Unplanned Consequences of Borrowing a Library Book in the Middle of a Thunderstorm';
 /** The shelf: four books, one of them part read, one with the longest names we expect (AO3). */
 async function stockLibrary(page: Page): Promise<string> {
-	await addBook(
-		page,
-		'The Entirely Unplanned Consequences of Borrowing a Library Book in the Middle of a Thunderstorm',
-		'an_extremely_long_pseudonym_without_spaces',
-		CAROL
-	);
+	await addBook(page, LONG_TITLE, 'an_extremely_long_pseudonym_without_spaces', CAROL);
 	await addBook(page, 'A Christmas Carol', 'Charles Dickens', CAROL);
 	await addBook(page, 'Moby-Dick', 'Herman Melville', MOBY);
 	const pride = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
@@ -102,6 +99,58 @@ for (const theme of THEMES) {
 			await expect(page.getByRole('dialog', { name: 'Contents' })).toBeVisible();
 			await settle(page);
 			await expect(page).toHaveScreenshot(`${theme}-contents.png`);
+		});
+
+		test('remove a book', async ({ page }) => {
+			await addBook(page, LONG_TITLE, 'an_extremely_long_pseudonym_without_spaces', CAROL);
+			await page.goto('/');
+			await page.getByRole('button', { name: `Remove ${LONG_TITLE}` }).click();
+			await expect(page.getByRole('alertdialog', { name: 'Remove this book?' })).toBeVisible();
+			await settle(page);
+			await expect(page).toHaveScreenshot(`${theme}-remove-book.png`);
+		});
+
+		test.describe(() => {
+			// page.route can't see requests from a page a service worker controls.
+			test.use({ serviceWorkers: 'block' });
+
+			test('saving a chapter, then a problem', async ({ page }) => {
+				const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
+				// Two passages are prepared, then AllTalk stops answering: first the rule stands part
+				// filled, then the save fails into a notice.
+				let answered = 0;
+				let fail = false;
+				await page.route('**/api/speech', async (route) => {
+					if (fail) {
+						await route.fulfill({
+							status: 503,
+							json: { message: 'AllTalk isn\u2019t answering. Check that it\u2019s running.' }
+						});
+					} else if (answered++ < 2) await route.continue();
+				});
+				await page.goto(`/book/${id}`);
+				const button = page.getByRole('button', { name: 'Contents' });
+				const sheet = await button.isVisible();
+				if (sheet) await button.click();
+				const list = sheet
+					? page.getByRole('dialog', { name: 'Contents' })
+					: page.getByRole('navigation', { name: 'Contents' });
+				await list.getByRole('button', { name: 'Save Chapter 1 for offline listening' }).click();
+				await expect(list.getByText('2 of', { exact: false })).toBeVisible();
+				// Not settle(): the third passage is held, so the network never goes quiet.
+				await page.evaluate(() => document.fonts.ready);
+				await expect(page).toHaveScreenshot(`${theme}-saving.png`);
+
+				fail = true;
+				await list.getByRole('button', { name: 'Stop saving Chapter 1' }).click();
+				await list.getByRole('button', { name: 'Save Chapter 1 for offline listening' }).click();
+				if (sheet) await list.getByRole('button', { name: 'Close' }).click();
+				await expect(page.getByRole('list', { name: 'Problems' })).toContainText(
+					'wasn\u2019t saved'
+				);
+				await settle(page);
+				await expect(page).toHaveScreenshot(`${theme}-save-problem.png`);
+			});
 		});
 
 		test('settings', async ({ page }) => {

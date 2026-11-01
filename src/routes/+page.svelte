@@ -11,6 +11,7 @@
 	import ContinuePlate from '#lib/library/ContinuePlate.svelte';
 	import { session } from '#lib/reader/session.svelte.js';
 	import Button from '#lib/ui/Button.svelte';
+	import Confirm from '#lib/ui/Confirm.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -40,8 +41,16 @@
 		});
 	});
 
-	async function remove(id: string, title: string) {
-		if (!confirm(`Remove “${title}” from your library?`)) return;
+	/** The book waiting for "Remove this book?" to be answered. */
+	let removing = $state<{ id: string; title: string } | null>(null);
+	let confirmOpen = $state(false);
+
+	function askRemove(id: string, title: string) {
+		removing = { id, title };
+		confirmOpen = true;
+	}
+
+	async function remove(id: string) {
 		if (session.player?.book.id === id) session.close();
 		await api.remove(id);
 		await forgetBook(id);
@@ -98,7 +107,7 @@
 	{:else}
 		<ul class="books">
 			{#each data.books as book (book.id)}
-				<li><BookRow {book} onremove={() => remove(book.id, book.title)} /></li>
+				<li><BookRow {book} onremove={() => askRemove(book.id, book.title)} /></li>
 			{/each}
 		</ul>
 	{/if}
@@ -109,6 +118,15 @@
 {/if}
 
 <AddBook bind:this={addBook} bind:open={adding} />
+
+<Confirm
+	bind:open={confirmOpen}
+	title="Remove this book?"
+	confirmLabel="Remove the book"
+	onconfirm={() => removing && remove(removing.id)}
+>
+	“{removing?.title}” and your place in it leave the library on every device.
+</Confirm>
 
 <style>
 	.top {

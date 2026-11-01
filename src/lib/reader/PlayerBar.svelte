@@ -42,7 +42,7 @@
 	}
 </script>
 
-<div class="bar" role="region" aria-label="Playback">
+<div class="bar" role="region" aria-label="Playback" data-player>
 	{#if player.message}
 		<p class={['message', player.status !== 'error' && 'quiet']} role="status">
 			{player.message}

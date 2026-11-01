@@ -15,6 +15,7 @@
 	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import Checkbox from '#lib/ui/Checkbox.svelte';
+	import Confirm from '#lib/ui/Confirm.svelte';
 	import Radio from '#lib/ui/Radio.svelte';
 	import Select from '#lib/ui/Select.svelte';
 	import Slider from '#lib/ui/Slider.svelte';
@@ -33,6 +34,7 @@
 	let theme = $state<Theme>('system');
 	let canSave = $state(false);
 	let storage = $state<StorageUse | null>(null);
+	let clearOpen = $state(false);
 
 	function megabytes(bytes: number | null): string {
 		return bytes === null ? '?' : `${Math.round(bytes / 1024 / 1024).toLocaleString()} MB`;
@@ -260,14 +262,18 @@
 					{megabytes(storage?.usedBytes ?? null)} on this device{#if storage?.persisted}, kept safe
 						from automatic clean-up{/if}.
 				</p>
-				<Button
-					variant="danger"
-					onclick={async () => {
-						if (!confirm('Remove all saved audio and offline copies from this device?')) return;
+				<Button variant="danger" onclick={() => (clearOpen = true)}>Remove offline copies</Button>
+				<Confirm
+					bind:open={clearOpen}
+					title="Remove offline copies?"
+					confirmLabel="Remove them"
+					onconfirm={async () => {
 						await clearOfflineData();
 						await refreshStorage();
-					}}>Remove offline copies</Button
+					}}
 				>
+					Saved chapters and audio leave this device. Your books and places stay in the library.
+				</Confirm>
 			{:else}
 				<p class="note">
 					Offline listening needs a secure connection. Open Readhouse over HTTPS, for example with

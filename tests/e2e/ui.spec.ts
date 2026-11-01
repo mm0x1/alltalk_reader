@@ -167,6 +167,26 @@ test('settings show AllTalk voices and save the voice', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save voice' }).click();
 });
 
+test('removing a book asks first', async ({ page }, testInfo) => {
+	const title = `Remove ${testInfo.project.name}`;
+	await addPastedBook(page, title);
+	await page.goto('/');
+	const remove = page.getByRole('button', { name: `Remove ${title}` });
+
+	await remove.click();
+	const question = page.getByRole('alertdialog', { name: 'Remove this book?' });
+	await expect(question).toContainText(title);
+	// The safe answer has focus, and Escape means no.
+	await expect(question.getByRole('button', { name: 'Keep it' })).toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(question).toBeHidden();
+	await expect(remove).toBeVisible();
+
+	await remove.click();
+	await question.getByRole('button', { name: 'Remove the book' }).click();
+	await expect(remove).toHaveCount(0);
+});
+
 test('pages fit the screen without sideways scrolling', async ({ page }, testInfo) => {
 	await addPastedBook(page, `Fit ${testInfo.project.name}`);
 	for (const path of ['/', '/settings', page.url()]) {
@@ -193,6 +213,11 @@ test('a saved chapter keeps playing without a connection', async ({ page, contex
 		timeout: 15_000
 	});
 	await contents.close();
+	// Said again outside Contents, where it would otherwise go unseen.
+	const notice = page.getByRole('list', { name: 'Notices' }).getByRole('listitem');
+	await expect(notice).toHaveText(/Chapter 1 is saved for listening offline\./);
+	await notice.getByRole('button', { name: 'Dismiss' }).click();
+	await expect(notice).toHaveCount(0);
 
 	const seen = await recordPassages(page);
 	await context.setOffline(true);

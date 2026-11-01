@@ -6,7 +6,9 @@
 	import type { BookDetail, ChapterContent } from '#lib/library.js';
 	import Button from '#lib/ui/Button.svelte';
 	import ListRow from '#lib/ui/ListRow.svelte';
+	import Progress from '#lib/ui/Progress.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
+	import { toasts } from '#lib/ui/toasts.svelte.js';
 	import PlayerBar from './PlayerBar.svelte';
 	import { toRoman } from '#lib/text/roman.js';
 	import { splitIntoSegments } from '#lib/text/segments.js';
@@ -51,7 +53,6 @@
 	let canSave = $state(false);
 	let saved = $state<ReadonlySet<number>>(new Set());
 	let saving = $state<{ index: number; done: number; total: number } | null>(null);
-	let saveProblem = $state<string | null>(null);
 	let saveController: AbortController | null = null;
 
 	onMount(() => {
@@ -65,8 +66,8 @@
 		saveController?.abort();
 		const controller = new AbortController();
 		saveController = controller;
-		saveProblem = null;
 		saving = { index, done: 0, total: 0 };
+		const title = book.chapters[index]?.title ?? 'This chapter';
 		try {
 			await player.saveChapter(
 				index,
@@ -74,9 +75,14 @@
 				controller.signal
 			);
 			saved = new Set([...saved, index]);
+			toasts.show(`${title} is saved for listening offline.`);
 		} catch (error) {
 			if (!controller.signal.aborted) {
-				saveProblem = error instanceof Error ? error.message : 'Could not save this chapter.';
+				const reason = error instanceof Error ? ` ${error.message}` : '';
+				toasts.show(`${title} wasn\u2019t saved.${reason}`, {
+					problem: true,
+					action: { label: 'Try again', run: () => void saveChapter(index) }
+				});
 			}
 		} finally {
 			if (saveController === controller) {
@@ -251,14 +257,13 @@
 </div>
 
 {#snippet contentsList()}
-	{#if saveProblem}<p class="save-problem" role="alert">{saveProblem}</p>{/if}
 	<ol class="contents">
 		{#each book.chapters as entry, index (index)}
 			<li>
 				<ListRow
 					title={entry.title}
 					meta={saving?.index === index
-						? `Saving ${saving.done}/${saving.total || '\u2026'}`
+						? `${saving.done} of ${saving.total || '\u2026'}`
 						: `${entry.wordCount.toLocaleString()} words`}
 					current={index === position.chapter}
 					onclick={() => openChapter(index)}
@@ -286,6 +291,11 @@
 							onclick={() => saveChapter(index)}
 						/>
 					{/if}
+				{/if}
+				{#if saving?.index === index}
+					<div class="saving">
+						<Progress value={saving.done} max={saving.total} label={`Saving ${entry.title}`} />
+					</div>
 				{/if}
 			</li>
 		{/each}
@@ -533,17 +543,19 @@
 	}
 
 	.contents li {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: center;
-		gap: var(--space-1);
+		column-gap: var(--space-1);
+	}
+
+	/* Under the row's title and figure, not under its button. */
+	.saving {
+		grid-column: 1;
+		padding: var(--space-2) var(--space-2) var(--space-2);
 	}
 
 	.saved {
 		color: var(--color-accent);
-	}
-
-	.save-problem {
-		margin-bottom: var(--space-3);
-		color: var(--color-danger);
 	}
 </style>

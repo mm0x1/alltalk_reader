@@ -5,7 +5,7 @@
 
 	/** With `href` it renders a link that looks like a button. */
 	type Props = (HTMLButtonAttributes & HTMLAnchorAttributes) & {
-		variant?: 'primary' | 'quiet' | 'outline' | 'danger' | 'text';
+		variant?: 'primary' | 'quiet' | 'outline' | 'danger' | 'danger-solid' | 'text';
 		icon?: IconName;
 		/** Without children the button is icon-only and needs an `aria-label`. */
 		children?: Snippet;
@@ -90,6 +90,13 @@
 	.danger {
 		border-color: var(--color-danger);
 		color: var(--color-danger);
+	}
+
+	/* The answer to "Remove this book?": the one filled red button. */
+	.danger-solid {
+		border-color: var(--color-danger);
+		background: var(--color-danger);
+		color: var(--color-paper);
 	}
 
 	/* Inline, like a link in a sentence ("Reset"). Still a full-height tap target. */

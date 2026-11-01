@@ -8,7 +8,7 @@
 	const chapterTitle = $derived(player.book.chapters[player.position.chapter]?.title ?? '');
 </script>
 
-<aside class="mini" aria-label="Now reading">
+<aside class="mini" aria-label="Now reading" data-mini-player>
 	<a class="book" href={resolve('/book/[id=uuid]', { id: player.book.id })}>
 		<span class="title">{player.book.title}</span>
 		<span class="chapter">{chapterTitle}</span>

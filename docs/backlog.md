@@ -133,8 +133,13 @@ Order of work for the 2026-11-13 presentation:
   *(in progress)* Button (primary, quiet, outline, danger, text; also renders links), Icon,
   Sheet, and in style **B, Plate** (picked from https://claude.ai/artifact/M3AtEFvzbkEYY2rC6BhEeA):
   Field, Select, TextField, Checkbox (ballot box), Radio, Slider, FilePicker, ListRow (dot
-  leaders), Badge. Still to do: Dialog, Toast, Progress, loading indicator (Spinner),
-  EmptyState. *Variants published for a pick* (2026-10-31):
+  leaders), Badge, and from the feedback canvas (user's picks, 2026-10-31): **Confirm**
+  (Sheet in `alert` mode: full-width buttons, the filled `danger-solid` answer on top, focus
+  on "Keep it"; replaces both `confirm()` calls), **Toast** (reverse-ink slug above the player,
+  the mini player or the foot of the page; problems stay and are announced at once; used when a
+  chapter saves or fails), **Progress** (hairline rule under the saving row). Still to do:
+  loading mark (a turning symbol; four candidates on the canvas: tape reel, asterism, record,
+  printer's flower) and EmptyState. Variants were published for a pick (2026-10-31):
   https://claude.ai/artifact/Dvyyv4k4ZwhK7nzkq61yeF (Dialog for removing a book: centred
   plate, bottom sheet, or no question with Undo; loading: breathing ellipsis, engraved rule,
   turning fleuron; toast: slip above the player, reverse-ink slug, notice under the header;

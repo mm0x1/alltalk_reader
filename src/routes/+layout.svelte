@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import MiniPlayer from '#lib/reader/MiniPlayer.svelte';
 	import { session } from '#lib/reader/session.svelte.js';
+	import Toaster from '#lib/ui/Toaster.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -35,6 +36,8 @@
 {#if session.player && !onReader}
 	<MiniPlayer player={session.player} />
 {/if}
+
+<Toaster />
 
 <style>
 	.frame {
