@@ -6,7 +6,8 @@
  * - Every jump bumps `#generation`; async work started for an older generation is ignored, so
  *   fast tapping can never leave two passages playing or a stale one starting.
  * - The next few segments are requested ahead ("soon") and their audio warmed into the HTTP
- *   cache, so playback continues without gaps; prefetches are aborted on every jump.
+ *   cache, so playback continues without gaps; prefetches are aborted on every jump. How many,
+ *   and how many must be ready before a passage starts, is a per-device setting (buffer.ts).
  */
 
 import { api, ApiError } from '#lib/client/api.js';
@@ -18,6 +19,7 @@ import {
 	saveAudio
 } from '#lib/client/offline.js';
 import type { BookDetail, ChapterContent } from '#lib/library.js';
+import { readBuffer } from './buffer.js';
 import {
 	chapterPositions,
 	firstSpoken,
@@ -33,7 +35,6 @@ export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type SleepTimer = { kind: 'minutes'; endsAt: number } | { kind: 'chapter' } | null;
 const SLEEP_FADE_MS = 8_000;
 
-const PREFETCH_AHEAD = 3;
 const SAVE_INTERVAL_MS = 5_000;
 const CHAPTER_CACHE = 6;
 const SILENCE = '/silence.wav';
@@ -301,6 +302,8 @@ export class Player {
 			this.chapter = chapter;
 			const url = await this.#audioFor(position, 'now', controller.signal);
 			if (generation !== this.#generation) return;
+			await this.#readyAhead(position, readBuffer().before, controller.signal);
+			if (generation !== this.#generation) return;
 
 			const audio = this.#ensureAudio();
 			this.#switching = true;
@@ -353,7 +356,7 @@ export class Player {
 		this.#prefetch = controller;
 		let position: Position | null = from;
 		try {
-			for (let i = 0; i < PREFETCH_AHEAD; i++) {
+			for (let i = 0, ahead = readBuffer().ahead; i < ahead; i++) {
 				position = await this.#after(position);
 				if (!position || generation !== this.#generation) return;
 				const url = await this.#audioFor(position, 'soon', controller.signal);
@@ -363,6 +366,26 @@ export class Player {
 			}
 		} catch {
 			// Prefetching is best effort; the real request will report any problem.
+		}
+	}
+
+	/**
+	 * Waits until the `count` passages after `from` are prepared (at once when they already are,
+	 * which is the usual case once playing). Someone is waiting, so they go first in the queue.
+	 */
+	async #readyAhead(from: Position, count: number, signal: AbortSignal): Promise<void> {
+		let position: Position | null = from;
+		for (let i = 0; i < count; i++) {
+			position = await this.#after(position).catch(() => null);
+			if (!position) return;
+			try {
+				await this.#audioFor(position, 'now', signal);
+			} catch (error) {
+				// Best effort (offline, a passage that fails): play what is ready; the passage's own
+				// turn will report a real problem.
+				if (isAbort(error)) throw error;
+				return;
+			}
 		}
 	}
 

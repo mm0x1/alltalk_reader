@@ -16,6 +16,14 @@
 		type ReadingSize
 	} from '#lib/design/reading-size.js';
 	import { applyTheme, readTheme, THEMES, type Theme } from '#lib/design/theme.js';
+	import {
+		AHEAD_MAX,
+		AHEAD_MIN,
+		DEFAULT_BUFFER,
+		readBuffer,
+		writeBuffer,
+		type BufferSettings
+	} from '#lib/reader/buffer.js';
 	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
 	import type { ServerStatus } from '#lib/status.js';
 	import Badge from '#lib/ui/Badge.svelte';
@@ -41,6 +49,7 @@
 	let problem = $state<string | null>(null);
 	let theme = $state<Theme>('system');
 	let readingSize = $state<ReadingSize>('standard');
+	let buffer = $state<BufferSettings>(DEFAULT_BUFFER);
 	let canSave = $state(false);
 	let storage = $state<StorageUse | null>(null);
 	let clearOpen = $state(false);
@@ -60,6 +69,7 @@
 	onMount(() => {
 		theme = readTheme();
 		readingSize = readReadingSize();
+		buffer = readBuffer();
 		canSave = offlineAvailable();
 		if (canSave) void refreshStorage();
 		const controller = new AbortController();
@@ -294,6 +304,41 @@
 			{/each}
 			<p class="sample" aria-hidden="true">It is a truth universally acknowledged&hellip;</p>
 		</fieldset>
+		<div class="buffer">
+			<h3>Preparing audio</h3>
+			<p class="note">
+				Passages are made ready while you listen. More helps a slow AllTalk keep up; fewer wastes
+				less work when you skip around.
+			</p>
+			<Slider
+				id="buffer-ahead"
+				label="Prepare ahead"
+				min={AHEAD_MIN}
+				max={AHEAD_MAX}
+				step="1"
+				bind:value={() => buffer.ahead, (ahead) => (buffer = writeBuffer({ ...buffer, ahead }))}
+			>
+				{#snippet after()}{buffer.ahead} {buffer.ahead === 1 ? 'passage' : 'passages'}{/snippet}
+			</Slider>
+			<Slider
+				id="buffer-before"
+				label="Before playing, have ready"
+				min="0"
+				max={buffer.ahead}
+				step="1"
+				bind:value={() => buffer.before, (before) => (buffer = writeBuffer({ ...buffer, before }))}
+			>
+				{#snippet after()}
+					{buffer.before === 0
+						? 'Start at once'
+						: `${buffer.before} more ${buffer.before === 1 ? 'passage' : 'passages'}`}
+				{/snippet}
+			</Slider>
+			<p class="note">
+				Waiting for more at the start, and whenever the voice catches up, means one longer pause
+				instead of a stop before every passage.
+			</p>
+		</div>
 		<div class="storage">
 			<h3>Offline listening</h3>
 			{#if canSave}
@@ -411,6 +456,12 @@
 		margin: 0;
 		padding: 0;
 		border: none;
+	}
+
+	.buffer {
+		display: grid;
+		gap: var(--space-3);
+		margin-bottom: var(--space-4);
 	}
 
 	.sample {

@@ -497,6 +497,12 @@ Verify each works on phone and desktop; fix, or trim if it isn't worth keeping.
 - [x] **Buffered playback** and **batch pre-generation.** Merge into one "prefetch ahead / download
   chapter" behaviour in the new pipeline.
   *Done:* Merged: prefetch ahead + save chapter for offline.
+  *Buffer settings restored (user, 2026-11-01):* the old app's two controls are back per device
+  in Settings, "Preparing audio": Prepare ahead (1 to 10 passages, default 3; old Buffer Size)
+  and Before playing, have ready (0 to that, default 0; the old Min Buffer pause threshold,
+  applied at the start and whenever the voice catches up). Best effort offline. Unit and e2e
+  tested. Whole-book download is still per chapter; a "Save the whole book" action was offered
+  to the user.
 - [x] **Sessions** (save/resume). Keep, renamed as the library; one storage backend.
   *Done:* Now the library (server) with per-book progress.
 - [x] **Export/import** (JSON with base64 audio, zip). Keep zip only (smaller; base64 JSON

@@ -173,6 +173,44 @@ test('a pause right as a passage ends stays paused', async ({ page }, testInfo) 
 	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 });
 
+test.describe(() => {
+	// page.route can't see requests from a page a service worker controls.
+	test.use({ serviceWorkers: 'block' });
+
+	test('how much audio is prepared ahead is a setting', async ({ page }, testInfo) => {
+		await addPastedBook(page, `Buffer ${testInfo.project.name}`);
+		const reader = page.url();
+		const priorities: string[] = [];
+		await page.route('**/api/speech', async (route) => {
+			priorities.push((route.request().postDataJSON() as { priority: string }).priority);
+			await route.continue();
+		});
+		const listen = async () => {
+			priorities.length = 0;
+			await page.goto(reader);
+			await page.getByRole('button', { name: 'Play' }).click();
+			await expect(page.getByText('Preparing the next passage')).toBeHidden();
+			await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+			await page.waitForTimeout(300);
+			await page.getByRole('button', { name: 'Pause' }).click();
+			return [...priorities];
+		};
+
+		// One passage ahead, started at once: the passage itself, then one prepared behind it.
+		await page.goto('/settings');
+		await page.getByLabel('Prepare ahead').fill('1');
+		await expect(page.getByText('1 passage', { exact: true })).toBeVisible();
+		expect(await listen()).toEqual(['now', 'soon']);
+
+		// Two ahead, both ready before playing: the wait asks for them first.
+		await page.goto('/settings');
+		await page.getByLabel('Prepare ahead').fill('2');
+		await page.getByLabel('Before playing, have ready').fill('2');
+		await expect(page.getByText('2 more passages')).toBeVisible();
+		expect((await listen()).slice(0, 3)).toEqual(['now', 'now', 'now']);
+	});
+});
+
 test('tapping a paragraph reads from there', async ({ page }, testInfo) => {
 	await addPastedBook(page, `Tap ${testInfo.project.name}`);
 	const seen = await recordPassages(page);
