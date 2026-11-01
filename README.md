@@ -181,3 +181,8 @@ The plan, decisions and progress live in [`docs/backlog.md`](docs/backlog.md). A
 in [`CLAUDE.md`](CLAUDE.md). The AllTalk API reference is [`docs/alltalk-api.md`](docs/alltalk-api.md).
 
 Built with SvelteKit, Svelte 5, TypeScript and SQLite (Node's built-in driver).
+
+## License
+
+[MIT](LICENSE). AllTalk is a separate project with its own license; Readhouse talks to it over
+HTTP and doesn't include any of its code.
