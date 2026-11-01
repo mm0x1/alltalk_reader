@@ -24,7 +24,6 @@ A Motherhouse app, alongside Ditherhouse.
   contents; it remembers where you stopped in every book.
 - **Listen and read along.** The passage being read is highlighted and followed on screen. Tap
   any paragraph to start from there. Speed control, lock-screen controls.
-- **Narrator mode.** A second voice for everything outside quotes, so dialogue stands apart.
 - **Offline chapters.** Save chapters to your phone and keep listening without a connection.
 - **Private by design.** Everything stays on your machine. Optional passcode for other devices.
 

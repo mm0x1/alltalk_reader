@@ -345,12 +345,6 @@ test('AllTalk\u2019s model, low VRAM mode and voice previews from Settings', asy
 	expect(response.status()).toBe(200);
 	expect(response.headers()['content-type']).toMatch(/^audio\//);
 	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('');
-
-	// Text outside quotes can also be skipped.
-	await page.getByRole('checkbox', { name: /Narrator/ }).check();
-	await expect(
-		page.getByRole('combobox', { name: 'Text outside quotes is read by' }).locator('option')
-	).toHaveText(['the narrator', 'the main voice', 'nobody (skip it)']);
 });
 
 test('removing a book asks first', async ({ page }, testInfo) => {

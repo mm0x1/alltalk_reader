@@ -59,6 +59,18 @@ export const VoiceSettingsSchema = v.strictObject({
 
 export type VoiceSettings = v.InferOutput<typeof VoiceSettingsSchema>;
 
+/**
+ * The narrator (a second voice for text outside quotes) is set aside for now (user,
+ * 2026-11-01): AllTalk often mixes up the voices or skips text. Its settings are kept so stored
+ * records stay valid, but they are hidden and never applied. Set true to bring it back.
+ */
+export const NARRATOR_AVAILABLE = false;
+
+/** Settings as they apply: with the narrator set aside, it is always off. */
+export function applicable(settings: VoiceSettings): VoiceSettings {
+	return NARRATOR_AVAILABLE ? settings : { ...settings, narratorEnabled: false };
+}
+
 export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
 	voice: '',
 	narratorEnabled: false,

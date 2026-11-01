@@ -335,6 +335,9 @@ Order of work for the 2026-11-13 presentation:
   *Done:* Narrator on/off, narrator voice, and who reads unquoted text, in Settings.
   Off by default and marked Experimental, with a warning that it often doesn't work well yet
   (user's call, 2026-10-31).
+  *Set aside (user, 2026-11-01):* hidden and always off for now (`NARRATOR_AVAILABLE` in
+  `src/lib/settings.ts`). Stored narrator settings are kept but never applied; the AllTalk
+  client still supports it, so bringing it back is one flag.
 - [x] **Streaming for faster first audio.** Use `tts-generate-streaming` where the engine
   supports it so playback starts sooner, with fallback to `tts-generate`.
   *Decided: not now.* The streaming endpoint ignores narrator, RVC and temperature, can't go through the cache, and Safari plays progressive WAV poorly. Start-up time is handled by short segments (`SEGMENT_MAX_CHARS`) and prefetching. Revisit if real-device latency is a problem.

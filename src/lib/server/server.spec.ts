@@ -131,6 +131,15 @@ describe('Settings', () => {
 			.run(JSON.stringify({ voice: 'ok.wav', temperature: 99, language: 'xx' }));
 		expect(services.settings.voice()).toEqual({ ...DEFAULT_VOICE_SETTINGS, voice: 'ok.wav' });
 	});
+
+	it('keeps the narrator off while it is set aside, whatever was stored', () => {
+		services.settings.saveVoice({ ...DEFAULT_VOICE_SETTINGS, narratorEnabled: true });
+		expect(services.settings.voice().narratorEnabled).toBe(false);
+		services.db
+			.statement(`UPDATE settings SET data = ? WHERE id = 1`)
+			.run(JSON.stringify({ ...DEFAULT_VOICE_SETTINGS, narratorEnabled: true }));
+		expect(services.settings.voice().narratorEnabled).toBe(false);
+	});
 });
 
 describe('AllTalk client', () => {

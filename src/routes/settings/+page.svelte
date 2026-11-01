@@ -24,7 +24,7 @@
 		writeBuffer,
 		type BufferSettings
 	} from '#lib/reader/buffer.js';
-	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
+	import { LANGUAGES, NARRATOR_AVAILABLE, type VoiceSettings } from '#lib/settings.js';
 	import { PASSAGE_MAX_CHARS, PASSAGE_MIN_CHARS, speechSeconds } from '#lib/text/passages.js';
 	import type { EngineSummary, ServerStatus } from '#lib/status.js';
 	import { session } from '#lib/reader/session.svelte.js';
@@ -295,28 +295,30 @@
 			smoother. Short lines of dialogue are read together, long paragraphs in parts.
 		</p>
 
-		<Checkbox
-			id="narrator"
-			label="Narrator"
-			hint="A second voice reads everything outside of quotes, so dialogue stands out. It often doesn't work well yet: AllTalk can mix up the voices or skip text, so leave it off unless it sounds right with your voices."
-			bind:checked={voice.narratorEnabled}
-		>
-			{#snippet badge()}<Badge>Experimental</Badge>{/snippet}
-		</Checkbox>
+		{#if NARRATOR_AVAILABLE}
+			<Checkbox
+				id="narrator"
+				label="Narrator"
+				hint="A second voice reads everything outside of quotes, so dialogue stands out. It often doesn't work well yet: AllTalk can mix up the voices or skip text, so leave it off unless it sounds right with your voices."
+				bind:checked={voice.narratorEnabled}
+			>
+				{#snippet badge()}<Badge>Experimental</Badge>{/snippet}
+			</Checkbox>
 
-		{#if voice.narratorEnabled}
-			<Select id="narrator-voice" label="Narrator voice" bind:value={voice.narratorVoice}>
-				<option value="">AllTalk&rsquo;s default</option>
-				{#each voices as name (name)}
-					<option value={name}>{voiceLabel(name)}</option>
-				{/each}
-			</Select>
-			{@render hear(voice.narratorVoice, voice.rvcNarratorVoice, voice.rvcNarratorPitch)}
-			<Select id="unquoted" label="Text outside quotes is read by" bind:value={voice.unquotedIs}>
-				<option value="narrator">the narrator</option>
-				<option value="character">the main voice</option>
-				<option value="silent">nobody (skip it)</option>
-			</Select>
+			{#if voice.narratorEnabled}
+				<Select id="narrator-voice" label="Narrator voice" bind:value={voice.narratorVoice}>
+					<option value="">AllTalk&rsquo;s default</option>
+					{#each voices as name (name)}
+						<option value={name}>{voiceLabel(name)}</option>
+					{/each}
+				</Select>
+				{@render hear(voice.narratorVoice, voice.rvcNarratorVoice, voice.rvcNarratorPitch)}
+				<Select id="unquoted" label="Text outside quotes is read by" bind:value={voice.unquotedIs}>
+					<option value="narrator">the narrator</option>
+					<option value="character">the main voice</option>
+					<option value="silent">nobody (skip it)</option>
+				</Select>
+			{/if}
 		{/if}
 
 		{#if engine?.capabilities.temperature || engine?.capabilities.repetitionPenalty || engine?.capabilities.pitch || rvcVoices.length > 1}
@@ -377,7 +379,7 @@
 							bind:value={voice.rvcPitch}
 						/>
 					{/if}
-					{#if voice.narratorEnabled}
+					{#if NARRATOR_AVAILABLE && voice.narratorEnabled}
 						<Select
 							id="rvc-narrator"
 							label="Narrator RVC voice"

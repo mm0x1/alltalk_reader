@@ -145,8 +145,8 @@
 			</Select>
 			<Checkbox
 				id="ref-check"
-				label="Narrator"
-				hint="A second voice reads outside quotes."
+				label="Low VRAM mode"
+				hint="Keeps the model in system memory between passages."
 				bind:checked
 			>
 				{#snippet badge()}<Badge>Experimental</Badge>{/snippet}

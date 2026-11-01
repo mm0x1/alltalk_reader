@@ -1,7 +1,12 @@
 /** Server-side storage of the voice settings. */
 
 import * as v from 'valibot';
-import { DEFAULT_VOICE_SETTINGS, VoiceSettingsSchema, type VoiceSettings } from '#lib/settings.js';
+import {
+	applicable,
+	DEFAULT_VOICE_SETTINGS,
+	VoiceSettingsSchema,
+	type VoiceSettings
+} from '#lib/settings.js';
 import type { Database } from './db.js';
 
 export class SettingsStore {
@@ -27,11 +32,11 @@ export class SettingsStore {
 			const candidate = { ...DEFAULT_VOICE_SETTINGS, [key]: stored[key] };
 			if (v.safeParse(VoiceSettingsSchema, candidate).success) merged[key] = stored[key];
 		}
-		return v.parse(VoiceSettingsSchema, merged);
+		return applicable(v.parse(VoiceSettingsSchema, merged));
 	}
 
 	saveVoice(settings: VoiceSettings): VoiceSettings {
-		const valid = v.parse(VoiceSettingsSchema, settings);
+		const valid = applicable(v.parse(VoiceSettingsSchema, settings));
 		this.db
 			.statement(
 				`INSERT INTO settings (id, data) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET data = excluded.data`
