@@ -94,6 +94,9 @@ test('reads a pasted book aloud and keeps going between passages and chapters', 
 	const seen = await recordPassages(page);
 
 	await page.getByRole('button', { name: 'Play' }).click();
+	// Screen readers hear that reading started, and each new chapter, but not every passage.
+	const announced = page.locator('[data-player] [aria-live]');
+	await expect(announced).toHaveText(/^Reading Chapter \d$/);
 	// It reads the passages in order and carries on into the next chapter by itself.
 	await expect
 		.poll(seen, { timeout: 20_000 })
@@ -114,7 +117,10 @@ test('reads a pasted book aloud and keeps going between passages and chapters', 
 
 	// Pause (or, if it already reached the end of the book, it has stopped by itself).
 	const pause = page.getByRole('button', { name: 'Pause' });
-	if (await pause.isVisible()) await pause.click();
+	if (await pause.isVisible()) {
+		await pause.click();
+		await expect(announced).toHaveText('Paused');
+	}
 	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 
 	// Contents jumps to a chapter.

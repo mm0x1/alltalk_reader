@@ -216,6 +216,11 @@ Order of work for the 2026-11-13 presentation:
   secondary text (`--text-s`) and 18 px for UI text (`--text-m`); reading text stays 20 px.
   All in rem, so the system font size scales them. Settings has a visible label, not only an
   icon.
+  *Playback announcements (2026-10-31):* a polite live region in the player says "Reading
+  Chapter 2" when reading starts or moves to a new chapter and "Paused" when it stops (also
+  from the lock screen or sleep timer), never each passage; problems and notices were already
+  announced (player message, toasts). Book text size is a Settings choice (see Made for
+  reading). Still to do: a pass with VoiceOver and TalkBack on real phones (device checklist).
 
 ## Books: EPUB and TXT
 

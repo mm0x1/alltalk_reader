@@ -37,6 +37,16 @@
 		return Math.round((player.position.block / Math.max(1, chapter.blocks.length - 1)) * 100);
 	});
 
+	/**
+	 * Told to screen readers when it changes: starting, pausing (also from the lock screen or the
+	 * sleep timer) and moving on to a new chapter; never each passage.
+	 */
+	const announcement = $derived.by(() => {
+		const title = player.book.chapters[player.position.chapter]?.title ?? '';
+		if (player.active) return `Reading ${title}`;
+		return player.status === 'paused' ? 'Paused' : '';
+	});
+
 	function cycleRate() {
 		const index = RATES.indexOf(player.rate as (typeof RATES)[number]);
 		player.setRate(RATES[(index + 1) % RATES.length]);
@@ -44,6 +54,7 @@
 </script>
 
 <div class="bar" role="region" aria-label="Playback" data-player>
+	<p class="visually-hidden" aria-live="polite">{announcement}</p>
 	{#if player.message}
 		<p class={['message', player.status !== 'error' && 'quiet']} role="status">
 			{player.message}
