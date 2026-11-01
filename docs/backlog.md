@@ -635,3 +635,10 @@ One line per work session: date, what was done, what's next.
   `docs/presentation.md` with a talk track, linked from the README). Recording it caught a real
   bug: a pause tapped just as a passage ended was undone by the `ended` event already on its
   way, so playback resumed by itself; now e2e-tested on all three profiles and fixed.
+- 2026-11-01: MIT license. Buffer settings back (Prepare ahead, Before playing). AllTalk
+  decision clarified: users set AllTalk up, but choose model, voices, preview and modes in
+  Readhouse. Passage length (packed across paragraphs, default about 7 s, a library setting;
+  replaces `SEGMENT_MAX_CHARS`). AllTalk controls in Settings: model, low VRAM, DeepSpeed, voice
+  preview, pitch, narrator RVC, skip text outside quotes; verified on the real AllTalk, with
+  workarounds for two AllTalk bugs. 95 unit + 190 e2e tests. Next: AO3 EPUB testing with the
+  user's files, device checklist, engine switching once it can be made safe.
