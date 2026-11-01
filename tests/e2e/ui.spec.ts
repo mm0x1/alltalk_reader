@@ -172,6 +172,11 @@ test('settings show AllTalk voices and save the voice', async ({ page }) => {
 	);
 	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('');
 	await page.getByRole('button', { name: 'Save voice' }).click();
+
+	await page.getByRole('button', { name: 'Stop generating audio' }).click();
+	await expect(page.getByRole('list', { name: 'Notices' })).toContainText(
+		'AllTalk stopped preparing audio.'
+	);
 });
 
 test('removing a book asks first', async ({ page }, testInfo) => {

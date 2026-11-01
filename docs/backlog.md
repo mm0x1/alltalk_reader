@@ -209,6 +209,10 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
   loading and error states, empty states that say what to do next, helpful copy, no
   developer jargon in the UI ("buffered mode", "session server").
+  *(in progress, 2026-10-31)* Loading (printer's flower), problems and notices (toasts),
+  empty and error pages are in. Jargon pass: "Stop generating audio" now says what it does and
+  confirms; repetition penalty is labelled in plain words like temperature. RVC keeps AllTalk's
+  name behind Advanced.
 - [ ] **Accessibility.** WCAG AA contrast in every theme, focus-visible styles, labelled
   controls, screen-reader announcements for playback state, respects system font size.
   *Type sizes raised (2026-10-31, user asked for accessible font sizes):* EB Garamond has a

@@ -26,6 +26,7 @@
 	import Select from '#lib/ui/Select.svelte';
 	import Slider from '#lib/ui/Slider.svelte';
 	import Spinner from '#lib/ui/Spinner.svelte';
+	import { toasts } from '#lib/ui/toasts.svelte.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -137,7 +138,21 @@
 		{:else}
 			<p class="state"><Spinner /> Checking AllTalk</p>
 		{/if}
-		<Button variant="outline" onclick={() => api.stopSpeech()}>Stop generating audio</Button>
+		<p class="note">
+			If AllTalk is busy preparing passages nobody will hear, this tells it to stop.
+		</p>
+		<Button
+			variant="outline"
+			onclick={async () => {
+				try {
+					await api.stopSpeech();
+					toasts.show('AllTalk stopped preparing audio.');
+				} catch (error) {
+					const reason = error instanceof Error ? ` ${error.message}` : '';
+					toasts.show(`AllTalk couldn\u2019t be stopped.${reason}`, { problem: true });
+				}
+			}}>Stop generating audio</Button
+		>
 	</section>
 
 	<form onsubmit={save} aria-labelledby="voice-heading">
@@ -199,7 +214,7 @@
 				{#if engine?.capabilities.repetitionPenalty}
 					<Slider
 						id="repetition-penalty"
-						label="Repetition penalty"
+						label="Fewer repeated words (repetition penalty)"
 						min="1"
 						max="20"
 						step="0.5"
