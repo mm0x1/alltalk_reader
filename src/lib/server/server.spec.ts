@@ -34,7 +34,6 @@ function make(overrides: { audioCacheMaxBytes?: number; audioFormat?: 'auto' | '
 	services = createServices({
 		dataDir: dir,
 		alltalkUrl: fake.url,
-		segmentMaxChars: 200,
 		uploadMaxBytes: 1024 * 1024,
 		audioCacheMaxBytes: overrides.audioCacheMaxBytes ?? 64 * 1024 * 1024,
 		audioFormat: overrides.audioFormat ?? 'original',
@@ -79,8 +78,8 @@ describe('Library', () => {
 			{ title: 'One', wordCount: 1 },
 			{ title: 'Two', wordCount: 1 }
 		]);
-		expect(services.library.chapter(id, 0)?.blocks).toEqual(book.chapters[0].blocks);
-		expect(services.library.chapter(id, 2)).toBeNull();
+		expect(services.library.chapter(id, 0, 125)?.blocks).toEqual(book.chapters[0].blocks);
+		expect(services.library.chapter(id, 2, 125)).toBeNull();
 		expect(services.library.cover(id)?.mime).toBe('image/png');
 	});
 

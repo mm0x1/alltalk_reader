@@ -25,6 +25,7 @@
 		type BufferSettings
 	} from '#lib/reader/buffer.js';
 	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
+	import { PASSAGE_MAX_CHARS, PASSAGE_MIN_CHARS, speechSeconds } from '#lib/text/passages.js';
 	import type { ServerStatus } from '#lib/status.js';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
@@ -181,6 +182,21 @@
 			{/each}
 		</Select>
 
+		<Slider
+			id="passage-length"
+			label="Passage length"
+			min={PASSAGE_MIN_CHARS}
+			max={PASSAGE_MAX_CHARS}
+			step="5"
+			bind:value={voice.passageChars}
+		>
+			{#snippet after()}{`Up to ${voice.passageChars} characters, about ${speechSeconds(voice.passageChars)} s of speech`}{/snippet}
+		</Slider>
+		<p class="note">
+			How much AllTalk reads at a time. Shorter starts sooner and keeps waits short; longer sounds
+			smoother. Short lines of dialogue are read together, long paragraphs in parts.
+		</p>
+
 		<Checkbox
 			id="narrator"
 			label="Narrator"
@@ -318,7 +334,7 @@
 				step="1"
 				bind:value={() => buffer.ahead, (ahead) => (buffer = writeBuffer({ ...buffer, ahead }))}
 			>
-				{#snippet after()}{buffer.ahead} {buffer.ahead === 1 ? 'passage' : 'passages'}{/snippet}
+				{#snippet after()}{`${buffer.ahead} ${buffer.ahead === 1 ? 'passage' : 'passages'}, about ${speechSeconds(buffer.ahead * voice.passageChars)} s`}{/snippet}
 			</Slider>
 			<Slider
 				id="buffer-before"

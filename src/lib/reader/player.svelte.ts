@@ -1,11 +1,11 @@
 /**
- * Plays a book aloud, segment by segment.
+ * Plays a book aloud, passage by passage (see passages.ts: built by size, not by paragraph).
  *
  * - One audio element for the whole session, first played inside a user gesture: iOS only lets
  *   an element play programmatically after that.
  * - Every jump bumps `#generation`; async work started for an older generation is ignored, so
  *   fast tapping can never leave two passages playing or a stale one starting.
- * - The next few segments are requested ahead ("soon") and their audio warmed into the HTTP
+ * - The next few passages are requested ahead ("soon") and their audio warmed into the HTTP
  *   cache, so playback continues without gaps; prefetches are aborted on every jump. How many,
  *   and how many must be ready before a passage starts, is a per-device setting (buffer.ts).
  */
@@ -20,14 +20,8 @@ import {
 } from '#lib/client/offline.js';
 import type { BookDetail, ChapterContent } from '#lib/library.js';
 import { readBuffer } from './buffer.js';
-import {
-	chapterPositions,
-	firstSpoken,
-	lastSpokenBefore,
-	nextInChapter,
-	previousInChapter,
-	type Position
-} from './position.js';
+import { firstBlock } from '#lib/text/passages.js';
+import { chapterPositions, nextInChapter, previousInChapter, type Position } from './position.js';
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -69,14 +63,15 @@ function describe(error: unknown): string {
 export class Player {
 	status = $state<PlayerStatus>('idle');
 	message = $state<string | null>(null);
-	position = $state<Position>({ chapter: 0, block: 0, segment: 0 });
+	position = $state<Position>({ chapter: 0, passage: 0 });
 	/** The chapter being shown/read. Raw: large and never mutated, so no deep proxy. */
 	chapter = $state.raw<ChapterContent | null>(null);
 	rate = $state(1);
 	sleep = $state<SleepTimer>(null);
 
 	readonly book: BookDetail;
-	readonly #maxChars: number;
+	/** The passage length for this session; every chapter and request uses it. */
+	readonly passageChars: number;
 	#audio: HTMLAudioElement | null = null;
 	#unlocked = false;
 	#switching = false;
@@ -94,9 +89,9 @@ export class Player {
 	#sleepTimer: ReturnType<typeof setTimeout> | null = null;
 	#fadeTimer: ReturnType<typeof setInterval> | null = null;
 
-	constructor(book: BookDetail, maxChars: number, start: Position, chapter: ChapterContent) {
+	constructor(book: BookDetail, start: Position, chapter: ChapterContent) {
 		this.book = book;
-		this.#maxChars = maxChars;
+		this.passageChars = chapter.passageChars;
 		this.position = start;
 		this.chapter = chapter;
 		this.#chapters.set(chapter.position, Promise.resolve(chapter));
@@ -164,9 +159,7 @@ export class Player {
 
 	async openChapter(index: number, autoplay = this.active): Promise<void> {
 		if (index < 0 || index >= this.book.chapterCount) return;
-		const chapter = await this.#chapter(index);
-		const block = firstSpoken(chapter.blocks) ?? 0;
-		await this.seek({ chapter: index, block, segment: 0 }, autoplay);
+		await this.seek({ chapter: index, passage: 0 }, autoplay);
 	}
 
 	setRate(rate: number): void {
@@ -399,17 +392,27 @@ export class Player {
 		signal: AbortSignal
 	): Promise<string> {
 		try {
-			const { audio } = await api.speech({ bookId: this.book.id, ...position, priority }, signal);
-			void rememberSpeech(this.book.id, position, audio);
+			const { audio } = await api.speech(this.#request(position, priority), signal);
+			void rememberSpeech(this.book.id, position, this.passageChars, audio);
 			return audio;
 		} catch (error) {
 			if (isAbort(error)) throw error;
 			const offline =
 				error instanceof TypeError || (error instanceof ApiError && error.status >= 502);
-			const saved = offline ? await recallSpeech(this.book.id, position) : null;
+			const saved = offline ? await recallSpeech(this.book.id, position, this.passageChars) : null;
 			if (saved) return saved;
 			throw error;
 		}
+	}
+
+	#request(position: Position, priority: 'now' | 'soon') {
+		return {
+			bookId: this.book.id,
+			chapter: position.chapter,
+			passage: position.passage,
+			chars: this.passageChars,
+			priority
+		};
 	}
 
 	/**
@@ -423,39 +426,33 @@ export class Player {
 	): Promise<void> {
 		void requestPersistence();
 		const chapter = await this.#chapter(index);
-		const positions = chapterPositions(index, chapter.blocks, this.#maxChars);
+		const positions = chapterPositions(chapter);
 		onProgress(0, positions.length);
 		for (const [done, position] of positions.entries()) {
-			const { audio } = await api.speech(
-				{ bookId: this.book.id, ...position, priority: 'soon' },
-				signal
-			);
-			await rememberSpeech(this.book.id, position, audio);
+			const { audio } = await api.speech(this.#request(position, 'soon'), signal);
+			await rememberSpeech(this.book.id, position, this.passageChars, audio);
 			await saveAudio(audio, signal);
 			onProgress(done + 1, positions.length);
 		}
-		await markChapterSaved(this.book.id, index);
+		await markChapterSaved(this.book.id, index, this.passageChars);
 	}
 
 	async #after(position: Position): Promise<Position | null> {
 		const chapter = await this.#chapter(position.chapter);
-		const next = nextInChapter(chapter.blocks, position, this.#maxChars);
+		const next = nextInChapter(chapter, position);
 		if (next) return next;
 		for (let index = position.chapter + 1; index < this.book.chapterCount; index++) {
-			const block = firstSpoken((await this.#chapter(index)).blocks);
-			if (block !== null) return { chapter: index, block, segment: 0 };
+			if ((await this.#chapter(index)).passages.length) return { chapter: index, passage: 0 };
 		}
 		return null;
 	}
 
 	async #before(position: Position): Promise<Position | null> {
-		const chapter = await this.#chapter(position.chapter);
-		const previous = previousInChapter(chapter.blocks, position);
+		const previous = previousInChapter(position);
 		if (previous) return previous;
 		for (let index = position.chapter - 1; index >= 0; index--) {
-			const blocks = (await this.#chapter(index)).blocks;
-			const block = lastSpokenBefore(blocks, blocks.length);
-			if (block !== null) return { chapter: index, block, segment: 0 };
+			const count = (await this.#chapter(index)).passages.length;
+			if (count) return { chapter: index, passage: count - 1 };
 		}
 		return null;
 	}
@@ -463,7 +460,7 @@ export class Player {
 	#chapter(index: number): Promise<ChapterContent> {
 		let chapter = this.#chapters.get(index);
 		if (!chapter) {
-			chapter = api.chapter(this.book.id, index);
+			chapter = api.chapter(this.book.id, index, this.passageChars);
 			chapter.catch(() => this.#chapters.delete(index));
 			this.#chapters.set(index, chapter);
 			// Keep memory bounded on long books: drop the oldest other chapter.
@@ -483,7 +480,11 @@ export class Player {
 		const now = Date.now();
 		if (!force && now - this.#lastSaved < SAVE_INTERVAL_MS) return;
 		this.#lastSaved = now;
-		const { chapter, block } = this.position;
+		// Saved as a paragraph, so the place survives a change of passage length.
+		const { chapter } = this.position;
+		const passage =
+			this.chapter?.position === chapter ? this.chapter.passages[this.position.passage] : undefined;
+		const block = passage ? firstBlock(passage) : 0;
 		// A page being hidden can't wait its turn; keepalive lets it finish after the page goes.
 		if (keepalive) {
 			api.saveProgress(this.book.id, chapter, block, true).catch(() => undefined);
@@ -526,5 +527,5 @@ export class Player {
 }
 
 function key(position: Position): string {
-	return `${position.chapter}:${position.block}:${position.segment}`;
+	return `${position.chapter}:${position.passage}`;
 }

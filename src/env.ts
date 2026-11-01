@@ -34,10 +34,6 @@ export const variables = defineEnvVars({
 			return value;
 		}
 	},
-	SEGMENT_MAX_CHARS: {
-		description: 'Longest text sent to AllTalk in one request.',
-		schema: integer('SEGMENT_MAX_CHARS', 500, 100, 2000)
-	},
 	AUDIO_CACHE_MAX_MB: {
 		description: 'Disk space generated audio may use before the least recently played is removed.',
 		schema: integer('AUDIO_CACHE_MAX_MB', 2048, 64, 1_000_000)

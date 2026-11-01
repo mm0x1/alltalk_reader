@@ -11,39 +11,37 @@
 	import { toasts } from '#lib/ui/toasts.svelte.js';
 	import PlayerBar from './PlayerBar.svelte';
 	import { toRoman } from '#lib/text/roman.js';
-	import { splitIntoSegments } from '#lib/text/segments.js';
+	import { passageForBlock } from '#lib/text/passages.js';
 	import type { Position } from './position.js';
 	import { session } from './session.svelte.js';
 
 	let {
 		book,
 		chapter: initialChapter,
-		start,
-		segmentMaxChars
+		start
 	}: {
 		book: BookDetail;
 		chapter: ChapterContent;
 		start: Position;
-		segmentMaxChars: number;
 	} = $props();
 
 	// Created once per book (the page keys this component by book id).
 	// svelte-ignore state_referenced_locally
-	const player = browser ? session.open(book, segmentMaxChars, start, initialChapter) : null;
+	const player = browser ? session.open(book, start, initialChapter) : null;
 
 	const chapter = $derived(player?.chapter ?? initialChapter);
 	const position = $derived(player?.position ?? start);
 	const showingCurrent = $derived(chapter.position === position.chapter);
 
 	/**
-	 * The passage being read, split the way the server splits it, so the sentence being spoken
-	 * can be marked. Not for verse: splitting joins lines, which would lose a poem's line breaks.
+	 * Where the passage being read lies, paragraph by paragraph: a passage can span several short
+	 * paragraphs, or be part of a long one. Offsets keep a poem's line breaks on screen.
 	 */
-	const currentSegments = $derived.by(() => {
-		if (!showingCurrent) return null;
-		const block = chapter.blocks[position.block];
-		if (!block || block.type !== 'text' || block.text.includes('\n')) return null;
-		return splitIntoSegments(block.text, segmentMaxChars);
+	const reading = $derived.by(() => {
+		const ranges: Record<number, [number, number]> = {};
+		const passage = showingCurrent ? chapter.passages[position.passage] : undefined;
+		for (const piece of passage?.pieces ?? []) ranges[piece.block] = [piece.start, piece.end];
+		return ranges;
 	});
 
 	/** The first paragraph of the chapter opens with a drop cap. */
@@ -57,7 +55,7 @@
 
 	onMount(() => {
 		canSave = offlineAvailable();
-		void savedChapters(book.id).then((set) => (saved = set));
+		void savedChapters(book.id, chapter.passageChars).then((set) => (saved = set));
 		return () => saveController?.abort();
 	});
 
@@ -92,12 +90,14 @@
 		}
 	}
 
+	/** The passage being read, on the page. */
+	const speaking = () => document.querySelector('article.page .speaking');
+
 	// Keep the passage being read in view, unless the reader has scrolled away.
 	$effect(() => {
+		void reading;
 		if (!follow || !player?.active || !showingCurrent) return;
-		document
-			.getElementById(`block-${position.block}`)
-			?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+		speaking()?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 	});
 
 	// In the desktop sidebar, keep the chapter being read in view.
@@ -114,7 +114,7 @@
 
 	function resumeFollowing() {
 		follow = true;
-		document.getElementById(`block-${position.block}`)?.scrollIntoView({ block: 'center' });
+		speaking()?.scrollIntoView({ block: 'center' });
 	}
 
 	/** Tapping a paragraph reads from there (unless the tap was selecting text). */
@@ -122,11 +122,10 @@
 		if (!player || window.getSelection()?.toString()) return;
 		const target = (event.target as HTMLElement).closest<HTMLElement>('[data-block]');
 		if (!target) return;
+		const passage = passageForBlock(chapter.passages, Number(target.dataset.block));
+		if (passage === null) return;
 		follow = true;
-		void player.seek(
-			{ chapter: chapter.position, block: Number(target.dataset.block), segment: 0 },
-			true
-		);
+		void player.seek({ chapter: chapter.position, passage }, true);
 	}
 
 	/** Space plays and pauses, arrows move by passage; never while typing or in a dialog. */
@@ -206,26 +205,18 @@
 					<h2
 						id={`block-${index}`}
 						data-block={index}
-						aria-current={showingCurrent && index === position.block ? 'true' : undefined}
+						aria-current={reading[index] ? 'true' : undefined}
 					>
-						{block.text}
+						{@render marked(block.text, reading[index])}
 					</h2>
 				{:else}
-					{@const current = showingCurrent && index === position.block}
 					<p
 						id={`block-${index}`}
 						class={{ opening: index === openingBlock }}
 						data-block={index}
-						aria-current={current ? 'true' : undefined}
+						aria-current={reading[index] ? 'true' : undefined}
 					>
-						{#if current && currentSegments}
-							{#each currentSegments as segment, i (i)}<span
-									class={['segment', i === position.segment && 'speaking']}
-									>{segment}{i < currentSegments.length - 1 ? ' ' : ''}</span
-								>{/each}
-						{:else}
-							{block.text}
-						{/if}
+						{@render marked(block.text, reading[index])}
 					</p>
 				{/if}
 			{/each}
@@ -255,6 +246,13 @@
 		<PlayerBar {player} />
 	{/if}
 </div>
+
+<!-- A paragraph's text, with the part being read marked; kept on one line so no space creeps in. -->
+{#snippet marked(text: string, range: [number, number] | undefined)}
+	{#if range}{text.slice(0, range[0])}<span class="segment speaking"
+			>{text.slice(range[0], range[1])}</span
+		>{text.slice(range[1])}{:else}{text}{/if}
+{/snippet}
 
 {#snippet contentsList()}
 	<ol class="contents">

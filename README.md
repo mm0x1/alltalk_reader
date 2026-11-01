@@ -102,7 +102,6 @@ All settings live in `.env` (see `.env.example`) and are checked when Readhouse 
 | `ACCESS_PASSCODE`    | none                    | Ask for a passcode on other devices (6+ characters).         |
 | `AUDIO_FORMAT`       | `auto`                  | `auto` compresses to AAC if ffmpeg is installed.             |
 | `AUDIO_CACHE_MAX_MB` | `2048`                  | Disk space for audio before the least recently played goes. |
-| `SEGMENT_MAX_CHARS`  | `500`                   | Longest text per AllTalk request. Shorter starts sooner.     |
 | `UPLOAD_MAX_MB`      | `64`                    | Largest book file you can add.                               |
 | `HOST` / `PORT`      | `0.0.0.0` / `3000`      | Where Readhouse listens.                                     |
 

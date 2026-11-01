@@ -177,6 +177,64 @@ test.describe(() => {
 	// page.route can't see requests from a page a service worker controls.
 	test.use({ serviceWorkers: 'block' });
 
+	test('short dialogue is read together, and passage length is a setting', async ({
+		page
+	}, testInfo) => {
+		const dialogue = [
+			'\u201cYou came back.\u201d',
+			'',
+			'\u201cI said I would.\u201d',
+			'',
+			'\u201cYou say a lot of things.\u201d',
+			'',
+			'She laughed.',
+			'',
+			'The rain had stopped by the time they walked down to the harbour, and the lamps along the quay were coming on one by one.'
+		].join('\n');
+		await page.goto('/');
+		await page.getByRole('button', { name: 'Add a book' }).click();
+		const sheet = page.getByRole('dialog', { name: 'Add a book' });
+		await sheet.getByPlaceholder('Title (optional)').fill(`Dialogue ${testInfo.project.name}`);
+		await sheet.getByPlaceholder('Paste here').fill(dialogue);
+		await sheet.getByRole('button', { name: 'Add', exact: true }).click();
+		await expect(page).toHaveURL(/\/book\//);
+		const reader = page.url();
+		const chars: number[] = [];
+		await page.route('**/api/speech', async (route) => {
+			chars.push((route.request().postDataJSON() as { chars: number }).chars);
+			await route.continue();
+		});
+
+		// Four short paragraphs, one passage: all of them are marked as the place to read from.
+		const marked = page.locator('article.page p:has(.speaking)');
+		await expect(marked).toHaveCount(4);
+		await expect(marked.first()).toContainText('You came back.');
+		await expect(marked.last()).toContainText('She laughed.');
+		await page.getByRole('button', { name: 'Play' }).click();
+		await expect.poll(() => chars.length).toBeGreaterThan(0);
+		await page.getByRole('button', { name: 'Pause' }).click();
+		expect(new Set(chars)).toEqual(new Set([125]));
+
+		// A shorter length, saved for the library, is what the reader asks for next time.
+		await page.goto('/settings');
+		await page.getByLabel('Passage length').fill('60');
+		await page.getByRole('button', { name: 'Save voice' }).click();
+		await expect(page.getByText('Saved.')).toBeVisible();
+		chars.length = 0;
+		await page.goto(reader);
+		await page.getByRole('button', { name: 'Play' }).click();
+		await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+		await expect.poll(() => chars.length).toBeGreaterThan(0);
+		expect(new Set(chars)).toEqual(new Set([60]));
+		await page.getByRole('button', { name: 'Pause' }).click();
+
+		// Back to the default for the other tests.
+		await page.goto('/settings');
+		await page.getByLabel('Passage length').fill('125');
+		await page.getByRole('button', { name: 'Save voice' }).click();
+		await expect(page.getByText('Saved.')).toBeVisible();
+	});
+
 	test('how much audio is prepared ahead is a setting', async ({ page }, testInfo) => {
 		await addPastedBook(page, `Buffer ${testInfo.project.name}`);
 		const reader = page.url();
@@ -199,7 +257,7 @@ test.describe(() => {
 		// One passage ahead, started at once: the passage itself, then one prepared behind it.
 		await page.goto('/settings');
 		await page.getByLabel('Prepare ahead').fill('1');
-		await expect(page.getByText('1 passage', { exact: true })).toBeVisible();
+		await expect(page.getByText(/1 passage, about \d+ s/)).toBeVisible();
 		expect(await listen()).toEqual(['now', 'soon']);
 
 		// Two ahead, both ready before playing: the wait asks for them first.

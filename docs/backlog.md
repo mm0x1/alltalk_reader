@@ -272,7 +272,7 @@ Order of work for the 2026-11-13 presentation:
 
 ## AllTalk integration
 
-- [ ] **Passage length (user, 2026-11-01).** The old app's "max characters", reworked: one
+- [x] **Passage length (user, 2026-11-01).** The old app's "max characters", reworked: one
   library setting stored on the server, under Voice. Passages are built by size within a
   chapter: sentences packed up to N characters **across paragraphs** (so runs of short dialogue
   become one request), long sentences cut at clauses then spaces, paragraph ends preferred as
@@ -280,6 +280,15 @@ Order of work for the 2026-11-13 presentation:
   chapter ends. Default about 7 s of speech (~125 characters). Speech API takes the passage
   index and N; saved places stay chapter + paragraph; offline copies are keyed by N; the
   highlight spans every part of a passage; buffer shows approximate seconds.
+  *Done:* `src/lib/text/passages.ts` (unit-tested: dialogue joins, walls of text split at
+  sentence ends, clauses, soft paragraph breaks, hard breaks, verse offsets). The server builds
+  a chapter's passages and sends them with it (`?chars=` in the URL, so cached and offline
+  copies always match), so the phone never has to agree with Node's sentence splitter. Speech
+  takes `{chapter, passage, chars}`; places are saved as chapter + paragraph; offline keys and
+  saved chapters include the length. Settings: "Passage length" (60 to 1,000, default 125,
+  about 7 s) under Voice; the buffer shows seconds too. `SEGMENT_MAX_CHARS` retired.
+  E2e: four dialogue lines read as one passage and highlighted together; a new length reaches
+  the speech requests. Visual baseline for the dialogue highlight.
 - [ ] **AllTalk listening controls in Settings (user, 2026-11-01).** Model switch (`/api/reload`;
   XTTS and APITTS), voice preview (`/api/previewvoice`), low VRAM (`/api/lowvramsetting`),
   DeepSpeed where available, pitch for engines that support it, RVC for the narrator, "silent"

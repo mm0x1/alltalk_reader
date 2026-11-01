@@ -4,6 +4,7 @@
  */
 
 import * as v from 'valibot';
+import { DEFAULT_PASSAGE_CHARS, PASSAGE_MAX_CHARS, PASSAGE_MIN_CHARS } from './text/passages.js';
 
 /** Languages AllTalk v2 accepts (`auto` detects per request). */
 export const LANGUAGES = [
@@ -41,7 +42,14 @@ export const VoiceSettingsSchema = v.strictObject({
 	temperature: v.nullable(v.pipe(v.number(), v.minValue(0.1), v.maxValue(1))),
 	repetitionPenalty: v.nullable(v.pipe(v.number(), v.minValue(1), v.maxValue(20))),
 	rvcVoice: v.pipe(v.string(), v.maxLength(300), v.regex(/^(?:Disabled|[^<>"|?*]+\.pth)$/)),
-	rvcPitch: v.pipe(v.number(), v.integer(), v.minValue(-24), v.maxValue(24))
+	rvcPitch: v.pipe(v.number(), v.integer(), v.minValue(-24), v.maxValue(24)),
+	/** How long a passage (one request to AllTalk) may be, in characters. */
+	passageChars: v.pipe(
+		v.number(),
+		v.integer(),
+		v.minValue(PASSAGE_MIN_CHARS),
+		v.maxValue(PASSAGE_MAX_CHARS)
+	)
 });
 
 export type VoiceSettings = v.InferOutput<typeof VoiceSettingsSchema>;
@@ -55,5 +63,6 @@ export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
 	temperature: null,
 	repetitionPenalty: null,
 	rvcVoice: 'Disabled',
-	rvcPitch: 0
+	rvcPitch: 0,
+	passageChars: DEFAULT_PASSAGE_CHARS
 };

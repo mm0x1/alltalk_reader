@@ -10,10 +10,5 @@
 </svelte:head>
 
 {#key data.book.id}
-	<Reader
-		book={data.book}
-		chapter={data.chapter}
-		start={data.start}
-		segmentMaxChars={data.segmentMaxChars}
-	/>
+	<Reader book={data.book} chapter={data.chapter} start={data.start} />
 {/key}

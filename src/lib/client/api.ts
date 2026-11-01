@@ -52,8 +52,9 @@ async function toError(response: Response): Promise<ApiError> {
 export interface SpeechRequest {
 	bookId: string;
 	chapter: number;
-	block: number;
-	segment: number;
+	passage: number;
+	/** The passage length the chapter's passages were built with. */
+	chars: number;
 	priority: 'now' | 'soon';
 }
 
@@ -61,8 +62,9 @@ export const api = {
 	status: (signal?: AbortSignal) => send<ServerStatus>('GET', '/api/status', undefined, { signal }),
 	books: () => send<BookSummary[]>('GET', '/api/books'),
 	book: (id: string) => send<BookDetail>('GET', `/api/books/${id}`),
-	chapter: (id: string, position: number) =>
-		send<ChapterContent>('GET', `/api/books/${id}/chapters/${position}`),
+	/** `chars` is part of the URL, so a cached chapter always carries matching passages. */
+	chapter: (id: string, position: number, chars: number) =>
+		send<ChapterContent>('GET', `/api/books/${id}/chapters/${position}?chars=${chars}`),
 	paste: (text: string, title: string | null) =>
 		send<{ id: string }>('POST', '/api/books/paste', { text, title }),
 	rename: (id: string, title: string, author: string | null) =>

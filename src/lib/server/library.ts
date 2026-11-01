@@ -1,6 +1,7 @@
 /** The library: books, chapters, covers and reading progress. */
 
 import * as v from 'valibot';
+import { buildPassages } from '#lib/text/passages.js';
 import { countWords, type Block, type BookSource, type ParsedBook } from '#lib/book.js';
 import type { BookSummary, BookDetail, ChapterContent, Progress } from '#lib/library.js';
 import type { Database } from './db';
@@ -84,8 +85,9 @@ export class Library {
 		};
 	}
 
-	chapter(id: string, position: number): ChapterContent | null {
-		const key = `${id}:${position}`;
+	/** A chapter with its passages built for `passageChars` (see passages.ts). */
+	chapter(id: string, position: number, passageChars: number): ChapterContent | null {
+		const key = `${id}:${position}:${passageChars}`;
 		const cached = this.#chapters.get(key);
 		if (cached) {
 			// Re-insert to mark as most recently used.
@@ -97,10 +99,13 @@ export class Library {
 			.statement(`SELECT title, blocks FROM chapters WHERE book_id = ? AND position = ?`)
 			.get(id, position) as { title: string; blocks: string } | undefined;
 		if (!row) return null;
-		const chapter = {
+		const blocks = v.parse(BlocksSchema, JSON.parse(row.blocks));
+		const chapter: ChapterContent = {
 			position,
 			title: row.title,
-			blocks: v.parse(BlocksSchema, JSON.parse(row.blocks))
+			blocks,
+			passages: buildPassages(blocks, passageChars),
+			passageChars
 		};
 		this.#chapters.set(key, chapter);
 		if (this.#chapters.size > CHAPTER_CACHE_SIZE) {

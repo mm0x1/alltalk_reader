@@ -21,7 +21,6 @@ export const GET: RequestHandler = async () => {
 	}
 	return json({
 		alltalk: status,
-		segmentMaxChars: config.segmentMaxChars,
 		uploadMaxBytes: config.uploadMaxBytes,
 		pending: speech.pending
 	} satisfies ServerStatus);

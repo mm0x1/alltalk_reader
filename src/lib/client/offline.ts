@@ -55,24 +55,37 @@ async function store(name: string, mode: IDBTransactionMode): Promise<IDBObjectS
 	return (await open()).transaction(name, mode).objectStore(name);
 }
 
-const speechKey = (bookId: string, p: Position) => `${bookId}/${p.chapter}/${p.block}/${p.segment}`;
+/** Passages depend on the passage length, so it is part of every key. */
+const speechKey = (bookId: string, p: Position, chars: number) =>
+	`${bookId}/${p.chapter}/${p.passage}@${chars}`;
 const bookRange = (bookId: string) => IDBKeyRange.bound(`${bookId}/`, `${bookId}/￿`);
 
 /** Records which audio plays this passage. Best effort: failures are ignored. */
-export async function rememberSpeech(bookId: string, position: Position, audio: string) {
+export async function rememberSpeech(
+	bookId: string,
+	position: Position,
+	chars: number,
+	audio: string
+) {
 	if (!offlineAvailable()) return;
 	try {
-		await promised((await store(SPEECH, 'readwrite')).put(audio, speechKey(bookId, position)));
+		await promised(
+			(await store(SPEECH, 'readwrite')).put(audio, speechKey(bookId, position, chars))
+		);
 	} catch {
 		// Storage full or unavailable: offline playback just won't cover this passage.
 	}
 }
 
-export async function recallSpeech(bookId: string, position: Position): Promise<string | null> {
+export async function recallSpeech(
+	bookId: string,
+	position: Position,
+	chars: number
+): Promise<string | null> {
 	if (!offlineAvailable()) return null;
 	try {
 		const audio = await promised(
-			(await store(SPEECH, 'readonly')).get(speechKey(bookId, position))
+			(await store(SPEECH, 'readonly')).get(speechKey(bookId, position, chars))
 		);
 		return typeof audio === 'string' ? audio : null;
 	} catch {
@@ -87,15 +100,25 @@ export async function saveAudio(url: string, signal?: AbortSignal): Promise<void
 	await response.arrayBuffer();
 }
 
-export async function markChapterSaved(bookId: string, chapter: number): Promise<void> {
-	await promised((await store(SAVED, 'readwrite')).put(Date.now(), `${bookId}/${chapter}`));
+/** A chapter is saved for one passage length; after a change it shows as not saved. */
+export async function markChapterSaved(
+	bookId: string,
+	chapter: number,
+	chars: number
+): Promise<void> {
+	await promised(
+		(await store(SAVED, 'readwrite')).put(Date.now(), `${bookId}/${chapter}@${chars}`)
+	);
 }
 
-export async function savedChapters(bookId: string): Promise<Set<number>> {
+export async function savedChapters(bookId: string, chars: number): Promise<Set<number>> {
 	if (!offlineAvailable()) return new Set();
 	try {
 		const keys = await promised((await store(SAVED, 'readonly')).getAllKeys(bookRange(bookId)));
-		return new Set(keys.map((key) => Number(String(key).split('/')[1])));
+		const saved = keys
+			.map((key) => /^[^/]+\/(\d+)@(\d+)$/.exec(String(key)))
+			.filter((match) => match !== null && Number(match[2]) === chars);
+		return new Set(saved.map((match) => Number(match![1])));
 	} catch {
 		return new Set();
 	}

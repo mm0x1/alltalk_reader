@@ -86,6 +86,25 @@ for (const theme of THEMES) {
 			await expect(page).toHaveScreenshot(`${theme}-reader-larger.png`);
 		});
 
+		test('reader, dialogue playing', async ({ page }) => {
+			const dialogue = [
+				'\u201cYou came back.\u201d',
+				'\u201cI said I would.\u201d',
+				'\u201cYou say a lot of things.\u201d',
+				'She laughed.',
+				'The rain had stopped by the time they walked down to the harbour, and the lamps along the quay were coming on one by one.'
+			].join('\n\n');
+			const id = await addBook(page, 'The Harbour', 'an_extremely_long_pseudonym', dialogue);
+			await page.goto(`/book/${id}`);
+			await settle(page);
+			await page.getByRole('button', { name: 'Play' }).click();
+			// One passage over four short paragraphs, in reverse ink while it is read.
+			await expect(page.locator('article.page.playing p:has(.speaking)')).toHaveCount(4);
+			await expect(page.getByText('Preparing the next passage')).toBeHidden();
+			await expect(page).toHaveScreenshot(`${theme}-reader-dialogue.png`);
+			await page.getByRole('button', { name: 'Pause' }).click();
+		});
+
 		test('reader, playing', async ({ page }) => {
 			const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
 			await page.goto(`/book/${id}`);

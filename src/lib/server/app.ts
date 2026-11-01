@@ -11,7 +11,6 @@ import {
 	AUDIO_CACHE_MAX_MB,
 	AUDIO_FORMAT,
 	DATA_DIR,
-	SEGMENT_MAX_CHARS,
 	UPLOAD_MAX_MB
 } from '$app/env/private';
 import { Access } from './access.js';
@@ -26,7 +25,6 @@ const ENGINE_INFO_TTL_MS = 30_000;
 
 export interface Config {
 	dataDir: string;
-	segmentMaxChars: number;
 	uploadMaxBytes: number;
 }
 
@@ -45,7 +43,6 @@ export interface Services {
 export function createServices(options: {
 	dataDir: string;
 	alltalkUrl: string;
-	segmentMaxChars: number;
 	uploadMaxBytes: number;
 	audioCacheMaxBytes: number;
 	audioFormat: 'auto' | 'original';
@@ -72,7 +69,6 @@ export function createServices(options: {
 	return {
 		config: {
 			dataDir,
-			segmentMaxChars: options.segmentMaxChars,
 			uploadMaxBytes: options.uploadMaxBytes
 		},
 		db,
@@ -106,7 +102,6 @@ export function app(): Services {
 	services ??= createServices({
 		dataDir: DATA_DIR,
 		alltalkUrl: ALLTALK_URL,
-		segmentMaxChars: SEGMENT_MAX_CHARS,
 		uploadMaxBytes: UPLOAD_MAX_MB * 1024 * 1024,
 		audioCacheMaxBytes: AUDIO_CACHE_MAX_MB * 1024 * 1024,
 		audioFormat: AUDIO_FORMAT,

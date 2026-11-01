@@ -1,67 +1,25 @@
-/** Moving through a book: chapter, block and segment, skipping blocks that aren't spoken. */
+/** Moving through a book: a place is a chapter and one of its passages (see passages.ts). */
 
-import { isSpoken, type Block } from '#lib/book.js';
-import { splitIntoSegments } from '#lib/text/segments.js';
+import type { ChapterContent } from '#lib/library.js';
 
 export interface Position {
 	chapter: number;
-	block: number;
-	segment: number;
+	passage: number;
 }
 
-export function segmentCount(block: Block | undefined, maxChars: number): number {
-	if (!block || block.type === 'break') return 0;
-	return splitIntoSegments(block.text, maxChars).length;
+/** The next passage in the same chapter, or null at the chapter's end. */
+export function nextInChapter(chapter: ChapterContent, position: Position): Position | null {
+	return position.passage + 1 < chapter.passages.length
+		? { chapter: position.chapter, passage: position.passage + 1 }
+		: null;
 }
 
-/** The first spoken block at or after `from`, or null when there is none. */
-export function firstSpoken(blocks: readonly Block[], from = 0): number | null {
-	for (let i = Math.max(0, from); i < blocks.length; i++) {
-		if (isSpoken(blocks[i])) return i;
-	}
-	return null;
+/** The passage before, or null at the chapter's start. */
+export function previousInChapter(position: Position): Position | null {
+	return position.passage > 0 ? { chapter: position.chapter, passage: position.passage - 1 } : null;
 }
 
-/** The last spoken block before `before`, or null. */
-export function lastSpokenBefore(blocks: readonly Block[], before: number): number | null {
-	for (let i = Math.min(before, blocks.length) - 1; i >= 0; i--) {
-		if (isSpoken(blocks[i])) return i;
-	}
-	return null;
-}
-
-/** The next segment to play within the same chapter, or null at the chapter's end. */
-export function nextInChapter(
-	blocks: readonly Block[],
-	position: Position,
-	maxChars: number
-): Position | null {
-	if (position.segment + 1 < segmentCount(blocks[position.block], maxChars)) {
-		return { ...position, segment: position.segment + 1 };
-	}
-	const block = firstSpoken(blocks, position.block + 1);
-	return block === null ? null : { chapter: position.chapter, block, segment: 0 };
-}
-
-/** Every segment of a chapter, in reading order. */
-export function chapterPositions(
-	chapter: number,
-	blocks: readonly Block[],
-	maxChars: number
-): Position[] {
-	const positions: Position[] = [];
-	blocks.forEach((block, index) => {
-		const count = segmentCount(block, maxChars);
-		for (let segment = 0; segment < count; segment++) {
-			positions.push({ chapter, block: index, segment });
-		}
-	});
-	return positions;
-}
-
-/** Where "back" goes: the start of this block if we are past its start, else the block before. */
-export function previousInChapter(blocks: readonly Block[], position: Position): Position | null {
-	if (position.segment > 0) return { ...position, segment: 0 };
-	const block = lastSpokenBefore(blocks, position.block);
-	return block === null ? null : { chapter: position.chapter, block, segment: 0 };
+/** Every passage of a chapter, in reading order. */
+export function chapterPositions(chapter: ChapterContent): Position[] {
+	return chapter.passages.map((_, passage) => ({ chapter: chapter.position, passage }));
 }

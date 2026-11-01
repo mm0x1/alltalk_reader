@@ -15,10 +15,13 @@ export const session = {
 	},
 
 	/** The player for this book, reusing the running one if it is the same book. */
-	open(book: BookDetail, maxChars: number, start: Position, chapter: ChapterContent): Player {
-		if (current?.book.id === book.id) return current;
+	open(book: BookDetail, start: Position, chapter: ChapterContent): Player {
+		// The same book, read with the same passage length: keep going.
+		if (current?.book.id === book.id && current.passageChars === chapter.passageChars) {
+			return current;
+		}
 		current?.destroy();
-		current = new Player(book, maxChars, start, chapter);
+		current = new Player(book, start, chapter);
 		return current;
 	},
 

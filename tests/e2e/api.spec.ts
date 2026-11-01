@@ -59,7 +59,6 @@ test('reports AllTalk status and voices', async ({ request }) => {
 	const status = await response.json();
 	expect(status.alltalk).toMatchObject({ reachable: true, ready: true });
 	expect(status.alltalk.voices).toContain('female_01.wav');
-	expect(status.segmentMaxChars).toBe(120);
 });
 
 test('sends security headers', async ({ request }) => {
@@ -85,9 +84,18 @@ test('imports an EPUB and serves its chapters and cover', async ({ request }) =>
 	expect(book).toMatchObject({ title: 'Fixture Book', author: 'Ann Author', chapterCount: 2 });
 	expect(book.chapters.map((c: { title: string }) => c.title)).toEqual(['First', 'Second']);
 
-	const chapter = await request.get(`/api/books/${bookId}/chapters/0`);
+	// With the passage length in the URL the response never changes, so it caches forever.
+	const chapter = await request.get(`/api/books/${bookId}/chapters/0?chars=80`);
 	expect(chapter.headers()['cache-control']).toContain('immutable');
-	expect((await chapter.json()).blocks[1]).toEqual({ type: 'break' });
+	const content = await chapter.json();
+	expect(content.blocks[1]).toEqual({ type: 'break' });
+	expect(content.passageChars).toBe(80);
+	// The long first paragraph is several passages; the scene break ends a passage.
+	expect(content.passages.length).toBeGreaterThan(2);
+	expect(content.passages.at(-1).pieces).toEqual([
+		{ block: 2, start: 0, end: 'After the break.'.length }
+	]);
+	expect((await request.get(`/api/books/${bookId}/chapters/0?chars=5`)).status()).toBe(400);
 
 	const cover = await request.get(`/api/books/${bookId}/cover`);
 	expect(cover.headers()['content-type']).toBe('image/png');
@@ -160,13 +168,13 @@ test('validates every input', async ({ request }) => {
 	expect(voice.status()).toBe(400);
 });
 
-test('speaks a segment and serves the audio with ranges and caching', async ({ request }) => {
+test('speaks a passage and serves the audio with ranges and caching', async ({ request }) => {
 	const speech = await request.post('/api/speech', {
-		data: { bookId, chapter: 0, block: 0, segment: 0, priority: 'now' }
+		data: { bookId, chapter: 0, passage: 0, chars: 80, priority: 'now' }
 	});
 	expect(speech.status()).toBe(200);
-	const { audio, segments } = await speech.json();
-	expect(segments).toBeGreaterThan(1);
+	const { audio, passages } = await speech.json();
+	expect(passages).toBeGreaterThan(2);
 	expect(audio).toMatch(/^\/api\/audio\/[0-9a-f]{64}$/);
 
 	const full = await request.get(audio);
@@ -200,9 +208,9 @@ test('speaks a segment and serves the audio with ranges and caching', async ({ r
 
 test('refuses to speak what is not there', async ({ request }) => {
 	const speak = (data: object) => request.post('/api/speech', { data });
-	const base = { bookId, chapter: 0, block: 0, segment: 0, priority: 'soon' };
-	expect((await speak({ ...base, block: 1 })).status()).toBe(422);
-	expect((await speak({ ...base, segment: 50 })).status()).toBe(422);
+	const base = { bookId, chapter: 0, passage: 0, chars: 80, priority: 'soon' };
+	expect((await speak({ ...base, passage: 50 })).status()).toBe(422);
+	expect((await speak({ ...base, chars: 10 })).status()).toBe(400);
 	expect((await speak({ ...base, chapter: 7 })).status()).toBe(404);
 	expect((await speak({ ...base, priority: 'urgent' })).status()).toBe(400);
 	expect((await speak({ ...base, text: 'arbitrary text' })).status()).toBe(400);

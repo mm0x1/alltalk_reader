@@ -34,7 +34,7 @@
 	const progress = $derived.by(() => {
 		const chapter = player.chapter;
 		if (!chapter || chapter.position !== player.position.chapter) return 0;
-		return Math.round((player.position.block / Math.max(1, chapter.blocks.length - 1)) * 100);
+		return Math.round((player.position.passage / Math.max(1, chapter.passages.length - 1)) * 100);
 	});
 
 	/**

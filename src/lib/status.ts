@@ -21,7 +21,6 @@ export interface ServerStatus {
 		voices: string[];
 		rvcVoices: string[];
 	};
-	segmentMaxChars: number;
 	uploadMaxBytes: number;
 	/** Speech requests queued or in progress. */
 	pending: number;

@@ -1,6 +1,7 @@
 /** Library types shared by the server and the reader. */
 
 import type { Block, BookSource } from './book';
+import type { Passage } from './text/passages';
 
 export interface Progress {
 	chapter: number;
@@ -35,4 +36,7 @@ export interface ChapterContent {
 	position: number;
 	title: string;
 	blocks: Block[];
+	/** What is read aloud, one request at a time, built for `passageChars`. */
+	passages: Passage[];
+	passageChars: number;
 }
