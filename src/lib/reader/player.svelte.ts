@@ -254,8 +254,10 @@ export class Player {
 		const audio = new Audio();
 		audio.preload = 'auto';
 		audio.preservesPitch = true;
+		// Only while playing: a pause tapped just as a passage ends must not be undone by the
+		// `ended` event that was already on its way.
 		audio.addEventListener('ended', () => {
-			if (!audio.src.endsWith(SILENCE)) void this.#advance();
+			if (this.status === 'playing' && !audio.src.endsWith(SILENCE)) void this.#advance();
 		});
 		audio.addEventListener('error', () => {
 			if (audio.src && !audio.src.endsWith(SILENCE) && !this.#switching) {

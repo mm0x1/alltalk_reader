@@ -138,6 +138,41 @@ test('reads a pasted book aloud and keeps going between passages and chapters', 
 	await expect(page.getByRole('complementary', { name: 'Now reading' })).toContainText(title);
 });
 
+test('a pause right as a passage ends stays paused', async ({ page }, testInfo) => {
+	// Keep hold of the player's audio element (it is never in the page) to finish a passage.
+	await page.addInitScript(() => {
+		const Native = window.Audio;
+		window.Audio = function (src?: string) {
+			const audio = new Native(src);
+			(window as unknown as { playerAudio: HTMLAudioElement }).playerAudio = audio;
+			return audio;
+		} as unknown as typeof Audio;
+	});
+	await addPastedBook(page, `Pause ${testInfo.project.name}`);
+	await page.getByRole('button', { name: 'Play' }).click();
+	await expect(
+		page.locator('article.page .speaking, article.page [aria-current="true"]').first()
+	).toBeVisible();
+	await expect(page.getByText('Preparing the next passage')).toBeHidden();
+
+	await page.getByRole('button', { name: 'Pause' }).click();
+	// The passage's own end arrives just after the tap, as it can on a phone.
+	await page.evaluate(() =>
+		(window as unknown as { playerAudio: HTMLAudioElement }).playerAudio.dispatchEvent(
+			new Event('ended')
+		)
+	);
+	// Long enough for a wrongly started passage to load and play, too short for it to finish.
+	await page.waitForTimeout(400);
+	expect(
+		await page.evaluate(
+			() => (window as unknown as { playerAudio: HTMLAudioElement }).playerAudio.paused
+		)
+	).toBe(true);
+	await expect(page.locator('[data-player] [aria-live]')).toHaveText('Paused');
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+});
+
 test('tapping a paragraph reads from there', async ({ page }, testInfo) => {
 	await addPastedBook(page, `Tap ${testInfo.project.name}`);
 	const seen = await recordPassages(page);
