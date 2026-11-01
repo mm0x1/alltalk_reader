@@ -95,7 +95,7 @@ export class Speech {
 	/** The cache key: everything that changes what the audio sounds like. */
 	async key(text: string, settings: VoiceSettings): Promise<string> {
 		const engine = await this.engineInfo();
-		const material = JSON.stringify([
+		const parts: unknown[] = [
 			1,
 			engine.engine,
 			engine.model,
@@ -107,9 +107,14 @@ export class Speech {
 			settings.temperature,
 			settings.repetitionPenalty,
 			settings.rvcVoice,
-			settings.rvcVoice === 'Disabled' ? 0 : settings.rvcPitch,
-			text
-		]);
+			settings.rvcVoice === 'Disabled' ? 0 : settings.rvcPitch
+		];
+		// Settings added later go in only when used, so audio cached before them keeps its key.
+		const narratorRvc = settings.narratorEnabled && settings.rvcNarratorVoice !== 'Disabled';
+		if (narratorRvc)
+			parts.push('rvcNarrator', settings.rvcNarratorVoice, settings.rvcNarratorPitch);
+		if (settings.pitch !== 0) parts.push('pitch', settings.pitch);
+		const material = JSON.stringify([...parts, text]);
 		return createHash('sha256').update(material).digest('hex');
 	}
 

@@ -160,6 +160,58 @@ describe('AllTalk client', () => {
 		expect(form.get('autoplay')).toBe('false');
 	});
 
+	it('sends narrator RVC, silent unquoted text and pitch', async () => {
+		await services.alltalk.generate('Hi.', {
+			...DEFAULT_VOICE_SETTINGS,
+			narratorEnabled: true,
+			unquotedIs: 'silent',
+			rvcNarratorVoice: 'voices\\narrator.pth',
+			rvcNarratorPitch: -3,
+			pitch: 2
+		});
+		const form = fake.lastForm!;
+		expect(form.get('text_not_inside')).toBe('silent');
+		expect(form.get('rvcnarrator_voice_gen')).toBe('voices\\narrator.pth');
+		expect(form.get('rvcnarrator_pitch')).toBe('-3');
+		expect(form.get('pitch')).toBe('2');
+		// Without the narrator, its RVC isn't sent, and pitch 0 leaves the engine's own.
+		await services.alltalk.generate('Hi.', DEFAULT_VOICE_SETTINGS);
+		expect(fake.lastForm!.has('rvcnarrator_voice_gen')).toBe(false);
+		expect(fake.lastForm!.has('pitch')).toBe(false);
+	});
+
+	it('switches models, low VRAM and DeepSpeed', async () => {
+		const engine = await services.alltalk.engine();
+		expect(engine.models).toEqual(['xtts - xttsv2_2.0.3', 'apitts - xttsv2_2.0.3']);
+		await services.alltalk.loadModel('apitts - xttsv2_2.0.3');
+		expect((await services.alltalk.engine()).model).toBe('apitts - xttsv2_2.0.3');
+		// AllTalk answers 200 for a model it doesn't have; the client still reports a refusal.
+		await expect(services.alltalk.loadModel('nope')).rejects.toMatchObject({ kind: 'rejected' });
+		await services.alltalk.loadModel('xtts - xttsv2_2.0.3');
+
+		await services.alltalk.setLowVram(true);
+		expect((await services.alltalk.engine()).lowVram.enabled).toBe(true);
+		await services.alltalk.setLowVram(false);
+		await services.alltalk.setDeepSpeed(true);
+		expect((await services.alltalk.engine()).deepSpeed.enabled).toBe(true);
+		await services.alltalk.setDeepSpeed(false);
+	});
+
+	it('recovers when low VRAM mode unloads the model on a machine without CUDA', async () => {
+		const cpu = await startFakeAllTalk({ cuda: false });
+		try {
+			const alltalk = new AllTalk(cpu.url);
+			await alltalk.setLowVram(true);
+			// AllTalk said success, but the mode is off and the model is gone.
+			expect((await alltalk.engine()).lowVram.enabled).toBe(false);
+			await expect(alltalk.generate('Hi.', DEFAULT_VOICE_SETTINGS)).rejects.toThrow();
+			await alltalk.loadModel('xtts - xttsv2_2.0.3');
+			expect(await alltalk.generate('Hi.', DEFAULT_VOICE_SETTINGS)).toMatch(/\.wav$/);
+		} finally {
+			await cpu.close();
+		}
+	});
+
 	it('reports an unreachable server clearly', async () => {
 		const offline = new AllTalk('http://127.0.0.1:9');
 		await expect(offline.ready()).rejects.toMatchObject({ kind: 'unreachable' });
@@ -193,6 +245,16 @@ describe('Speech', () => {
 		const bytes = await readFile(audio.path);
 		expect(bytes.subarray(0, 4).toString()).toBe('RIFF');
 		expect(audio.mime).toBe('audio/wav');
+	});
+
+	it('keeps cache keys of settings that predate pitch and narrator RVC', async () => {
+		const key = (settings: typeof DEFAULT_VOICE_SETTINGS) => services.speech.key('Same.', settings);
+		const base = await key(DEFAULT_VOICE_SETTINGS);
+		// Narrator RVC with the narrator off changes nothing that is heard.
+		expect(await key({ ...DEFAULT_VOICE_SETTINGS, rvcNarratorVoice: 'n.pth' })).toBe(base);
+		expect(await key({ ...DEFAULT_VOICE_SETTINGS, pitch: 3 })).not.toBe(base);
+		const narrator = { ...DEFAULT_VOICE_SETTINGS, narratorEnabled: true };
+		expect(await key({ ...narrator, rvcNarratorVoice: 'n.pth' })).not.toBe(await key(narrator));
 	});
 
 	it('keys the cache by voice settings', async () => {

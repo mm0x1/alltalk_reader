@@ -38,6 +38,8 @@ export interface Services {
 	access: Access;
 	/** AllTalk's engine and model, cached briefly; they key the audio cache. */
 	engineInfo(): Promise<EngineInfo>;
+	/** Drops the cached engine info, after Readhouse changed AllTalk's model or modes. */
+	forgetEngine(): void;
 }
 
 export function createServices(options: {
@@ -84,7 +86,8 @@ export function createServices(options: {
 			transcoder: findTranscoder(options.audioFormat)
 		}),
 		access: new Access(options.passcode, dataDir),
-		engineInfo
+		engineInfo,
+		forgetEngine: () => (engineCache = null)
 	};
 }
 

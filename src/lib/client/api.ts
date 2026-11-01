@@ -8,7 +8,7 @@
 import type { BookDetail, BookSummary, ChapterContent } from '#lib/library.js';
 import type { VoiceSettings } from '#lib/settings.js';
 import type { SpeechResult } from '#lib/speech.js';
-import type { ServerStatus } from '#lib/status.js';
+import type { EngineSummary, ServerStatus } from '#lib/status.js';
 
 export class ApiError extends Error {
 	constructor(
@@ -79,6 +79,20 @@ export const api = {
 	speech: (request: SpeechRequest, signal?: AbortSignal) =>
 		send<SpeechResult>('POST', '/api/speech', request, { signal }),
 	stopSpeech: () => send<void>('POST', '/api/speech/stop'),
+	/** Switches AllTalk's model; resolves with the engine as AllTalk then reports it. */
+	loadModel: (model: string) => send<EngineSummary>('POST', '/api/alltalk/model', { model }),
+	setModes: (modes: { lowVram?: boolean; deepSpeed?: boolean }) =>
+		send<EngineSummary>('POST', '/api/alltalk/modes', modes),
+	/** A short spoken sample of a voice, as audio. */
+	previewVoice: async (voice: string, rvcVoice: string, rvcPitch: number): Promise<Blob> => {
+		const response = await fetch('/api/alltalk/preview', {
+			method: 'POST',
+			headers: JSON_HEADERS,
+			body: JSON.stringify({ voice, rvcVoice, rvcPitch })
+		});
+		if (!response.ok) throw await toError(response);
+		return response.blob();
+	},
 	unlock: (passcode: string) => send<void>('POST', '/api/unlock', { passcode }),
 	lock: () => send<void>('POST', '/api/lock'),
 

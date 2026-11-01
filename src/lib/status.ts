@@ -3,6 +3,8 @@
 export interface EngineSummary {
 	engine: string | null;
 	model: string | null;
+	/** Models the loaded engine can switch to (e.g. XTTS and APITTS variants). */
+	models: string[];
 	audioFormat: string | null;
 	capabilities: {
 		multivoice: boolean;
@@ -10,7 +12,12 @@ export interface EngineSummary {
 		temperature: boolean;
 		repetitionPenalty: boolean;
 		languages: boolean;
+		pitch: boolean;
 	};
+	/** Low VRAM mode: the model waits in system memory between generations. */
+	lowVram: { capable: boolean; enabled: boolean };
+	/** DeepSpeed: faster generation on CUDA machines that have it installed. */
+	deepSpeed: { capable: boolean; available: boolean; enabled: boolean };
 }
 
 export interface ServerStatus {

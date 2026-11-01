@@ -17,6 +17,11 @@ export interface FakeAllTalkOptions {
 	minSeconds?: number;
 	/** Seconds per character: 0.01 by default, so tests move fast; about 0.065 is speaking pace. */
 	secondsPerChar?: number;
+	/**
+	 * Without CUDA, AllTalk's low VRAM switch unloads the model, turns the mode back off and still
+	 * reports success: generation then fails until a model is loaded again.
+	 */
+	cuda?: boolean;
 }
 
 export interface FakeAllTalk {
@@ -26,11 +31,16 @@ export interface FakeAllTalk {
 	/** Last form submitted to /api/tts-generate. */
 	lastForm: URLSearchParams | null;
 	stops: number;
+	/** The loaded model (switched with /api/reload). */
+	model: string;
 	setDelay(ms: number): void;
 	setFailing(failing: boolean): void;
 	setReady(ready: boolean): void;
 	close(): Promise<void>;
 }
+
+/** The models a real XTTS install offers. */
+const MODELS = ['xtts - xttsv2_2.0.3', 'apitts - xttsv2_2.0.3'];
 
 /** A mono 16-bit PCM WAV of silence: 0.5 s plus 10 ms per character, so tests can observe each passage. */
 export function silentWav(text: string, minSeconds = 0, secondsPerChar = 0.01): Buffer {
@@ -72,7 +82,11 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 	const state = {
 		generated: [] as string[],
 		lastForm: null as URLSearchParams | null,
-		stops: 0
+		stops: 0,
+		model: MODELS[0],
+		lowvram: false,
+		deepspeed: false,
+		unloaded: false
 	};
 
 	const server: Server = createServer(async (request, response) => {
@@ -86,9 +100,16 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 			response.end(ready ? 'Ready' : 'Unloaded');
 		} else if (url.pathname === '/api/currentsettings') {
 			json(200, {
+				engines_available: ['piper', 'xtts'],
 				current_engine_loaded: 'xtts',
-				current_model_loaded: 'xtts - xttsv2_2.0.3',
+				models_available: MODELS.map((name) => ({ name })),
+				current_model_loaded: state.model,
 				audio_format: 'wav',
+				deepspeed_capable: true,
+				deepspeed_available: true,
+				deepspeed_enabled: state.deepspeed,
+				lowvram_capable: true,
+				lowvram_enabled: state.lowvram,
 				multivoice_capable: true,
 				streaming_capable: true,
 				temperature_capable: true,
@@ -97,6 +118,27 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 				generationspeed_capable: true,
 				pitch_capable: false
 			});
+		} else if (url.pathname === '/api/reload' && request.method === 'POST') {
+			// AllTalk answers 200 even for a model it doesn't have.
+			const model = url.searchParams.get('tts_method') ?? '';
+			if (!MODELS.includes(model)) {
+				json(200, { status: 'error', message: 'Invalid TTS method specified' });
+				return;
+			}
+			await new Promise((r) => setTimeout(r, 200));
+			state.model = model;
+			state.unloaded = false;
+			json(200, { status: 'model-success' });
+		} else if (url.pathname === '/api/lowvramsetting' && request.method === 'POST') {
+			const wanted = url.searchParams.get('new_low_vram_value') === 'true';
+			if (wanted !== state.lowvram) {
+				if (options.cuda === false) state.unloaded = true;
+				else state.lowvram = wanted;
+			}
+			json(200, { status: 'lowvram-success', message: '' });
+		} else if (url.pathname === '/api/deepspeed' && request.method === 'POST') {
+			state.deepspeed = url.searchParams.get('new_deepspeed_value') === 'true';
+			json(200, { status: 'deepspeed-success' });
 		} else if (url.pathname === '/api/voices') {
 			json(200, { status: 'success', voices });
 		} else if (url.pathname === '/api/rvcvoices') {
@@ -109,7 +151,7 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 			state.lastForm = form;
 			const text = form.get('text_input') ?? '';
 			if (delay > 0) await new Promise((r) => setTimeout(r, delay));
-			if (failing) {
+			if (failing || state.unloaded) {
 				json(500, { status: 'generate-failure', error: 'TTS generation failed' });
 				return;
 			}
@@ -150,6 +192,10 @@ export async function startFakeAllTalk(options: FakeAllTalkOptions = {}): Promis
 		get stops() {
 			return state.stops;
 		},
+		get model() {
+			return state.model;
+		},
+
 		setDelay: (ms) => (delay = ms),
 		setFailing: (value) => (failing = value),
 		setReady: (value) => (ready = value),

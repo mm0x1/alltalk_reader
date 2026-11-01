@@ -14,11 +14,19 @@ export type EngineInfo = EngineSummary;
 
 const STATUS_TIMEOUT_MS = 4_000;
 const GENERATE_TIMEOUT_MS = 180_000;
+/** Loading a model or moving it between memories can take a while on a CPU. */
+const RELOAD_TIMEOUT_MS = 300_000;
 const AUDIO_FILE = /^[\w.-]{1,200}\.(?:wav|mp3|opus|aac|flac|ogg|m4a)$/;
 
 const CurrentSettingsSchema = v.looseObject({
 	current_engine_loaded: v.optional(v.nullable(v.string()), null),
 	current_model_loaded: v.optional(v.nullable(v.string()), null),
+	models_available: v.optional(v.array(v.looseObject({ name: v.string() })), []),
+	lowvram_capable: v.optional(v.boolean(), false),
+	lowvram_enabled: v.optional(v.boolean(), false),
+	deepspeed_capable: v.optional(v.boolean(), false),
+	deepspeed_available: v.optional(v.boolean(), false),
+	deepspeed_enabled: v.optional(v.boolean(), false),
 	audio_format: v.optional(v.nullable(v.string()), null),
 	multivoice_capable: v.optional(v.boolean(), false),
 	streaming_capable: v.optional(v.boolean(), false),
@@ -40,6 +48,11 @@ const RvcVoicesSchema = v.object({
 const GenerateSchema = v.object({
 	status: v.literal('generate-success'),
 	output_file_url: v.string()
+});
+/** AllTalk's switches answer 200 with a status word; anything but success is a refusal. */
+const StatusSchema = v.looseObject({
+	status: v.string(),
+	message: v.optional(v.string(), '')
 });
 
 export class AllTalkError extends Error {
@@ -104,13 +117,21 @@ export class AllTalk {
 		return {
 			engine: s.current_engine_loaded,
 			model: s.current_model_loaded,
+			models: s.models_available.map((model) => model.name),
 			audioFormat: s.audio_format,
 			capabilities: {
 				multivoice: s.multivoice_capable,
 				streaming: s.streaming_capable,
 				temperature: s.temperature_capable,
 				repetitionPenalty: s.repetitionpenalty_capable,
-				languages: s.languages_capable
+				languages: s.languages_capable,
+				pitch: s.pitch_capable
+			},
+			lowVram: { capable: s.lowvram_capable, enabled: s.lowvram_enabled },
+			deepSpeed: {
+				capable: s.deepspeed_capable,
+				available: s.deepspeed_available,
+				enabled: s.deepspeed_enabled
 			}
 		};
 	}
@@ -148,6 +169,11 @@ export class AllTalk {
 		if (settings.narratorEnabled && settings.narratorVoice) {
 			form.set('narrator_voice_gen', settings.narratorVoice);
 		}
+		if (settings.narratorEnabled) {
+			form.set('rvcnarrator_voice_gen', settings.rvcNarratorVoice);
+			form.set('rvcnarrator_pitch', String(settings.rvcNarratorPitch));
+		}
+		if (settings.pitch !== 0) form.set('pitch', String(settings.pitch));
 		if (settings.temperature !== null) form.set('temperature', String(settings.temperature));
 		if (settings.repetitionPenalty !== null) {
 			form.set('repetition_penalty', String(settings.repetitionPenalty));
@@ -186,6 +212,33 @@ export class AllTalk {
 			throw new AllTalkError(`AllTalk could not send the audio (${response.status})`, 'rejected');
 		}
 		return response;
+	}
+
+	/** Sends one of AllTalk's switches and checks its status word. */
+	async #switch(path: string, success: string, what: string): Promise<void> {
+		const response = await this.#request(path, { method: 'POST', timeout: RELOAD_TIMEOUT_MS });
+		if (!response.ok)
+			throw new AllTalkError(`AllTalk could not ${what} (${response.status})`, 'rejected');
+		const body = await this.#json(StatusSchema, response);
+		if (body.status === success || body.status === 'success') return;
+		const detail = body.message || body.status;
+		throw new AllTalkError(`AllTalk could not ${what}: ${detail.slice(0, 200)}`, 'rejected');
+	}
+
+	/** Loads another model of the current engine (e.g. APITTS instead of XTTS). */
+	async loadModel(model: string): Promise<void> {
+		const query = new URLSearchParams({ tts_method: model });
+		await this.#switch(`/api/reload?${query}`, 'model-success', 'switch the model');
+	}
+
+	async setLowVram(enabled: boolean): Promise<void> {
+		const query = new URLSearchParams({ new_low_vram_value: String(enabled) });
+		await this.#switch(`/api/lowvramsetting?${query}`, 'lowvram-success', 'change low VRAM mode');
+	}
+
+	async setDeepSpeed(enabled: boolean): Promise<void> {
+		const query = new URLSearchParams({ new_deepspeed_value: String(enabled) });
+		await this.#switch(`/api/deepspeed?${query}`, 'deepspeed-success', 'change DeepSpeed');
 	}
 
 	/** Asks AllTalk to stop the generation in progress, if any. */

@@ -289,11 +289,26 @@ Order of work for the 2026-11-13 presentation:
   about 7 s) under Voice; the buffer shows seconds too. `SEGMENT_MAX_CHARS` retired.
   E2e: four dialogue lines read as one passage and highlighted together; a new length reaches
   the speech requests. Visual baseline for the dialogue highlight.
-- [ ] **AllTalk listening controls in Settings (user, 2026-11-01).** Model switch (`/api/reload`;
+- [x] **AllTalk listening controls in Settings (user, 2026-11-01).** Model switch (`/api/reload`;
   XTTS and APITTS), voice preview (`/api/previewvoice`), low VRAM (`/api/lowvramsetting`),
   DeepSpeed where available, pitch for engines that support it, RVC for the narrator, "silent"
   for text outside quotes; each shown only when the engine reports the capability, advanced
   ones under Advanced. Speed stays the client-side playback rate.
+  *Done:* Settings → AllTalk: **Model** (applies at once, for every device; flower while
+  loading; a notice when done), Advanced: **Low VRAM mode**, **DeepSpeed** (only when AllTalk
+  reports them). Voice: **Hear this voice** under the voice and narrator voice (pauses the
+  book), "nobody (skip it)" for text outside quotes; Advanced: **Pitch** (engines with
+  `pitch_capable`), **Narrator RVC voice and pitch**. Endpoints `/api/alltalk/model`,
+  `/api/alltalk/modes`, `/api/alltalk/preview`, validated (models must be ones AllTalk lists);
+  the engine cache is dropped after a switch so the audio cache follows the model; cache keys of
+  existing settings unchanged. Verified on the real AllTalk (XTTS and APITTS, 19 voices):
+  switching both ways (about 14 s on this CPU), previews under both models, reading under APITTS.
+  Found two AllTalk bugs and worked around them: its preview endpoint fails under APITTS
+  ("penalty ... is 10"), so Readhouse previews with the normal generation call; and without CUDA
+  its low VRAM switch unloads the model while answering "success", so Readhouse checks the
+  result, reloads the model and explains. **Engine switching left out:** AllTalk restarts itself
+  with the new engine and lists engines that aren't installed (piper on this Mac), so a wrong
+  pick can leave it down; revisit with a check that the engine is installed.
 
 - [ ] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
   whether the local `atsetup.sh` / `confignew.json` edits are kept or discarded. Record the tested AllTalk version in the docs and show a warning

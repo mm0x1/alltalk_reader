@@ -26,7 +26,8 @@
 	} from '#lib/reader/buffer.js';
 	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
 	import { PASSAGE_MAX_CHARS, PASSAGE_MIN_CHARS, speechSeconds } from '#lib/text/passages.js';
-	import type { ServerStatus } from '#lib/status.js';
+	import type { EngineSummary, ServerStatus } from '#lib/status.js';
+	import { session } from '#lib/reader/session.svelte.js';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import Checkbox from '#lib/ui/Checkbox.svelte';
@@ -64,6 +65,61 @@
 	}
 
 	const engine = $derived(status?.alltalk.engine ?? null);
+	/** The model AllTalk is loading, while it does. */
+	let loadingModel = $state<string | null>(null);
+	let previewing = $state<string | null>(null);
+
+	/** Shows AllTalk's engine as it reports it after a change. */
+	function showEngine(next: EngineSummary) {
+		if (status) status = { ...status, alltalk: { ...status.alltalk, engine: next } };
+	}
+
+	async function chooseModel(model: string) {
+		if (!engine || model === engine.model) return;
+		loadingModel = model;
+		try {
+			showEngine(await api.loadModel(model));
+			toasts.show(`AllTalk is using ${model}.`);
+		} catch (error) {
+			const reason = error instanceof Error ? ` ${error.message}` : '';
+			toasts.show(`The model wasn\u2019t changed.${reason}`, { problem: true });
+		} finally {
+			loadingModel = null;
+		}
+	}
+
+	async function setMode(modes: { lowVram?: boolean; deepSpeed?: boolean }) {
+		try {
+			showEngine(await api.setModes(modes));
+		} catch (error) {
+			const reason = error instanceof Error ? ` ${error.message}` : '';
+			toasts.show(`AllTalk didn\u2019t change.${reason}`, { problem: true });
+			// Show AllTalk's real state again.
+			api
+				.status()
+				.then((result) => (status = result))
+				.catch(() => undefined);
+		}
+	}
+
+	/** Plays a short sample of a voice; the book pauses meanwhile. */
+	async function preview(name: string, rvcVoice: string, rvcPitch: number) {
+		previewing = name;
+		try {
+			session.player?.pause();
+			const url = URL.createObjectURL(await api.previewVoice(name, rvcVoice, rvcPitch));
+			const audio = new Audio(url);
+			const done = () => URL.revokeObjectURL(url);
+			audio.addEventListener('ended', done, { once: true });
+			audio.addEventListener('error', done, { once: true });
+			await audio.play();
+		} catch (error) {
+			const reason = error instanceof Error ? ` ${error.message}` : '';
+			toasts.show(`The voice couldn\u2019t be previewed.${reason}`, { problem: true });
+		} finally {
+			previewing = null;
+		}
+	}
 	const voices = $derived(status?.alltalk.voices ?? []);
 	const rvcVoices = $derived(status?.alltalk.rvcVoices ?? []);
 
@@ -149,6 +205,47 @@
 		{:else}
 			<p class="state"><Spinner /> Checking AllTalk</p>
 		{/if}
+		{#if engine && engine.models.length > 1}
+			<Select
+				id="model"
+				label="Model"
+				value={loadingModel ?? engine.model ?? ''}
+				disabled={loadingModel !== null}
+				onchange={(event) => chooseModel(event.currentTarget.value)}
+			>
+				{#each engine.models as model (model)}
+					<option value={model}>{model}</option>
+				{/each}
+			</Select>
+			{#if loadingModel}
+				<p class="state" role="status"><Spinner /> AllTalk is loading {loadingModel}</p>
+			{:else}
+				<p class="note">Applies at once, for every device. Audio made with each model is kept.</p>
+			{/if}
+		{/if}
+		{#if engine && (engine.lowVram.capable || (engine.deepSpeed.capable && engine.deepSpeed.available))}
+			<details class="advanced">
+				<summary>Advanced</summary>
+				{#if engine.lowVram.capable}
+					<Checkbox
+						id="low-vram"
+						label="Low VRAM mode"
+						hint="Keeps the model in system memory and moves it to the graphics card only to speak. For cards with little memory; each passage starts a little later."
+						checked={engine.lowVram.enabled}
+						onchange={(event) => setMode({ lowVram: event.currentTarget.checked })}
+					/>
+				{/if}
+				{#if engine.deepSpeed.capable && engine.deepSpeed.available}
+					<Checkbox
+						id="deepspeed"
+						label="DeepSpeed"
+						hint="Faster speech on NVIDIA cards with DeepSpeed installed."
+						checked={engine.deepSpeed.enabled}
+						onchange={(event) => setMode({ deepSpeed: event.currentTarget.checked })}
+					/>
+				{/if}
+			</details>
+		{/if}
 		<p class="note">
 			If AllTalk is busy preparing passages nobody will hear, this tells it to stop.
 		</p>
@@ -175,6 +272,7 @@
 				<option value={name}>{voiceLabel(name)}</option>
 			{/each}
 		</Select>
+		{@render hear(voice.voice, voice.rvcVoice, voice.rvcPitch)}
 
 		<Select id="language" label="Language" bind:value={voice.language}>
 			{#each LANGUAGES as code (code)}
@@ -213,13 +311,15 @@
 					<option value={name}>{voiceLabel(name)}</option>
 				{/each}
 			</Select>
+			{@render hear(voice.narratorVoice, voice.rvcNarratorVoice, voice.rvcNarratorPitch)}
 			<Select id="unquoted" label="Text outside quotes is read by" bind:value={voice.unquotedIs}>
 				<option value="narrator">the narrator</option>
 				<option value="character">the main voice</option>
+				<option value="silent">nobody (skip it)</option>
 			</Select>
 		{/if}
 
-		{#if engine?.capabilities.temperature || engine?.capabilities.repetitionPenalty || rvcVoices.length > 1}
+		{#if engine?.capabilities.temperature || engine?.capabilities.repetitionPenalty || engine?.capabilities.pitch || rvcVoices.length > 1}
 			<details class="advanced">
 				<summary>Advanced</summary>
 				{#if engine?.capabilities.temperature}
@@ -235,6 +335,11 @@
 							{voice.temperature === null ? 'Engine default' : voice.temperature.toFixed(2)}
 							<Button variant="text" onclick={() => (voice.temperature = null)}>Reset</Button>
 						{/snippet}
+					</Slider>
+				{/if}
+				{#if engine?.capabilities.pitch}
+					<Slider id="pitch" label="Pitch" min="-10" max="10" step="1" bind:value={voice.pitch}>
+						{#snippet after()}{voice.pitch === 0 ? 'Engine default' : voice.pitch}{/snippet}
 					</Slider>
 				{/if}
 				{#if engine?.capabilities.repetitionPenalty}
@@ -271,6 +376,27 @@
 							step="1"
 							bind:value={voice.rvcPitch}
 						/>
+					{/if}
+					{#if voice.narratorEnabled}
+						<Select
+							id="rvc-narrator"
+							label="Narrator RVC voice"
+							bind:value={voice.rvcNarratorVoice}
+						>
+							{#each rvcVoices as name (name)}
+								<option value={name}>{name === 'Disabled' ? 'Off' : name}</option>
+							{/each}
+						</Select>
+						{#if voice.rvcNarratorVoice !== 'Disabled'}
+							<Slider
+								id="rvc-narrator-pitch"
+								label={`Narrator RVC pitch (${voice.rvcNarratorPitch})`}
+								min="-24"
+								max="24"
+								step="1"
+								bind:value={voice.rvcNarratorPitch}
+							/>
+						{/if}
 					{/if}
 				{/if}
 			</details>
@@ -394,6 +520,20 @@
 		{/if}
 	</section>
 </main>
+
+<!-- A short sample of a voice, as AllTalk would say it (with its RVC voice, if any). -->
+{#snippet hear(name: string, rvcVoice: string, rvcPitch: number)}
+	{#if name}
+		<Button
+			variant="outline"
+			icon="play"
+			disabled={previewing !== null}
+			onclick={() => preview(name, rvcVoice, rvcPitch)}
+		>
+			{previewing === name ? 'Preparing\u2026' : 'Hear this voice'}
+		</Button>
+	{/if}
+{/snippet}
 
 <style>
 	.top {

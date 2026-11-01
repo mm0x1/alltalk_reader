@@ -310,6 +310,49 @@ test('settings show AllTalk voices and save the voice', async ({ page }) => {
 	);
 });
 
+test('AllTalk\u2019s model, low VRAM mode and voice previews from Settings', async ({ page }) => {
+	await page.goto('/settings');
+	const model = page.getByRole('combobox', { name: 'Model' });
+	// The fake AllTalk is shared by every test: start from XTTS whatever ran before.
+	await expect(model).toBeEnabled();
+	if ((await model.inputValue()) !== 'xtts - xttsv2_2.0.3') {
+		await model.selectOption('xtts - xttsv2_2.0.3');
+		await expect(page.getByText(/Connected.*· xtts - xttsv2_2\.0\.3/)).toBeVisible();
+	}
+
+	await model.selectOption('apitts - xttsv2_2.0.3');
+	await expect(page.getByRole('list', { name: 'Notices' })).toContainText(
+		'AllTalk is using apitts - xttsv2_2.0.3.'
+	);
+	await expect(page.getByText(/Connected.*· apitts - xttsv2_2\.0\.3/)).toBeVisible();
+	await model.selectOption('xtts - xttsv2_2.0.3');
+	await expect(page.getByText(/Connected.*· xtts - xttsv2_2\.0\.3/)).toBeVisible();
+
+	// Low VRAM applies at once and is what AllTalk then reports.
+	await page.locator('section').filter({ hasText: 'Low VRAM' }).getByText('Advanced').click();
+	const lowVram = page.getByRole('checkbox', { name: 'Low VRAM mode' });
+	await lowVram.check();
+	await page.reload();
+	await page.locator('section').filter({ hasText: 'Low VRAM' }).getByText('Advanced').click();
+	await expect(lowVram).toBeChecked();
+	await lowVram.uncheck();
+
+	// A voice can be heard before it is chosen.
+	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('male_01.wav');
+	const sample = page.waitForResponse('**/api/alltalk/preview');
+	await page.getByRole('button', { name: 'Hear this voice' }).click();
+	const response = await sample;
+	expect(response.status()).toBe(200);
+	expect(response.headers()['content-type']).toMatch(/^audio\//);
+	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('');
+
+	// Text outside quotes can also be skipped.
+	await page.getByRole('checkbox', { name: /Narrator/ }).check();
+	await expect(
+		page.getByRole('combobox', { name: 'Text outside quotes is read by' }).locator('option')
+	).toHaveText(['the narrator', 'the main voice', 'nobody (skip it)']);
+});
+
 test('removing a book asks first', async ({ page }, testInfo) => {
 	const title = `Remove ${testInfo.project.name}`;
 	await addPastedBook(page, title);
