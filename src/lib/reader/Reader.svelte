@@ -10,7 +10,6 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.js';
 	import PlayerBar from './PlayerBar.svelte';
-	import { toRoman } from '#lib/text/roman.js';
 	import { passageForBlock } from '#lib/text/passages.js';
 	import type { Position } from './position.js';
 	import { session } from './session.svelte.js';
@@ -195,9 +194,7 @@
 			lang={book.language ?? undefined}
 			onclick={readFrom}
 		>
-			<div class="band" aria-hidden="true">
-				<span>{toRoman(chapter.position + 1)}.</span>
-			</div>
+			<div class="band" aria-hidden="true"></div>
 			{#each chapter.blocks as block, index (index)}
 				{#if block.type === 'break'}
 					<hr />
@@ -427,26 +424,17 @@
 	}
 
 	/* The chapter's engraved band: a dithered plate with its numeral. */
+	/*
+	 * The chapter opening: a dithered band, densest at the top and fading down into the page.
+	 * (No numeral: a book's sections rarely match its chapter numbers.)
+	 */
 	.band {
-		display: grid;
-		place-items: center;
 		height: var(--band-height);
 		margin: 0 calc(var(--space-2) * -1) var(--space-5);
 		background-image: var(--dither-band);
 		background-size: auto 100%;
 		image-rendering: pixelated;
-		font-size: var(--text-xl);
-		font-weight: var(--weight-medium);
-		letter-spacing: var(--tracking-display);
-	}
-
-	/* A solid cartouche keeps the numeral legible over the screen. */
-	.band span {
-		padding: 0 var(--space-3);
-		border: var(--border-double) double var(--color-paper);
-		background: var(--color-ink);
-		color: var(--color-paper);
-		line-height: var(--leading-ui);
+		transform: scaleY(-1);
 	}
 
 	.page p,

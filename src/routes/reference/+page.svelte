@@ -213,7 +213,7 @@
 
 	<section aria-labelledby="ornament">
 		<h2 id="ornament">Ornament</h2>
-		<div class="band" aria-hidden="true"><span>IV.</span></div>
+		<div class="band" aria-hidden="true"></div>
 	</section>
 </main>
 
@@ -377,19 +377,11 @@
 	}
 
 	.band {
-		display: grid;
-		place-items: center;
 		max-width: var(--measure);
 		height: var(--band-height);
 		background-image: var(--dither-band);
 		background-size: auto 100%;
 		image-rendering: pixelated;
-	}
-
-	.band span {
-		padding: 0 var(--space-2);
-		border: var(--border-double) double var(--color-rule);
-		background: var(--color-paper);
-		font-size: var(--text-xl);
+		transform: scaleY(-1);
 	}
 </style>

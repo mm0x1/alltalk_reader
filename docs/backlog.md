@@ -656,3 +656,10 @@ One line per work session: date, what was done, what's next.
   preview, pitch, narrator RVC, skip text outside quotes; verified on the real AllTalk, with
   workarounds for two AllTalk bugs. 95 unit + 190 e2e tests. Next: AO3 EPUB testing with the
   user's files, device checklist, engine switching once it can be made safe.
+- 2026-11-01 (phone testing, round 1): user's notes fixed. Chapter numerals removed (they were
+  the section's position: an AO3 preface made Chapter 1 "II"); the band now fades downward.
+  Player bar: "Ch. 2 of 20" in figures, room under the play button, speeds 0.5x to 2x in a sheet.
+  The page frame spans the page instead of staying on screen. Readability audit of Settings in
+  all three themes: hints and values upright (Garamond italic is too thin small), --text-xs
+  15 px, --text-s 17 px, regular weight 450; aligned legends. Text size (Tiny to Extra large)
+  replaces Reading text and scales the whole app. Home dithering: variants on the canvas.

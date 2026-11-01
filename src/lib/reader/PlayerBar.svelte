@@ -2,12 +2,12 @@
 	import Button from '#lib/ui/Button.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import Spinner from '#lib/ui/Spinner.svelte';
-	import { toRoman } from '#lib/text/roman.js';
 	import { RATES, type Player } from './player.svelte.js';
 
 	let { player }: { player: Player } = $props();
 
 	let sleepOpen = $state(false);
+	let rateOpen = $state(false);
 	let now = $state(Date.now());
 
 	// Tick only while a timed sleep is set, to show the minutes left.
@@ -46,11 +46,6 @@
 		if (player.active) return `Reading ${title}`;
 		return player.status === 'paused' ? 'Paused' : '';
 	});
-
-	function cycleRate() {
-		const index = RATES.indexOf(player.rate as (typeof RATES)[number]);
-		player.setRate(RATES[(index + 1) % RATES.length]);
-	}
 </script>
 
 <div class="bar" role="region" aria-label="Playback" data-player>
@@ -63,14 +58,19 @@
 		<p class="message quiet" role="status"><Spinner /> Preparing the next passage</p>
 	{/if}
 	<div class="progress">
-		<span>Ch. {toRoman(player.position.chapter + 1)}</span>
+		<span>Ch. {player.position.chapter + 1}</span>
 		<span class="rule" aria-hidden="true"
 			><span class="filled" style:width={`${progress}%`}></span></span
 		>
-		<span>of {toRoman(player.book.chapterCount)}</span>
+		<span>of {player.book.chapterCount}</span>
 	</div>
 	<div class="controls">
-		<Button class="rate" variant="quiet" onclick={cycleRate} aria-label="Reading speed">
+		<Button
+			class="rate"
+			variant="quiet"
+			onclick={() => (rateOpen = true)}
+			aria-label={`Reading speed: ${player.rate}\u00d7`}
+		>
 			{player.rate}&times;
 		</Button>
 		<Button
@@ -104,6 +104,23 @@
 	</div>
 </div>
 
+<Sheet bind:open={rateOpen} title="Reading speed">
+	<ul class="choices rates">
+		{#each RATES as rate (rate)}
+			<li>
+				<Button
+					variant={rate === player.rate ? 'primary' : 'outline'}
+					aria-pressed={rate === player.rate}
+					onclick={() => {
+						player.setRate(rate);
+						rateOpen = false;
+					}}>{rate}&times;</Button
+				>
+			</li>
+		{/each}
+	</ul>
+</Sheet>
+
 <Sheet bind:open={sleepOpen} title="Sleep timer">
 	<ul class="choices">
 		{#each [10, 20, 30, 45, 60] as minutes (minutes)}
@@ -128,7 +145,9 @@
 		z-index: var(--layer-player);
 		display: grid;
 		gap: var(--space-2);
-		padding: var(--space-3) var(--space-6) calc(var(--space-5) + var(--safe-bottom));
+		/* Clear of the page frame's rules below, so the play button's ring never touches them. */
+		padding: var(--space-3) var(--space-6)
+			calc(var(--frame-inner) + var(--space-5) + var(--safe-bottom));
 		background: var(--color-paper);
 	}
 
@@ -206,6 +225,11 @@
 	.choices {
 		display: grid;
 		gap: var(--space-2);
+	}
+
+	/* Speeds side by side: short labels, and all nine in reach without scrolling. */
+	.rates {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 
 	.choices :global(.button) {

@@ -367,7 +367,7 @@ test('removing a book asks first', async ({ page }, testInfo) => {
 	await expect(remove).toHaveCount(0);
 });
 
-test('book text can be made larger on this device', async ({ page }, testInfo) => {
+test('text can be made larger or smaller on this device', async ({ page }, testInfo) => {
 	await addPastedBook(page, `Large ${testInfo.project.name}`);
 	const reader = page.url();
 	const size = () =>
@@ -378,11 +378,11 @@ test('book text can be made larger on this device', async ({ page }, testInfo) =
 	expect(await size()).toBe('20px');
 
 	await page.goto('/settings');
-	await page.getByRole('radio', { name: 'Larger' }).check();
+	await page.getByRole('radio', { name: 'Extra large' }).check();
 	await page.goto(reader);
-	expect(await size()).toBe('26px');
+	expect(await size()).toBe('25px');
 	await page.reload();
-	expect(await size()).toBe('26px');
+	expect(await size()).toBe('25px');
 	const overflow = await page.evaluate(
 		() => document.documentElement.scrollWidth - document.documentElement.clientWidth
 	);

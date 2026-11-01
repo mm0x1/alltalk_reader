@@ -67,6 +67,5 @@
 		gap: var(--space-2);
 		color: var(--color-ink-muted);
 		font-size: var(--text-s);
-		font-style: italic;
 	}
 </style>

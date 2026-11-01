@@ -11,9 +11,11 @@
 				if (theme === 'light' || theme === 'sepia' || theme === 'dark') {
 					document.documentElement.dataset.theme = theme;
 				}
-				var size = localStorage.getItem('readhouse:reading-size');
-				if (size === 'large' || size === 'larger') {
-					document.documentElement.dataset.readingSize = size;
+				var size =
+					localStorage.getItem('readhouse:text-size') ||
+					{ large: 'large', larger: 'extra-large' }[localStorage.getItem('readhouse:reading-size')];
+				if (/^(tiny|small|large|extra-large)$/.test(size || '')) {
+					document.documentElement.dataset.textSize = size;
 				}
 			} catch (e) {}
 		</script>

@@ -38,9 +38,9 @@
 		text-transform: uppercase;
 	}
 
+	/* Upright: EB Garamond's italic is too thin to read comfortably at this size. */
 	.hint {
 		color: var(--color-ink-muted);
 		font-size: var(--text-s);
-		font-style: italic;
 	}
 </style>

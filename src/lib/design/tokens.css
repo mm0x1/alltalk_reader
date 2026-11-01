@@ -32,8 +32,9 @@
 	/* Type: EB Garamond throughout, self-hosted (see +layout.svelte). */
 	--font-reading: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
 	--font-ui: 'EB Garamond Variable', 'EB Garamond Fallback', Georgia, serif;
-	--text-xs: 0.875rem;
-	--text-s: 1rem;
+	/* EB Garamond has a small x-height: the smallest steps sit above the usual floor. */
+	--text-xs: 0.9375rem;
+	--text-s: 1.0625rem;
 	--text-m: 1.125rem;
 	--text-l: 1.3125rem;
 	--text-xl: 1.625rem;
@@ -44,7 +45,8 @@
 	--leading-ui: 1.35;
 	--leading-reading: 1.6;
 	--leading-initial: 0.82;
-	--weight-regular: 400;
+	/* A touch heavier than 400: Garamond's hairlines thin out on phone screens. */
+	--weight-regular: 450;
 	--weight-medium: 500;
 	--weight-bold: 600;
 	--tracking-display: 0.04em;
@@ -97,7 +99,7 @@
 	--shelf-column-min: 22rem;
 	--cover-width: 4.5rem;
 	--plate-cover-width: 5rem;
-	--player-height: 7.5rem;
+	--player-height: 8.25rem;
 	--content-max: 72rem;
 	/* The desktop library: one centred column, set like a printed index. */
 	--index-width: 46rem;
@@ -159,15 +161,24 @@
 	color-scheme: dark;
 }
 
-/* Book text a reader asked to be larger (Settings, per device); the drop cap grows with it. */
-:root[data-reading-size='large'] {
-	--text-reading: 1.4375rem;
-	--text-initial: 4.625rem;
+/*
+ * Text size (Settings, per device). Every size is in rem, so this scales the whole app, on top
+ * of the system's text size; Medium is the browser's own.
+ */
+:root[data-text-size='tiny'] {
+	font-size: 87.5%;
 }
 
-:root[data-reading-size='larger'] {
-	--text-reading: 1.625rem;
-	--text-initial: 5.25rem;
+:root[data-text-size='small'] {
+	font-size: 93.75%;
+}
+
+:root[data-text-size='large'] {
+	font-size: 112.5%;
+}
+
+:root[data-text-size='extra-large'] {
+	font-size: 125%;
 }
 
 /* Sepia: the same plate in brown ink on warm paper. */

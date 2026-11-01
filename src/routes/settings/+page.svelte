@@ -10,11 +10,12 @@
 		type StorageUse
 	} from '#lib/client/offline.js';
 	import {
-		applyReadingSize,
-		READING_SIZES,
-		readReadingSize,
-		type ReadingSize
-	} from '#lib/design/reading-size.js';
+		applyTextSize,
+		readTextSize,
+		TEXT_SIZES,
+		textSizeLabel,
+		type TextSize
+	} from '#lib/design/text-size.js';
 	import { applyTheme, readTheme, THEMES, type Theme } from '#lib/design/theme.js';
 	import {
 		AHEAD_MAX,
@@ -50,7 +51,7 @@
 	let saved = $state(false);
 	let problem = $state<string | null>(null);
 	let theme = $state<Theme>('system');
-	let readingSize = $state<ReadingSize>('standard');
+	let textSize = $state<TextSize>('medium');
 	let buffer = $state<BufferSettings>(DEFAULT_BUFFER);
 	let canSave = $state(false);
 	let storage = $state<StorageUse | null>(null);
@@ -129,7 +130,7 @@
 
 	onMount(() => {
 		theme = readTheme();
-		readingSize = readReadingSize();
+		textSize = readTextSize();
 		buffer = readBuffer();
 		canSave = offlineAvailable();
 		if (canSave) void refreshStorage();
@@ -437,16 +438,16 @@
 			{/each}
 		</fieldset>
 		<fieldset class="themes">
-			<legend>Reading text</legend>
-			{#each READING_SIZES as option (option)}
+			<legend>Text size</legend>
+			{#each TEXT_SIZES as option (option)}
 				<Radio
-					name="reading-size"
+					name="text-size"
 					value={option}
-					label={option[0].toUpperCase() + option.slice(1)}
-					checked={readingSize === option}
+					label={textSizeLabel(option)}
+					checked={textSize === option}
 					onchange={() => {
-						readingSize = option;
-						applyReadingSize(option);
+						textSize = option;
+						applyTextSize(option);
 					}}
 				/>
 			{/each}
@@ -635,6 +636,7 @@
 
 	legend {
 		margin-bottom: var(--space-2);
+		padding: 0;
 		font-weight: var(--weight-medium);
 	}
 

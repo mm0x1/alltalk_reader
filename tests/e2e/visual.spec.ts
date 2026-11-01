@@ -78,6 +78,7 @@ for (const theme of THEMES) {
 
 		test('reader, larger text', async ({ page }) => {
 			test.skip(theme !== 'light', 'Size, not colour: one theme is enough');
+			// The earlier "Larger" reading size, carried over as Extra large.
 			await page.addInitScript(() => localStorage.setItem('readhouse:reading-size', 'larger'));
 			const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
 			await page.goto(`/book/${id}`);

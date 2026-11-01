@@ -33,7 +33,7 @@ const SAVE_INTERVAL_MS = 5_000;
 const CHAPTER_CACHE = 6;
 const SILENCE = '/silence.wav';
 const RATE_KEY = 'readhouse:rate';
-export const RATES = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2] as const;
+export const RATES = [0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2] as const;
 
 function readRate(): number {
 	try {

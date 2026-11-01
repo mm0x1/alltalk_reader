@@ -40,13 +40,14 @@
 <Toaster />
 
 <style>
+	/* Around the whole page, as long as its content: on a long page it scrolls with the text. */
 	.frame {
-		position: fixed;
+		position: absolute;
 		inset: calc(var(--safe-top) + var(--frame-outer)) var(--frame-outer)
 			calc(var(--safe-bottom) + var(--frame-outer));
 		z-index: var(--layer-frame);
 		border: var(--border-thin) solid var(--color-rule);
-		/* Paper outside the frame, so text scrolls under its edge instead of past it. */
+		/* Paper outside the frame: nothing shows in the margin around it. */
 		box-shadow: var(--shadow-frame-mask);
 		pointer-events: none;
 	}

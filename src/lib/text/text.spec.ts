@@ -299,24 +299,6 @@ describe('AO3 paste extraction', () => {
 	});
 });
 
-describe('toRoman', () => {
-	it('writes chapter ordinals', async () => {
-		const { toRoman } = await import('./roman');
-		expect([1, 4, 9, 14, 40, 61, 99, 2026].map(toRoman)).toEqual([
-			'I',
-			'IV',
-			'IX',
-			'XIV',
-			'XL',
-			'LXI',
-			'XCIX',
-			'MMXXVI'
-		]);
-		expect(toRoman(0)).toBe('0');
-		expect(toRoman(5000)).toBe('5000');
-	});
-});
-
 describe('storyStart', () => {
 	const chapter = (title: string, text = 'Text.') => ({
 		title,
