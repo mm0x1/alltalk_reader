@@ -114,6 +114,18 @@ for (const theme of THEMES) {
 			// page.route can't see requests from a page a service worker controls.
 			test.use({ serviceWorkers: 'block' });
 
+			test('reader, preparing', async ({ page }) => {
+				const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
+				// AllTalk never answers, so the player keeps waiting with its turning mark.
+				await page.route('**/api/speech', () => {});
+				await page.goto(`/book/${id}`);
+				await settle(page);
+				await page.getByRole('button', { name: 'Play' }).click();
+				await expect(page.getByText('Preparing the next passage')).toBeVisible();
+				await page.evaluate(() => document.fonts.ready);
+				await expect(page).toHaveScreenshot(`${theme}-reader-preparing.png`);
+			});
+
 			test('saving a chapter, then a problem', async ({ page }) => {
 				const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
 				// Two passages are prepared, then AllTalk stops answering: first the rule stands part

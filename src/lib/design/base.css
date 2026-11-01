@@ -83,6 +83,8 @@ a {
 	*::before,
 	*::after {
 		animation-duration: 0.01ms !important;
+		/* Endless animations (the loading mark) stop after their one instant run. */
+		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
 	}

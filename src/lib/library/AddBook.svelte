@@ -5,6 +5,7 @@
 	import Button from '#lib/ui/Button.svelte';
 	import FilePicker from '#lib/ui/FilePicker.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
+	import Spinner from '#lib/ui/Spinner.svelte';
 	import TextField from '#lib/ui/TextField.svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -111,7 +112,7 @@
 		</section>
 
 		{#if busy}
-			<p class="status" role="status">Adding&hellip;</p>
+			<p class="status" role="status"><Spinner /> Adding the book</p>
 		{/if}
 		{#if problem}
 			<p class="status problem" role="alert">{problem}</p>

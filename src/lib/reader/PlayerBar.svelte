@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '#lib/ui/Button.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
+	import Spinner from '#lib/ui/Spinner.svelte';
 	import { toRoman } from '#lib/text/roman.js';
 	import { RATES, type Player } from './player.svelte.js';
 
@@ -48,7 +49,7 @@
 			{player.message}
 		</p>
 	{:else if player.status === 'loading'}
-		<p class="message quiet" role="status">Preparing the next passage&hellip;</p>
+		<p class="message quiet" role="status"><Spinner /> Preparing the next passage</p>
 	{/if}
 	<div class="progress">
 		<span>Ch. {toRoman(player.position.chapter + 1)}</span>

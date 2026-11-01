@@ -84,6 +84,8 @@
 	/* Motion. */
 	--duration-fast: 120ms;
 	--duration-medium: 220ms;
+	/* One turn of the loading mark: slow, so waiting feels calm. */
+	--duration-turn: 4s;
 	--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
 	/* Layout. */

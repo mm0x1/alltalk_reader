@@ -19,6 +19,7 @@
 	import Radio from '#lib/ui/Radio.svelte';
 	import Select from '#lib/ui/Select.svelte';
 	import Slider from '#lib/ui/Slider.svelte';
+	import Spinner from '#lib/ui/Spinner.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -126,7 +127,7 @@
 				<code>ALLTALK_URL</code> points at it.
 			</p>
 		{:else}
-			<p class="state">Checking&hellip;</p>
+			<p class="state"><Spinner /> Checking AllTalk</p>
 		{/if}
 		<Button variant="outline" onclick={() => api.stopSpeech()}>Stop generating audio</Button>
 	</section>
