@@ -80,9 +80,12 @@ every decision below assumes the page is served from another machine, often over
   - Light on phones (small PNG/WebP, lossless so the pattern isn't smeared) and right in
     every theme (one asset per theme where needed).
   Whether dithering becomes a suite-wide house style is still open.
-- [x] **AllTalk is third-party (user, 2026-10-31).** Users install and configure it
-  themselves; Readhouse gives no support for AllTalk's own setup (ports, interfaces, exposure)
-  and only documents which values to enter in Readhouse (`ALLTALK_URL`).
+- [x] **AllTalk is third-party (user, 2026-10-31; clarified 2026-11-01).** Users install and
+  set AllTalk up themselves; Readhouse gives no support for its setup (ports, interfaces,
+  exposure, config files) and only documents which values to enter in Readhouse
+  (`ALLTALK_URL`). But Readhouse **does** let users choose what they hear from inside the app:
+  model (XTTS and APITTS models are switched often), voices, voice preview, low VRAM mode and
+  similar. Speed stays client side (playback rate).
 - [x] **AllTalk: v2, the `alltalkbeta` branch.**
   (https://github.com/erew123/alltalk_tts/tree/alltalkbeta), not `main` (v1, last updated
   2025-03). `../alltalk_tts` is already on `alltalkbeta` and up to date with the remote
@@ -268,6 +271,20 @@ Order of work for the 2026-11-13 presentation:
   downloads before 2026-11-13.
 
 ## AllTalk integration
+
+- [ ] **Passage length (user, 2026-11-01).** The old app's "max characters", reworked: one
+  library setting stored on the server, under Voice. Passages are built by size within a
+  chapter: sentences packed up to N characters **across paragraphs** (so runs of short dialogue
+  become one request), long sentences cut at clauses then spaces, paragraph ends preferred as
+  breaks once a passage is half full (soft breaks), hard breaks at headings, scene breaks and
+  chapter ends. Default about 7 s of speech (~125 characters). Speech API takes the passage
+  index and N; saved places stay chapter + paragraph; offline copies are keyed by N; the
+  highlight spans every part of a passage; buffer shows approximate seconds.
+- [ ] **AllTalk listening controls in Settings (user, 2026-11-01).** Model switch (`/api/reload`;
+  XTTS and APITTS), voice preview (`/api/previewvoice`), low VRAM (`/api/lowvramsetting`),
+  DeepSpeed where available, pitch for engines that support it, RVC for the narrator, "silent"
+  for text outside quotes; each shown only when the engine reports the capability, advanced
+  ones under Advanced. Speed stays the client-side playback rate.
 
 - [ ] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
   whether the local `atsetup.sh` / `confignew.json` edits are kept or discarded. Record the tested AllTalk version in the docs and show a warning
