@@ -9,6 +9,12 @@
 		storageUse,
 		type StorageUse
 	} from '#lib/client/offline.js';
+	import {
+		applyReadingSize,
+		READING_SIZES,
+		readReadingSize,
+		type ReadingSize
+	} from '#lib/design/reading-size.js';
 	import { applyTheme, readTheme, THEMES, type Theme } from '#lib/design/theme.js';
 	import { LANGUAGES, type VoiceSettings } from '#lib/settings.js';
 	import type { ServerStatus } from '#lib/status.js';
@@ -33,6 +39,7 @@
 	let saved = $state(false);
 	let problem = $state<string | null>(null);
 	let theme = $state<Theme>('system');
+	let readingSize = $state<ReadingSize>('standard');
 	let canSave = $state(false);
 	let storage = $state<StorageUse | null>(null);
 	let clearOpen = $state(false);
@@ -51,6 +58,7 @@
 
 	onMount(() => {
 		theme = readTheme();
+		readingSize = readReadingSize();
 		canSave = offlineAvailable();
 		if (canSave) void refreshStorage();
 		const controller = new AbortController();
@@ -255,6 +263,22 @@
 				/>
 			{/each}
 		</fieldset>
+		<fieldset class="themes">
+			<legend>Reading text</legend>
+			{#each READING_SIZES as option (option)}
+				<Radio
+					name="reading-size"
+					value={option}
+					label={option[0].toUpperCase() + option.slice(1)}
+					checked={readingSize === option}
+					onchange={() => {
+						readingSize = option;
+						applyReadingSize(option);
+					}}
+				/>
+			{/each}
+			<p class="sample" aria-hidden="true">It is a truth universally acknowledged&hellip;</p>
+		</fieldset>
 		<div class="storage">
 			<h3>Offline listening</h3>
 			{#if canSave}
@@ -372,6 +396,13 @@
 		margin: 0;
 		padding: 0;
 		border: none;
+	}
+
+	.sample {
+		margin: var(--space-2) 0 var(--space-4);
+		font-family: var(--font-reading);
+		font-size: var(--text-reading);
+		line-height: var(--leading-reading);
 	}
 
 	legend {

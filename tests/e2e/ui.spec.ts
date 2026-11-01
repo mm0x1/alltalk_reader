@@ -187,6 +187,28 @@ test('removing a book asks first', async ({ page }, testInfo) => {
 	await expect(remove).toHaveCount(0);
 });
 
+test('book text can be made larger on this device', async ({ page }, testInfo) => {
+	await addPastedBook(page, `Large ${testInfo.project.name}`);
+	const reader = page.url();
+	const size = () =>
+		page
+			.locator('article.page p')
+			.first()
+			.evaluate((p) => getComputedStyle(p).fontSize);
+	expect(await size()).toBe('20px');
+
+	await page.goto('/settings');
+	await page.getByRole('radio', { name: 'Larger' }).check();
+	await page.goto(reader);
+	expect(await size()).toBe('26px');
+	await page.reload();
+	expect(await size()).toBe('26px');
+	const overflow = await page.evaluate(
+		() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+	);
+	expect(overflow).toBeLessThanOrEqual(0);
+});
+
 test('pages fit the screen without sideways scrolling', async ({ page }, testInfo) => {
 	await addPastedBook(page, `Fit ${testInfo.project.name}`);
 	for (const path of ['/', '/settings', page.url()]) {

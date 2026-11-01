@@ -76,6 +76,16 @@ for (const theme of THEMES) {
 			await expect(page).toHaveScreenshot(`${theme}-reader.png`);
 		});
 
+		test('reader, larger text', async ({ page }) => {
+			test.skip(theme !== 'light', 'Size, not colour: one theme is enough');
+			await page.addInitScript(() => localStorage.setItem('readhouse:reading-size', 'larger'));
+			const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
+			await page.goto(`/book/${id}`);
+			await expect(page.getByRole('heading', { level: 1, name: 'Chapter 1' })).toBeVisible();
+			await settle(page);
+			await expect(page).toHaveScreenshot(`${theme}-reader-larger.png`);
+		});
+
 		test('reader, playing', async ({ page }) => {
 			const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
 			await page.goto(`/book/${id}`);

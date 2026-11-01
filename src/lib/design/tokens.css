@@ -159,6 +159,17 @@
 	color-scheme: dark;
 }
 
+/* Book text a reader asked to be larger (Settings, per device); the drop cap grows with it. */
+:root[data-reading-size='large'] {
+	--text-reading: 1.4375rem;
+	--text-initial: 4.625rem;
+}
+
+:root[data-reading-size='larger'] {
+	--text-reading: 1.625rem;
+	--text-initial: 5.25rem;
+}
+
 /* Sepia: the same plate in brown ink on warm paper. */
 :root[data-theme='sepia'] {
 	--color-paper: #efe5d0;

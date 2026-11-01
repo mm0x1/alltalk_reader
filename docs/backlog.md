@@ -176,6 +176,11 @@ Order of work for the 2026-11-13 presentation:
   adjustable font size/face/line spacing/theme, the currently spoken paragraph highlighted
   without jumping, auto-scroll that follows playback but stops while the user scrolls, and a
   "jump back to current" button.
+  *(in progress)* Measure, line height, theme, sentence highlight, follow-along with "Back to
+  the voice" done. *Reading text size* (2026-10-31): Standard, Large, Larger (20, 23, 26 px)
+  per device in Settings, applied before first paint, drop cap scales with it; e2e and visual
+  tested. Font face and line spacing choices left out: EB Garamond is the identity, and the
+  size covers the accessibility need.
 - [ ] **Rework layout and placement of controls.** Today settings, server config, batch,
   export, cache status and playback all compete on one page (`reader.tsx`, 800+ lines). New
   structure:

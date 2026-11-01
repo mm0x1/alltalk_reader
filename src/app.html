@@ -5,11 +5,15 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="text-scale" content="scale" />
 		<script nonce="%sveltekit.nonce%">
-			// Apply the saved theme before first paint (see src/lib/design/theme.ts).
+			// Apply the saved theme and reading size before first paint (see src/lib/design/).
 			try {
 				var theme = localStorage.getItem('readhouse:theme');
 				if (theme === 'light' || theme === 'sepia' || theme === 'dark') {
 					document.documentElement.dataset.theme = theme;
+				}
+				var size = localStorage.getItem('readhouse:reading-size');
+				if (size === 'large' || size === 'larger') {
+					document.documentElement.dataset.readingSize = size;
 				}
 			} catch (e) {}
 		</script>
