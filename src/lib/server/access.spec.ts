@@ -72,11 +72,11 @@ describe('sessionCookieOptions', () => {
 	const url = new URL('https://readhouse.local/api/unlock');
 
 	it('is not Secure when the page is on plain http', () => {
-		expect(sessionCookieOptions(post('http://192.168.1.20:3000'), url).secure).toBe(false);
+		expect(sessionCookieOptions(post('http://192.0.2.10:3000'), url).secure).toBe(false);
 	});
 
 	it('is Secure over https, and without an Origin when the server says https', () => {
-		expect(sessionCookieOptions(post('https://box.tail1234.ts.net'), url).secure).toBe(true);
+		expect(sessionCookieOptions(post('https://readhouse.example.ts.net'), url).secure).toBe(true);
 		expect(sessionCookieOptions(post(), url).secure).toBe(true);
 	});
 });

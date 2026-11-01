@@ -126,7 +126,7 @@ Order of work for the 2026-11-13 presentation:
   (`p-[13px]`), inline styles and HTML controls used outside the design system. Part of the
   check gate, not a guideline.
   *Done:* Stylelint (`stylelint.config.js`) fails the build on raw colours, sizes, spacing, type, radii, shadows, z-index and durations outside `tokens.css`. ESLint (`svelte/no-restricted-html-elements`) fails the build on raw `<button>`, `<input>`, `<select>` and `<textarea>` outside `src/lib/ui/`.
-- [ ] **Component inventory.** Button, IconButton, Slider (dithered track if it passes the restraint rule), Toggle,
+- [x] **Component inventory.** Button, IconButton, Slider (dithered track if it passes the restraint rule), Toggle,
   Select, Sheet (mobile bottom sheet), Dialog, Popover, Tabs/Segmented, List/ListItem, Toast,
   Progress, Spinner, EmptyState, Field/Label, Badge. Each with states (hover, focus-visible,
   active, disabled, loading) and touch targets ≥ 44 px.
@@ -408,8 +408,11 @@ The app is reachable from other devices by design, so treat the network as untru
   *Done:* Book HTML reduced to text, covers sniffed and sandboxed, zip limits counted while inflating.
 - [x] **Dependencies.** `pnpm audit` clean and part of the check gate; Dependabot/Renovate.
   *Done:* `pnpm audit --prod` and gitleaks in the gate. Dev-only advisories (eslint minimatch, vite-plugin deepmerge, no fix yet) reported by `mise run audit`. Dependabot (`.github/dependabot.yml`): weekly grouped npm updates, monthly Actions.
-- [ ] **Secrets and data.** Nothing sensitive in the repo or bundle; `data/` stays gitignored;
+- [x] **Secrets and data.** Nothing sensitive in the repo or bundle; `data/` stays gitignored;
   no IPs or hostnames committed.
+  *Checked (2026-10-31):* tracked files hold no addresses or hostnames (examples use TEST-NET
+  and `example`); `data/`, `.env*` and `.e2e/` are ignored; gitleaks runs in the gate; the
+  client bundle gets no private env (only `$app/env/private`, server side).
 - [ ] **Security checklist, applied to every change.** The items from the wider industry
   list that apply to a self-hosted, single-user app with SQLite:
   - *Injection:* parameterized SQL only (no string-built queries); no shell calls with user
