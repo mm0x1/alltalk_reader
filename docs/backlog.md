@@ -150,8 +150,13 @@ Order of work for the 2026-11-13 presentation:
   chapter-saving progress: rule under the row, filling leader, one line atop Contents).
   Popover and Tabs/Segmented are left out: nothing in the app needs them yet (the sleep timer
   is a sheet, the theme is a radio group).
-- [ ] **Living reference page.** A dev-only route (or Storybook/Histoire) showing every token
+- [x] **Living reference page.** A dev-only route (or Storybook/Histoire) showing every token
   and component in every theme; also the target for visual regression tests.
+  *Done:* `/reference`, served in dev or with `REFERENCE_PAGE=1` (the visual server sets it;
+  404 otherwise, API-tested). Token names are read from `tokens.css` itself, so the sheet can't
+  fall behind; every component with its states. Photographed whole in light, dark and sepia on
+  all three devices. Sheets and dialogs are photographed where they are used (Add a book,
+  Contents, Remove a book).
 - [ ] **Share with the suite.** If a suite-wide house style is adopted, publish the tokens (and,
   with a shared framework, the components) as a package Ditherhouse can use too.
 
@@ -537,5 +542,7 @@ One line per work session: date, what was done, what's next.
 - 2026-10-31: Variants for Dialog, loading, toast and progress published for a pick. TXT import
   knows "Stave" headings (A Christmas Carol: five staves). Fixed a real passcode bug: over plain
   http the session cookie was `Secure` (adapter-node assumes https), so Safari never stayed
-  unlocked; this was also the "locked share" gap, now e2e-tested. Next: build the picked
-  components, then the living reference page.
+  unlocked; this was also the "locked share" gap, now e2e-tested. Built the picks: Confirm
+  sheet, reverse-ink toasts, saving rule, printer's flower spinner; EmptyState and a plain error
+  page; the `/reference` sheet in the visual suite. Next: Pleasant details and Accessibility
+  items (screen-reader playback announcements), performance budgets.

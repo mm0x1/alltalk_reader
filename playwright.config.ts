@@ -118,7 +118,8 @@ export default defineConfig({
 							ALLTALK_URL: `http://127.0.0.1:${VISUAL_ALLTALK_PORT}`,
 							PORT: String(VISUAL_PORT),
 							HOST: '127.0.0.1',
-							DATA_DIR: '.e2e/visual'
+							DATA_DIR: '.e2e/visual',
+							REFERENCE_PAGE: '1'
 						},
 						reuseExistingServer: false
 					}

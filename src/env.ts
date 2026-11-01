@@ -53,6 +53,16 @@ export const variables = defineEnvVars({
 			return mode as 'auto' | 'original';
 		}
 	},
+	REFERENCE_PAGE: {
+		description:
+			'"1" serves /reference, the design system\'s token and component sheet (on in dev; for visual tests).',
+		schema: (value) => {
+			if (value !== undefined && value !== '' && value !== '0' && value !== '1') {
+				throw new Error('REFERENCE_PAGE must be "1" or "0"');
+			}
+			return value === '1';
+		}
+	},
 	UPLOAD_MAX_MB: {
 		description: 'Largest book file that can be imported.',
 		schema: integer('UPLOAD_MAX_MB', 64, 1, 1024)

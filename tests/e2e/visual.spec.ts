@@ -184,6 +184,15 @@ for (const theme of THEMES) {
 			await expect(page).toHaveScreenshot(`${theme}-not-found.png`);
 		});
 
+		test('reference sheet', async ({ page }) => {
+			await page.goto('/reference');
+			await expect(
+				page.getByRole('heading', { level: 1, name: 'Readhouse reference' })
+			).toBeVisible();
+			await settle(page);
+			await expect(page).toHaveScreenshot(`${theme}-reference.png`, { fullPage: true });
+		});
+
 		test('unlock', async ({ page }) => {
 			await page.goto(`${LOCKED}/unlock`);
 			await settle(page);

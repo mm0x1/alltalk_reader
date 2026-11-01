@@ -232,6 +232,10 @@ test('accepts same-host requests through an HTTPS proxy', async ({ request }) =>
 	expect(response.status()).toBe(204);
 });
 
+test('the reference sheet is not served unless asked for', async ({ request }) => {
+	expect((await request.get('/reference')).status()).toBe(404);
+});
+
 test.describe('with a passcode', () => {
 	test('locks the API and pages until unlocked', async ({ playwright }) => {
 		const request = await playwright.request.newContext({ baseURL: LOCKED });
