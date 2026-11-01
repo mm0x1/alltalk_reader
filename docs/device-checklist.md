@@ -25,6 +25,29 @@ the table at the end.
    passages (the next ones are prepared ahead).
 5. Tap a paragraph further down. Reading jumps there.
 
+## New since 2026-10-31
+
+1. **Big books from the phone.** Add a large EPUB (Dune is 1.7 MB) from the phone's files. It
+   gets in (books over 512 KB used to be refused) and opens at the story, not the praise or
+   copyright pages (Dune: *Book One: Dune*). Front matter is still in Contents.
+2. **Fanfic dialogue.** In the AO3 download, play a stretch of short dialogue lines. Several
+   lines are highlighted and read together as one passage; AO3's "See the end of the chapter
+   for more notes" isn't read; a web address is read as "a link".
+3. **Passage length** (Settings > Voice). Try short (about 60) and long (about 500): short
+   starts sooner and pauses more between passages, long sounds smoother. Save, go back to the
+   book, play: the change applies.
+4. **Preparing audio** (Settings > On this device). With *Prepare ahead* 1 and *Before playing*
+   0, then *Prepare ahead* 5 and *Before playing* 2: the second waits longer at the start but
+   doesn't stop between passages.
+5. **Hear this voice** (Settings > Voice, pick a voice). The sample plays from the phone's
+   speaker on the first tap. *iPhone: if nothing plays, that is a bug.* The book pauses.
+6. **Model** (Settings > AllTalk). Switch to *apitts* and back: the flower shows while AllTalk
+   loads it (about 15 s on the laptop), then a notice; reading works with each.
+7. **Reading text** (Settings > On this device): *Larger* makes the book text bigger, with the
+   drop cap; nothing runs off the screen.
+8. **Removing a book** asks in a sheet from below; *Keep it* is the safe answer. **Saving a
+   chapter** for offline shows a rule filling under its row, then a dark notice when done.
+
 ## Lock screen and background
 
 1. While playing, lock the phone. Playback continues across passages for at least two minutes.

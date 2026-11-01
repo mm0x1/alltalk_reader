@@ -105,10 +105,14 @@
 	/** Plays a short sample of a voice; the book pauses meanwhile. */
 	async function preview(name: string, rvcVoice: string, rvcPitch: number) {
 		previewing = name;
+		// iOS only lets audio start inside the tap, and the sample takes seconds to make: start a
+		// silent clip now, so the same element may play the sample when it arrives.
+		const audio = new Audio('/silence.wav');
+		audio.play().catch(() => undefined);
 		try {
 			session.player?.pause();
 			const url = URL.createObjectURL(await api.previewVoice(name, rvcVoice, rvcPitch));
-			const audio = new Audio(url);
+			audio.src = url;
 			const done = () => URL.revokeObjectURL(url);
 			audio.addEventListener('ended', done, { once: true });
 			audio.addEventListener('error', done, { once: true });
