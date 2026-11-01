@@ -142,8 +142,10 @@ WantedBy=default.target
 
 Then `systemctl --user enable --now readhouse`.
 
-**Backups.** Everything lives in `DATA_DIR`: copy `readhouse.db` (and `audio/` if you want to keep
-generated audio) while Readhouse is stopped.
+**Backups.** Everything lives in `DATA_DIR`: copy `readhouse.db` while Readhouse is stopped. That
+alone restores the library and every place in it; audio left out is made again when it's next
+played. Copy `audio/` too to skip that, and `secret.key` (with a passcode) so devices stay
+unlocked. To restore, put the files back in `DATA_DIR` and start Readhouse.
 
 ## Security
 

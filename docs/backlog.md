@@ -435,6 +435,9 @@ The app is reachable from other devices by design, so treat the network as untru
   - *Data:* SQLite transactions, foreign keys on, unique constraints, migrations (forward
     and tested), backups of the data dir documented and restore tested once.
   *(in progress)* Applied so far to the server; CSP and headers in place.
+  *Backup and restore tested (2026-10-31)* on the build: a library restored from
+  `readhouse.db` alone lists its books, and audio missing from `audio/` is made again on
+  request. README says what to copy (`secret.key` keeps devices unlocked).
 
 ## Performance
 
