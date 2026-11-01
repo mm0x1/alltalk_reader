@@ -118,10 +118,10 @@ Order of work for the 2026-11-13 presentation:
   whole app. Today there's a start (`src/design-system/`: Button, Icon, Loading, Modal,
   Progress) but only 12 imports of it, while the code has ~200 raw palette classes
   (`bg-gray-*`, `text-blue-*`, …) and arbitrary values.
-- [ ] **Token layer.** CSS custom properties as the single source (light/dark/sepia themes
+- [x] **Token layer.** CSS custom properties as the single source (light/dark/sepia themes
   switch by swapping values), mapped into Tailwind (or the chosen styling) so only tokens are
   expressible. Remove Tailwind's default palette from the config so raw colors don't compile.
-  *(in progress)* Engraved values in `src/lib/design/tokens.css` (light, dark, sepia; text colours checked for WCAG AA). Remaining: the Tailwind side is moot (no Tailwind), so this closes with the component inventory.
+  *Done:* Engraved values in `src/lib/design/tokens.css` (light, dark, sepia; text colours checked for WCAG AA); no Tailwind, stylelint enforces the tokens; every token is on `/reference`.
 - [x] **Enforce it.** Lint rules that fail the build on raw colors, arbitrary values
   (`p-[13px]`), inline styles and HTML controls used outside the design system. Part of the
   check gate, not a guideline.
@@ -181,7 +181,7 @@ Order of work for the 2026-11-13 presentation:
   per device in Settings, applied before first paint, drop cap scales with it; e2e and visual
   tested. Font face and line spacing choices left out: EB Garamond is the identity, and the
   size covers the accessibility need.
-- [ ] **Rework layout and placement of controls.** Today settings, server config, batch,
+- [x] **Rework layout and placement of controls.** Today settings, server config, batch,
   export, cache status and playback all compete on one page (`reader.tsx`, 800+ lines). New
   structure:
   - *Library*: books/sessions, import (EPUB, TXT, paste, AO3), resume where you left off.
@@ -189,9 +189,14 @@ Order of work for the 2026-11-13 presentation:
     play/pause, skip ±paragraph, speed, sleep timer.
   - *Settings*: voice, TTS options, appearance, server; rarely used items behind
     "Advanced".
-- [ ] **Mobile first.** Designed at 360–430 px wide before desktop. Bottom sheets instead of
+  *Done:* Library (shelf, continue plate, Add a book), reader (text first, docked player with
+  speed, passage skip, sleep timer), Settings (AllTalk, voice with Advanced, this device).
+- [x] **Mobile first.** Designed at 360–430 px wide before desktop. Bottom sheets instead of
   modals, safe-area insets (notch, home bar), no horizontal scroll, no hover-only UI, `dvh`
   units so the browser bar doesn't hide the player, works in iOS Safari and Android Chrome.
+  *Done:* Sheets from below, safe-area insets, `dvh`, no hover-only controls; e2e on WebKit
+  iPhone and Chromium Android, including a no-sideways-scroll check on every page. Real phones:
+  device checklist.
 - [ ] **Good on desktop.** *(in progress)* Layout **A, Folio** picked from
   https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no and built for the reader: from 64rem a
   ruled sidebar (book, contents with save buttons, back to the shelf) and the player docked
@@ -574,5 +579,9 @@ One line per work session: date, what was done, what's next.
   http the session cookie was `Secure` (adapter-node assumes https), so Safari never stayed
   unlocked; this was also the "locked share" gap, now e2e-tested. Built the picks: Confirm
   sheet, reverse-ink toasts, saving rule, printer's flower spinner; EmptyState and a plain error
-  page; the `/reference` sheet in the visual suite. Next: Pleasant details and Accessibility
-  items (screen-reader playback announcements), performance budgets.
+  page; the `/reference` sheet in the visual suite. Then: reading text size (Settings),
+  playback announcements for screen readers, a reader script budget in the gate (54.8 KB of
+  100), the database closed on graceful shutdown, a tested restore from `readhouse.db` alone,
+  secrets audit, plain words in Settings, CLAUDE.md design rules. Next needs the user or the
+  world: the device checklist on real phones, AO3 downloads once AO3 is back (2026-11-13), and
+  packaging for the presentation (pitch, screen recording).
