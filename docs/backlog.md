@@ -269,6 +269,17 @@ Order of work for the 2026-11-13 presentation:
 - [ ] **AO3 still first-class.** Keep the AO3 parser (paste/HTML download) and give AO3 works
   the same chapter UI as EPUB; AO3's own EPUB downloads should import cleanly. Test with AO3
   downloads before 2026-11-13.
+  *(in progress, 2026-11-01)* Tested with the user's AO3 EPUB (a Calibre-converted download,
+  4 sections, 12,000 words) and a commercial EPUB (Dune, 64 sections): both import with the
+  right titles, authors and chapters. Fixed what listening would have exposed: new books open
+  where the story starts (EPUB guide `text` / `bodymatter` landmark when present, else leading
+  praise, copyright, contents, "also by" and AO3 preface pages are skipped; they stay in
+  Contents); AO3's own lines ("See the end of the chapter for more notes", "Please drop by the
+  Archive and comment...") are dropped, the author's notes kept; web addresses are spoken as
+  "a link". Found and fixed a real bug: adapter-node's 512 KB body limit refused any book over
+  half a megabyte (Dune, 1.7 MB) before Readhouse's own `UPLOAD_MAX_MB` applied;
+  `mise run start` now sets `BODY_SIZE_LIMIT=Infinity` (Readhouse caps every body itself) and an
+  e2e test uploads a 700 KB book. Still to do: AO3 pages pasted once AO3 is back.
 
 ## AllTalk integration
 

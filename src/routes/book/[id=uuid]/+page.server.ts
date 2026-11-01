@@ -11,7 +11,8 @@ export const load: PageServerLoad = ({ params }) => {
 
 	const passageChars = settings.voice().passageChars;
 	const saved = book.progress;
-	const chapterIndex = saved && saved.chapter < book.chapterCount ? saved.chapter : 0;
+	const chapterIndex =
+		saved && saved.chapter < book.chapterCount ? saved.chapter : book.startChapter;
 	const chapter = library.chapter(book.id, chapterIndex, passageChars)!;
 	// The place is saved as a paragraph, so it survives a change of passage length.
 	const passage =

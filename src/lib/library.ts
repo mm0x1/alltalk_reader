@@ -16,6 +16,8 @@ export interface BookSummary {
 	language: string | null;
 	source: BookSource;
 	chapterCount: number;
+	/** Where the story starts, past front matter: where a new book opens. */
+	startChapter: number;
 	wordCount: number;
 	createdAt: number;
 	openedAt: number | null;

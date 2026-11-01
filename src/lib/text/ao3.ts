@@ -38,6 +38,18 @@ const NOISE = [
 	/^\(See the end of the (?:chapter|work) for (?:more )?notes\.\)$/
 ];
 
+/** The first line of the preface page in AO3's own downloads. */
+export const AO3_PREFACE = /Posted originally on the Archive of Our Own/i;
+
+/** Lines AO3 adds around a work that are not the author's words, in downloads and pages. */
+const AO3_BOILERPLATE = [
+	/^\(?See the end of the (?:chapter|work) for (?:more )?notes\.?\)?$/i,
+	/^Please drop by the Archive and comment to let the creator know if you enjoyed their work!?$/i
+];
+
+export const isAo3Boilerplate = (line: string): boolean =>
+	AO3_BOILERPLATE.some((pattern) => pattern.test(line.trim()));
+
 export function looksLikeAo3(text: string): boolean {
 	return DETECTION.filter((pattern) => pattern.test(text)).length >= 2;
 }

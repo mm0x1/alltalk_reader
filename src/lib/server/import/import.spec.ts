@@ -20,6 +20,8 @@ interface FixtureOptions {
 	chapters?: { file: string; body: string; title?: string }[];
 	cover?: boolean;
 	extra?: Zippable;
+	/** Where the text starts: an EPUB 2 guide entry, or an EPUB 3 bodymatter landmark. */
+	textStart?: string;
 }
 
 /** Builds a small but structurally real EPUB. */
@@ -37,7 +39,10 @@ function buildEpub(options: FixtureOptions = {}): Uint8Array {
 	const nav = xhtml(
 		`<nav epub:type="toc"><ol>${titled
 			.map((c) => `<li><a href="${c.file}#start">${c.title}</a></li>`)
-			.join('')}</ol></nav>`
+			.join('')}</ol></nav>` +
+			(options.textStart
+				? `<nav epub:type="landmarks"><ol><li><a epub:type="bodymatter" href="${options.textStart}">Start</a></li></ol></nav>`
+				: '')
 	);
 	const ncx = `<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/"><navMap>${titled
 		.map(
@@ -56,6 +61,7 @@ ${version === 3 ? '<item id="nav" href="nav.xhtml" media-type="application/xhtml
 ${options.cover ? `<item id="cover-img" href="images/cover.png" media-type="image/png"${version === 3 ? ' properties="cover-image"' : ''}/>` : ''}
 </manifest>
 <spine${version === 2 ? ' toc="ncx"' : ''}>${spine}</spine>
+${options.textStart && version === 2 ? `<guide><reference type="text" title="Start" href="${options.textStart}"/></guide>` : ''}
 </package>`;
 	const files: Zippable = {
 		mimetype: [strToU8('application/epub+zip'), { level: 0 }],
@@ -233,6 +239,70 @@ describe('parseEpub', () => {
 			'x.epub'
 		);
 		expect(book.chapters[0].blocks).toEqual([{ type: 'text', text: 'Hard wrapped source.' }]);
+	});
+
+	describe('where the story starts', () => {
+		const front = [
+			{ file: 'text/praise.xhtml', body: '<p>\u201cAstonishing.\u201d</p>', title: 'Praise' },
+			{ file: 'text/copyright.xhtml', body: '<p>Copyright 1965.</p>', title: 'Copyright' },
+			{ file: 'text/note.xhtml', body: '<p>A word before we begin.</p>', title: 'A Note' },
+			{ file: 'text/one.xhtml', body: '<h1>Book One</h1><p>It began.</p>', title: 'Book One' }
+		];
+
+		it('follows an EPUB 2 guide entry, even past a chapter with an ordinary title', () => {
+			const book = parseEpub(
+				buildEpub({ version: 2, chapters: front, textStart: 'text/one.xhtml' }),
+				'b.epub'
+			);
+			expect(book.chapters[book.startChapter].title).toBe('Book One');
+		});
+
+		it('follows an EPUB 3 bodymatter landmark', () => {
+			const book = parseEpub(
+				buildEpub({ chapters: front, textStart: 'text/one.xhtml#x' }),
+				'b.epub'
+			);
+			expect(book.chapters[book.startChapter].title).toBe('Book One');
+		});
+
+		it('without either, skips front matter by its titles only', () => {
+			const book = parseEpub(buildEpub({ chapters: front }), 'b.epub');
+			expect(book.chapters[book.startChapter].title).toBe('A Note');
+		});
+
+		it('opens an AO3 download at its first chapter and drops AO3\u2019s own lines', () => {
+			// Shaped like a Calibre-converted AO3 download: no guide, AO3 wording only.
+			const book = parseEpub(
+				buildEpub({
+					version: 2,
+					chapters: [
+						{
+							file: 'p.xhtml',
+							title: 'Preface',
+							body: '<h1>Preface</h1><p>A Work</p><p>Posted originally on the Archive of Our Own at http://archiveofourown.org/works/1.</p><p>Rating:</p><p>General Audiences</p>'
+						},
+						{
+							file: 'c1.xhtml',
+							title: '5 things',
+							body: '<h1>5 things</h1><p>Chapter Notes</p><p>Thanks for reading!</p><p>(See the end of the chapter for more notes.)</p><p>It began.</p>'
+						},
+						{
+							file: 'a.xhtml',
+							title: 'Afterword',
+							body: '<h1>Afterword</h1><p>End Notes</p><p>Fixed a typo.</p><p>Please drop by the Archive and comment to let the creator know if you enjoyed their work!</p>'
+						}
+					]
+				}),
+				'ao3.epub'
+			);
+			expect(book.startChapter).toBe(1);
+			const lines = book.chapters.flatMap((c) =>
+				c.blocks.flatMap((b) => (b.type === 'break' ? [] : [b.text]))
+			);
+			expect(lines).toContain('Thanks for reading!');
+			expect(lines).toContain('Fixed a typo.');
+			expect(lines.some((t) => /See the end|Please drop by/.test(t))).toBe(false);
+		});
 	});
 
 	it('rejects archives that are not EPUBs or are damaged', () => {

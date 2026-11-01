@@ -3,6 +3,7 @@
 import type { ParsedBook } from '#lib/book.js';
 import { extractAo3 } from '#lib/text/ao3.js';
 import { splitChapters } from '#lib/text/chapters.js';
+import { storyStart } from '#lib/text/front-matter.js';
 import { collapseWhitespace } from '#lib/text/normalize.js';
 import { ImportError } from './errors';
 
@@ -49,10 +50,23 @@ function titleFromFilename(filename: string): string {
 	return collapseWhitespace(stem) || 'Untitled';
 }
 
-function build(text: string, title: string, author: string | null, source: 'txt' | 'paste') {
+function build(
+	text: string,
+	title: string,
+	author: string | null,
+	source: 'txt' | 'paste'
+): ParsedBook {
 	const chapters = splitChapters(text, title);
 	if (chapters.length === 0) throw new ImportError('There is no text to read in this file.');
-	return { title, author, language: null, source, chapters, cover: null } satisfies ParsedBook;
+	return {
+		title,
+		author,
+		language: null,
+		source,
+		chapters,
+		startChapter: storyStart(chapters),
+		cover: null
+	};
 }
 
 /**

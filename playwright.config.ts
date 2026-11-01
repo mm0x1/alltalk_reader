@@ -9,6 +9,8 @@ const DEMO_ALLTALK_PORT = 7996;
 const DEMO_PORT = 4176;
 const shared = {
 	ALLTALK_URL: `http://127.0.0.1:${ALLTALK_PORT}`,
+	// As `mise run start` does: Readhouse enforces its own limits.
+	BODY_SIZE_LIMIT: 'Infinity',
 	SEGMENT_MAX_CHARS: '120',
 	UPLOAD_MAX_MB: '1'
 };
@@ -135,7 +137,8 @@ export default defineConfig({
 							ALLTALK_URL: `http://127.0.0.1:${DEMO_ALLTALK_PORT}`,
 							PORT: String(DEMO_PORT),
 							HOST: '127.0.0.1',
-							DATA_DIR: '.e2e/demo'
+							DATA_DIR: '.e2e/demo',
+							BODY_SIZE_LIMIT: 'Infinity'
 						},
 						reuseExistingServer: false
 					}
@@ -158,6 +161,7 @@ export default defineConfig({
 							PORT: String(VISUAL_PORT),
 							HOST: '127.0.0.1',
 							DATA_DIR: '.e2e/visual',
+							BODY_SIZE_LIMIT: 'Infinity',
 							REFERENCE_PAGE: '1'
 						},
 						reuseExistingServer: false

@@ -21,6 +21,7 @@ interface BookRow {
 	language: string | null;
 	source: BookSource;
 	chapter_count: number;
+	start_chapter: number;
 	word_count: number;
 	created_at: number;
 	opened_at: number | null;
@@ -31,7 +32,7 @@ interface BookRow {
 }
 
 const BOOK_COLUMNS = `
-	b.id, b.title, b.author, b.language, b.source, b.chapter_count, b.word_count,
+	b.id, b.title, b.author, b.language, b.source, b.chapter_count, b.start_chapter, b.word_count,
 	b.created_at, b.opened_at,
 	EXISTS (SELECT 1 FROM covers c WHERE c.book_id = b.id) AS has_cover,
 	p.chapter AS progress_chapter, p.block AS progress_block, p.updated_at AS progress_at
@@ -49,6 +50,7 @@ function toSummary(row: BookRow): BookSummary {
 		language: row.language,
 		source: row.source,
 		chapterCount: row.chapter_count,
+		startChapter: row.start_chapter,
 		wordCount: row.word_count,
 		createdAt: row.created_at,
 		openedAt: row.opened_at,
@@ -132,8 +134,8 @@ export class Library {
 		this.db.transaction(() => {
 			this.db
 				.statement(
-					`INSERT INTO books (id, title, author, language, source, chapter_count, word_count, created_at)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+					`INSERT INTO books (id, title, author, language, source, chapter_count, start_chapter, word_count, created_at)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 				)
 				.run(
 					id,
@@ -142,6 +144,7 @@ export class Library {
 					book.language,
 					book.source,
 					book.chapters.length,
+					Math.min(Math.max(0, book.startChapter), book.chapters.length - 1),
 					chapterWords.reduce((a, b) => a + b, 0),
 					now
 				);

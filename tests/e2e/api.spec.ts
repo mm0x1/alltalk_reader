@@ -123,8 +123,17 @@ test('rejects files it cannot read and files that are too large', async ({ reque
 	const binary = await upload(request, Buffer.from([0, 1, 2, 0, 0, 3]), 'x.bin');
 	expect(binary.status()).toBe(422);
 	expect((await binary.json()).message).toContain('EPUB');
+	// Over UPLOAD_MAX_MB (1 here): refused by Readhouse itself, with its own message.
 	const huge = await upload(request, Buffer.alloc(1.5 * 1024 * 1024, 'a'), 'big.txt');
 	expect(huge.status()).toBe(413);
+	expect((await huge.json()).message).toContain('the limit is 1 MB');
+	// Under it but over adapter-node's 512 KB default: a book this size must get in.
+	const big = await upload(
+		request,
+		Buffer.from('Chapter 1\n\n' + 'The rain kept falling on the roof. '.repeat(20_000)),
+		'big.txt'
+	);
+	expect(big.status()).toBe(201);
 	const zip = await upload(request, Buffer.from(zipSync({ 'a.txt': strToU8('x') })), 'x.epub');
 	expect(zip.status()).toBe(422);
 });

@@ -30,6 +30,8 @@ export interface ParsedBook {
 	language: string | null;
 	source: BookSource;
 	chapters: ParsedChapter[];
+	/** Where the story starts (past front matter); a new book opens there. */
+	startChapter: number;
 	cover: { bytes: Uint8Array; mime: CoverMime } | null;
 }
 

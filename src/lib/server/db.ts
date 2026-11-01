@@ -60,7 +60,9 @@ const MIGRATIONS: readonly string[] = [
 	) STRICT, WITHOUT ROWID;
 
 	CREATE INDEX audio_by_use ON audio (used_at);
-	`
+	`,
+	// Where the story starts, past front matter: a new book opens there.
+	`ALTER TABLE books ADD COLUMN start_chapter INTEGER NOT NULL DEFAULT 0;`
 ];
 
 export class Database {

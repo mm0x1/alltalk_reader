@@ -56,6 +56,7 @@ const book: ParsedBook = {
 	author: 'Author',
 	language: 'en',
 	source: 'txt',
+	startChapter: 0,
 	chapters: [
 		{ title: 'One', blocks: [{ type: 'text', text: 'Hello.' }, { type: 'break' }] },
 		{ title: 'Two', blocks: [{ type: 'text', text: 'World.' }] }

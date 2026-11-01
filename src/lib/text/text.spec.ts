@@ -3,6 +3,7 @@ import { collapseKeepingLines, normalizeText } from './normalize';
 import { splitIntoSegments } from './segments';
 import { isSceneBreak, textToBlocks } from './paragraphs';
 import { cleanChapterTitle, splitChapters } from './chapters';
+import { storyStart } from './front-matter';
 import { extractAo3, looksLikeAo3 } from './ao3';
 
 describe('normalizeText', () => {
@@ -313,5 +314,40 @@ describe('toRoman', () => {
 		]);
 		expect(toRoman(0)).toBe('0');
 		expect(toRoman(5000)).toBe('5000');
+	});
+});
+
+describe('storyStart', () => {
+	const chapter = (title: string, text = 'Text.') => ({
+		title,
+		blocks: [{ type: 'text' as const, text }]
+	});
+
+	it('skips praise, copyright, contents and "also by" pages', () => {
+		const chapters = [
+			'Praise for The Dune Chronicles',
+			'Other Books by Frank Herbert',
+			'Copyright',
+			'Dedication',
+			'Contents',
+			'Book One: Dune'
+		].map((t) => chapter(t));
+		expect(storyStart(chapters)).toBe(5);
+	});
+
+	it('keeps prologues, epigraphs and prefaces that are part of the book', () => {
+		expect(storyStart([chapter('Prologue'), chapter('Chapter 1')])).toBe(0);
+		expect(storyStart([chapter('Epigraph'), chapter('Chapter 1')])).toBe(0);
+		expect(storyStart([chapter('Preface'), chapter('Stave I')])).toBe(0);
+	});
+
+	it('skips AO3\u2019s preface page by its wording', () => {
+		const preface = chapter('Preface', 'Posted originally on the Archive of Our Own at http://x.');
+		expect(storyStart([preface, chapter('Chapter 1')])).toBe(1);
+	});
+
+	it('never goes past the last chapter', () => {
+		expect(storyStart([chapter('Copyright')])).toBe(0);
+		expect(storyStart([])).toBe(0);
 	});
 });

@@ -24,6 +24,9 @@ run = "pnpm build"
 
 [tasks.start]
 description = "Run the production build (reads .env)"
+# Readhouse caps every request body itself (UPLOAD_MAX_MB for books); adapter-node's own 512 KB
+# default would refuse most EPUBs before Readhouse sees them.
+env = { BODY_SIZE_LIMIT = "Infinity" }
 run = "node --env-file-if-exists=.env build"
 
 [tasks.check]

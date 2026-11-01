@@ -169,7 +169,13 @@ export function buildPassages(
 	return passages;
 }
 
-/** What is sent to AllTalk for a passage. */
+/** A web address, without the punctuation that ends its sentence. */
+const URL = /\b(?:https?:\/\/|www\.)[^\s<>"]*[^\s<>".,;:!?)\]'\u2019\u201D]/gi;
+
+/**
+ * What is sent to AllTalk for a passage. Web addresses become "a link": spelled out character
+ * by character they are noise (they stay on the page).
+ */
 export function passageText(blocks: readonly Block[], passage: Passage): string {
 	return passage.pieces
 		.map(({ block, start, end }) => {
@@ -177,7 +183,8 @@ export function passageText(blocks: readonly Block[], passage: Passage): string 
 			return item && item.type !== 'break' ? collapseWhitespace(item.text.slice(start, end)) : '';
 		})
 		.filter(Boolean)
-		.join(' ');
+		.join(' ')
+		.replace(URL, 'a link');
 }
 
 /** The passage that reads the start of `block` (or the first one after it), or null. */

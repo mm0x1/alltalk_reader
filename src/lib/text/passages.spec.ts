@@ -76,6 +76,16 @@ describe('buildPassages', () => {
 		expect(passageForBlock(passages, 9)).toBeNull();
 	});
 
+	it('says "a link" for web addresses, keeping the sentence around them', () => {
+		const blocks = [
+			text('Posted originally on the Archive of Our Own at http://archiveofourown.org/works/123.'),
+			text('More at www.example.com, or (https://example.com/a?b=c).')
+		];
+		expect(texts(blocks, 500)).toEqual([
+			'Posted originally on the Archive of Our Own at a link. More at a link, or (a link).'
+		]);
+	});
+
 	it('rejects a limit below the minimum', () => {
 		expect(() => buildPassages([text('Hi.')], 10)).toThrow(RangeError);
 	});

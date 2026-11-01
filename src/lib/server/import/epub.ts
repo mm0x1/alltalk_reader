@@ -6,7 +6,9 @@
 
 import { DomUtils, parseDocument } from 'htmlparser2';
 import type { Block, ParsedBook, ParsedChapter } from '#lib/book.js';
+import { isAo3Boilerplate } from '#lib/text/ao3.js';
 import { cleanChapterTitle } from '#lib/text/chapters.js';
+import { storyStart } from '#lib/text/front-matter.js';
 import { collapseWhitespace } from '#lib/text/normalize.js';
 import { appendBlock, finishBlocks } from '#lib/text/paragraphs.js';
 import { htmlToBlocks } from './html';
@@ -124,6 +126,37 @@ function tableOfContents(
 	return toc;
 }
 
+/**
+ * The document where the publisher says the text begins: an EPUB 3 `bodymatter` landmark, or an
+ * EPUB 2 guide reference of type `text` (or `start`). Null when the book doesn't say.
+ */
+function bodyStartPath(
+	entries: Map<string, Uint8Array>,
+	opf: Node,
+	opfPath: string,
+	manifest: Map<string, ManifestItem>
+): string | null {
+	const nav = [...manifest.values()].find((item) => item.properties.includes('nav'));
+	const navDoc = nav && parseXml(entries.get(nav.path));
+	if (nav && navDoc) {
+		const landmarks = elements(navDoc, 'nav').find((el) =>
+			attribute(el, 'type')?.split(/\s+/).includes('landmarks')
+		);
+		const body =
+			landmarks &&
+			elements(landmarks, 'a').find((a) =>
+				attribute(a, 'type')?.split(/\s+/).includes('bodymatter')
+			);
+		const href = body && attribute(body, 'href');
+		if (href) return resolvePath(nav.path, href.split('#')[0]);
+	}
+	const reference = elements(opf, 'reference').find((el) =>
+		['text', 'start', 'bodymatter'].includes((attribute(el, 'type') ?? '').toLowerCase())
+	);
+	const href = reference && attribute(reference, 'href');
+	return href ? resolvePath(opfPath, href.split('#')[0]) : null;
+}
+
 const GUTENBERG_START = /^\*{3}\s*START OF (?:THE|THIS) PROJECT GUTENBERG/i;
 const GUTENBERG_END = /^\*{3}\s*END OF (?:THE|THIS) PROJECT GUTENBERG/i;
 
@@ -219,9 +252,14 @@ export function parseEpub(bytes: Uint8Array, filename: string): ParsedBook {
 		chapters.push(current);
 	};
 
+	const startPath = bodyStartPath(entries, opf, opfPath, manifest);
+	/** The chapter the publisher's start document begins in, while chapters are still being built. */
+	let startIndex: number | null = null;
+
 	for (const item of spine) {
 		const source = entries.get(item.path);
 		if (!source) continue;
+		if (item.path === startPath && startIndex === null) startIndex = chapters.length;
 		const tocEntries = toc.get(item.path) ?? [];
 		const fragments = new Set(tocEntries.flatMap((e) => (e.fragment ? [e.fragment] : [])));
 		const { blocks, anchors } = htmlToBlocks(decoder.decode(source), fragments);
@@ -242,8 +280,19 @@ export function parseEpub(bytes: Uint8Array, filename: string): ParsedBook {
 			addSection(blocks.slice(cut.at, cuts[i + 1]?.at ?? blocks.length), cut.title);
 		});
 	}
-	chapters = stripGutenberg(chapters.map((c) => ({ ...c, blocks: finishBlocks(c.blocks) })));
+	// Cleaning can drop chapters, so the start is found again by its title afterwards.
+	const startTitle = startIndex === null ? null : (chapters[startIndex]?.title ?? null);
+	chapters = stripGutenberg(chapters.map((c) => ({ ...c, blocks: finishBlocks(c.blocks) })))
+		.map((c) => ({
+			...c,
+			// AO3's own lines around the work ("See the end of the chapter for more notes").
+			blocks: c.blocks.filter((block) => block.type === 'break' || !isAo3Boilerplate(block.text))
+		}))
+		.filter((c) => c.blocks.length > 0);
 	if (chapters.length === 0) throw new ImportError('This EPUB has no readable text.');
+	const published = startTitle === null ? -1 : chapters.findIndex((c) => c.title === startTitle);
+	// Trust the publisher when it points past the first chapter; otherwise look at the titles.
+	const startChapter = published > 0 ? published : storyStart(chapters);
 
 	const metadata = elements(opf, 'metadata')[0] ?? opf;
 	const titleEl = elements(metadata, 'title')[0];
@@ -270,6 +319,7 @@ export function parseEpub(bytes: Uint8Array, filename: string): ParsedBook {
 		language: (languageEl && text(languageEl)) || null,
 		source: 'epub',
 		chapters,
+		startChapter,
 		cover
 	};
 }
