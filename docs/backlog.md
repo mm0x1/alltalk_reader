@@ -140,7 +140,10 @@ Order of work for the 2026-11-13 presentation:
   chapter saves or fails), **Progress** (hairline rule under the saving row), **Spinner** (a
   printer's flower turning once every 4 s beside the words that say what is happening: the
   player, Add a book, Settings; still under reduced motion, where endless animations now stop
-  after their one instant run). Still to do: EmptyState. Variants were published for a pick (2026-10-31):
+  after their one instant run), **EmptyState** (the empty shelf, and a new error page: a
+  missing book or link says so plainly with a way back to the shelf, instead of SvelteKit's
+  bare default). The inventory is complete for what the app uses; a dithered empty-state
+  picture stays an option for later (it would need variants first). Variants were published for a pick (2026-10-31):
   https://claude.ai/artifact/Dvyyv4k4ZwhK7nzkq61yeF (Dialog for removing a book: centred
   plate, bottom sheet, or no question with Undo; loading: breathing ellipsis, engraved rule,
   turning fleuron; toast: slip above the player, reverse-ink slug, notice under the header;

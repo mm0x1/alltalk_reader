@@ -12,6 +12,7 @@
 	import { session } from '#lib/reader/session.svelte.js';
 	import Button from '#lib/ui/Button.svelte';
 	import Confirm from '#lib/ui/Confirm.svelte';
+	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -98,12 +99,9 @@
 	</div>
 
 	{#if data.books.length === 0}
-		<div class="empty">
-			<p class="empty-title">Nothing on the shelf yet.</p>
-			<p>
-				Add an EPUB or a text file, or paste a chapter from AO3, and Readhouse will read it to you.
-			</p>
-		</div>
+		<EmptyState title="Nothing on the shelf yet.">
+			Add an EPUB or a text file, or paste a chapter from AO3, and Readhouse will read it to you.
+		</EmptyState>
 	{:else}
 		<ul class="books">
 			{#each data.books as book (book.id)}
@@ -179,20 +177,6 @@
 			grid-template-columns: repeat(auto-fill, minmax(var(--shelf-column-min), 1fr));
 			column-gap: var(--space-6);
 		}
-	}
-
-	.empty {
-		max-width: var(--measure);
-		margin: var(--space-7) auto;
-		color: var(--color-ink-muted);
-		text-align: center;
-	}
-
-	.empty-title {
-		margin-bottom: var(--space-2);
-		color: var(--color-ink);
-		font-size: var(--text-l);
-		font-style: italic;
 	}
 
 	.drop {

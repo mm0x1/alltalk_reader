@@ -175,6 +175,15 @@ for (const theme of THEMES) {
 			await expect(page).toHaveScreenshot(`${theme}-settings-end.png`);
 		});
 
+		test('book not found', async ({ page }) => {
+			await page.goto('/book/00000000-0000-4000-8000-000000000000');
+			await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+				'This book isn\u2019t here.'
+			);
+			await settle(page);
+			await expect(page).toHaveScreenshot(`${theme}-not-found.png`);
+		});
+
 		test('unlock', async ({ page }) => {
 			await page.goto(`${LOCKED}/unlock`);
 			await settle(page);
