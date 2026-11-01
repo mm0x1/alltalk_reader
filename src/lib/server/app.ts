@@ -95,6 +95,14 @@ export function createServices(options: {
 let services: Services | undefined;
 
 export function app(): Services {
+	if (!services) {
+		// adapter-node emits this once in-flight requests have finished after SIGTERM or SIGINT:
+		// close the database so its write-ahead log is folded in and nothing is left half done.
+		process.once('sveltekit:shutdown', () => {
+			services?.db.close();
+			services = undefined;
+		});
+	}
 	services ??= createServices({
 		dataDir: DATA_DIR,
 		alltalkUrl: ALLTALK_URL,

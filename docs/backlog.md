@@ -458,8 +458,14 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   listing a library, streaming uploads and audio (never whole files in memory), graceful
   shutdown.
   *(in progress)* Prepared statements, indexes, no N+1 in the library list, streaming audio, chapter LRU.
-- [ ] **Battery and memory.** No polling loops (event-driven status), audio elements reused,
+  *Graceful shutdown (2026-10-31):* adapter-node drains requests on SIGTERM/SIGINT and emits
+  `sveltekit:shutdown`; the database now closes then (checked on the build: the WAL is folded in
+  and the process exits).
+- [x] **Battery and memory.** No polling loops (event-driven status), audio elements reused,
   object URLs revoked, wake lock only while playing.
+  *Checked (2026-10-31):* one audio element for the whole session; no object URLs; no wake lock
+  (audio plays on with the screen off); the only timers are the sleep timer's 15 s tick while
+  one is set and its fade-out.
 - [x] **Fonts and assets.** Self-hosted, subset WOFF2, `font-display: swap` with metric-matched
   fallbacks; dithered PNG/WebP assets kept small.
   *Done:* EB Garamond variable via fontsource (Latin face preloaded, ~44 KB), Georgia fallback
