@@ -440,6 +440,10 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
 - [ ] **Budgets.** Initial JS for the reader ≤ 100 KB gzipped; LCP < 1.5 s and INP < 100 ms on
   a mid-range phone over LAN; no layout shift while audio advances; 60 fps scrolling with a
   1,000-paragraph chapter. Bundle size checked in CI.
+  *(in progress)* Reader script budget is an e2e test in the gate (and CI): a fresh browser
+  context opens a book and the gzipped size of every script it fetches must stay at or under
+  100 KB; today 54.8 KB in 25 files (2026-10-31). LCP, INP and scrolling a 1,000-paragraph
+  chapter still need measuring on a real mid-range phone.
 - [x] **Rendering.** Long chapters render with `content-visibility: auto` (and
   `contain-intrinsic-size`) instead of a JS virtualizer; highlight changes touch two
   elements, not the list; no layout reads in scroll handlers.

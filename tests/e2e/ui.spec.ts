@@ -3,6 +3,7 @@
  * fake AllTalk (short silent passages, so playback advances quickly).
  */
 
+import { gzipSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
 
 const STORY = [
@@ -383,4 +384,28 @@ test('keyboard: space plays and pauses, arrows move between passages', async ({
 	await expect(page.locator('article.page [aria-current="true"]')).toContainText(
 		'A second paragraph'
 	);
+});
+
+test('the reader stays within its script budget', async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== 'desktop', 'Same bundle on every device: measure once');
+	await addPastedBook(page, `Budget ${testInfo.project.name}`);
+	const reader = page.url();
+	// A fresh page with the HTTP cache bypassed, so every script it needs is fetched again.
+	const fresh = await page.context().browser()!.newPage();
+	const scripts = new Map<string, number>();
+	fresh.on('response', async (response) => {
+		if (response.request().resourceType() !== 'script') return;
+		scripts.set(response.url(), gzipSync(await response.body()).length);
+	});
+	await fresh.goto(reader);
+	await expect(fresh.getByRole('heading', { level: 1, name: 'Chapter 1' })).toBeVisible();
+	await fresh.waitForLoadState('networkidle');
+	const total = [...scripts.values()].reduce((sum, size) => sum + size, 0);
+	testInfo.annotations.push({
+		type: 'budget',
+		description: `${scripts.size} scripts, ${(total / 1024).toFixed(1)} KB gzipped`
+	});
+	// Backlog budget: initial JS for the reader at most 100 KB gzipped.
+	expect(total).toBeLessThanOrEqual(100 * 1024);
+	await fresh.close();
 });
