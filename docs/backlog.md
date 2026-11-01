@@ -366,7 +366,7 @@ Order of work for the 2026-11-13 presentation:
   values or components), testing expectations. `CLAUDE.md` is currently gitignored; decide
   whether to commit it so every session gets the same rules. Update the rest of `docs/`
   (architecture, API reference) at the same time and delete what no longer applies.
-  *(in progress)* README rewritten (setup, Tailscale, config, running as a service, security). CLAUDE.md rewritten and committed; refresh after the design phase.
+  *(in progress)* README rewritten (setup, Tailscale, config, running as a service, security). CLAUDE.md rewritten and committed; design-system rules added (2026-10-31).
   README screenshots (phone light and dark reader, phone library, desktop reader; plus desktop
   library and sepia Contents in `docs/screenshots/`) are made by `mise run screenshots` from
   `tests/e2e/readme.spec.ts`, at 2x, with public-domain books. README now has "Connecting to

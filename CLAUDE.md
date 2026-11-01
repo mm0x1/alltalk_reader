@@ -30,6 +30,20 @@ a computer next to AllTalk and is opened on a phone over LAN or Tailscale. Mobil
 - `src/routes/`: pages and `api/` endpoints. Keep routes thin; logic lives in `#lib`.
 - `docs/alltalk-api.md`: AllTalk v2 API reference (we target the `alltalkbeta` branch).
 
+## Design system
+
+- Every value is a token in `src/lib/design/tokens.css` (light, dark, sepia); stylelint fails
+  the build on raw colours, sizes, spacing and durations elsewhere.
+- Every control is a component in `src/lib/ui/` (Button, Sheet, Confirm, Toaster/`toasts`,
+  Progress, Spinner, EmptyState, the Plate form controls, ListRow, Badge, Icon); ESLint forbids
+  raw `<button>`, `<input>`, `<select>`, `<textarea>` outside it. Ask with `Confirm`, report
+  with `toasts.show()`, never `confirm()`/`alert()`.
+- `/reference` shows every token and component (dev, or `REFERENCE_PAGE=1`); add new
+  components to it. The visual suite photographs it and the key screens; after reviewing a
+  change, refresh baselines with `mise run visual:update`.
+- New visual choices go on a side-by-side canvas artifact for the user before they are built.
+- Type floor for accessibility: 14 px spaced capitals, 16 px secondary, 18 px UI, 20 px reading.
+
 ## Commands
 
 ```bash
