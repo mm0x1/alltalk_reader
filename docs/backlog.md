@@ -472,6 +472,8 @@ Original order of work (done; there is no presentation, the project is open sour
   library and sepia Contents in `docs/screenshots/`) are made by `mise run screenshots` from
   `tests/e2e/readme.spec.ts`, at 2x, with public-domain books. README now has "Connecting to
   AllTalk": only what to put in `ALLTALK_URL` and how to check it in Settings.
+  *Refreshed (2026-11-02)* after the dithered covers, the new player bar, text size and "Make
+  the audiobook": `mise run screenshots` and `mise run demo` retaken and reviewed.
 - [x] **Tooling.** ESLint + Prettier (or Biome), strict TypeScript, pin Node and pnpm in
   `mise.toml` (pnpm is unpinned, so the `pnpm` shim fails), `pnpm approve-builds` for
   esbuild, commit conventions, one up-to-date architecture doc.
