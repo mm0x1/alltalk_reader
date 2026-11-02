@@ -264,7 +264,7 @@
 					const reason = error instanceof Error ? ` ${error.message}` : '';
 					toasts.show(`AllTalk couldn\u2019t be stopped.${reason}`, { problem: true });
 				}
-			}}>Stop generating audio</Button
+			}}>Stop preparing audio</Button
 		>
 	</section>
 
@@ -339,14 +339,14 @@
 						bind:value={() => voice.temperature ?? 0.75, (next) => (voice.temperature = next)}
 					>
 						{#snippet after()}
-							{voice.temperature === null ? 'Engine default' : voice.temperature.toFixed(2)}
+							{voice.temperature === null ? 'AllTalk\u2019s default' : voice.temperature.toFixed(2)}
 							<Button variant="text" onclick={() => (voice.temperature = null)}>Reset</Button>
 						{/snippet}
 					</Slider>
 				{/if}
 				{#if engine?.capabilities.pitch}
 					<Slider id="pitch" label="Pitch" min="-10" max="10" step="1" bind:value={voice.pitch}>
-						{#snippet after()}{voice.pitch === 0 ? 'Engine default' : voice.pitch}{/snippet}
+						{#snippet after()}{voice.pitch === 0 ? 'AllTalk\u2019s default' : voice.pitch}{/snippet}
 					</Slider>
 				{/if}
 				{#if engine?.capabilities.repetitionPenalty}
@@ -362,14 +362,14 @@
 					>
 						{#snippet after()}
 							{voice.repetitionPenalty === null
-								? 'Engine default'
+								? 'AllTalk\u2019s default'
 								: voice.repetitionPenalty.toFixed(1)}
 							<Button variant="text" onclick={() => (voice.repetitionPenalty = null)}>Reset</Button>
 						{/snippet}
 					</Slider>
 				{/if}
 				{#if rvcVoices.length > 1}
-					<Select id="rvc-voice" label="RVC voice" bind:value={voice.rvcVoice}>
+					<Select id="rvc-voice" label="Voice conversion (RVC)" bind:value={voice.rvcVoice}>
 						{#each rvcVoices as name (name)}
 							<option value={name}>{name === 'Disabled' ? 'Off' : name}</option>
 						{/each}
@@ -377,7 +377,7 @@
 					{#if voice.rvcVoice !== 'Disabled'}
 						<Slider
 							id="rvc-pitch"
-							label={`RVC pitch (${voice.rvcPitch})`}
+							label={`Voice conversion pitch (${voice.rvcPitch})`}
 							min="-24"
 							max="24"
 							step="1"
@@ -387,7 +387,7 @@
 					{#if NARRATOR_AVAILABLE && voice.narratorEnabled}
 						<Select
 							id="rvc-narrator"
-							label="Narrator RVC voice"
+							label="Narrator voice conversion (RVC)"
 							bind:value={voice.rvcNarratorVoice}
 						>
 							{#each rvcVoices as name (name)}
@@ -397,7 +397,7 @@
 						{#if voice.rvcNarratorVoice !== 'Disabled'}
 							<Slider
 								id="rvc-narrator-pitch"
-								label={`Narrator RVC pitch (${voice.rvcNarratorPitch})`}
+								label={`Narrator voice conversion pitch (${voice.rvcNarratorPitch})`}
 								min="-24"
 								max="24"
 								step="1"

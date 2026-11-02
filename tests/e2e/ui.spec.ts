@@ -304,7 +304,7 @@ test('settings show AllTalk voices and save the voice', async ({ page }) => {
 	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('');
 	await page.getByRole('button', { name: 'Save voice' }).click();
 
-	await page.getByRole('button', { name: 'Stop generating audio' }).click();
+	await page.getByRole('button', { name: 'Stop preparing audio' }).click();
 	await expect(page.getByRole('list', { name: 'Notices' })).toContainText(
 		'AllTalk stopped preparing audio.'
 	);
@@ -350,18 +350,18 @@ test('AllTalk\u2019s model, low VRAM mode and voice previews from Settings', asy
 test('the whole book can be prepared ahead, and forgotten', async ({ page }, testInfo) => {
 	await addPastedBook(page, `Whole ${testInfo.project.name}`);
 	const contents = await openContents(page);
-	const whole = contents.list.getByRole('region', { name: 'Whole book' });
-	await whole.getByRole('button', { name: 'Prepare the whole book' }).click();
-	// The fake AllTalk is quick: it soon says what the book was prepared with.
+	const whole = contents.list.getByRole('region', { name: 'Audiobook' });
+	await whole.getByRole('button', { name: 'Make the audiobook' }).click();
+	// The fake AllTalk is quick: it soon says what the audiobook was made with.
 	await expect(whole).toContainText(
-		/Prepared with AllTalk\u2019s default voice, xtts - xttsv2_2\.0\.3/,
+		/Audiobook made with AllTalk\u2019s default voice, xtts - xttsv2_2\.0\.3/,
 		{
 			timeout: 15_000
 		}
 	);
 	await expect(whole).toContainText('Plays even with AllTalk off.');
 	await whole.getByRole('button', { name: 'Forget' }).click();
-	await expect(whole.getByRole('button', { name: 'Prepare the whole book' })).toBeVisible();
+	await expect(whole.getByRole('button', { name: 'Make the audiobook' })).toBeVisible();
 });
 
 test('removing a book asks first', async ({ page }, testInfo) => {

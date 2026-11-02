@@ -49,7 +49,7 @@ export class Preparer {
 			.statement(
 				`UPDATE prepared_books SET state = 'paused', message = ? WHERE state = 'preparing'`
 			)
-			.run('Readhouse restarted. Continue to finish preparing.');
+			.run('Readhouse restarted. Continue to finish the audiobook.');
 	}
 
 	#row(bookId: string): Row | undefined {

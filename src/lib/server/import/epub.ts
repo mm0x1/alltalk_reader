@@ -73,7 +73,10 @@ function findOpfPath(entries: Map<string, Uint8Array>): string {
 	const path = rootfile && attribute(rootfile, 'full-path');
 	if (path && entries.has(path)) return path;
 	const fallback = [...entries.keys()].find((name) => name.toLowerCase().endsWith('.opf'));
-	if (!fallback) throw new ImportError('This EPUB has no package file (OPF).');
+	if (!fallback)
+		throw new ImportError(
+			'This EPUB is incomplete (its list of contents is missing) and could not be opened.'
+		);
 	return fallback;
 }
 
@@ -204,7 +207,10 @@ export function parseEpub(bytes: Uint8Array, filename: string): ParsedBook {
 
 	const opfPath = findOpfPath(entries);
 	const opf = parseXml(entries.get(opfPath));
-	if (!opf) throw new ImportError('This EPUB has no package file (OPF).');
+	if (!opf)
+		throw new ImportError(
+			'This EPUB is incomplete (its list of contents is missing) and could not be opened.'
+		);
 
 	const manifest = new Map<string, ManifestItem>();
 	for (const item of elements(opf, 'item')) {

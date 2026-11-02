@@ -45,7 +45,7 @@ the table at the end.
    loads it (about 15 s on the laptop), then a notice; reading works with each.
 7. **Text size** (Settings > On this device): Tiny to Extra large resizes everything, the book
    text and drop cap included; nothing runs off the screen at Extra large.
-8. **Prepare the whole book** (Contents, top). Progress shows while the computer works; you can
+8. **Make the audiobook** (Contents, top; called *Prepare the whole book* before 2026-11-02). Progress shows while the computer works; you can
    close the phone meanwhile. When done it says what it was prepared with. Then switch AllTalk
    off (or change its model or the voice in Settings): the book still plays, in the voice it was
    prepared with. *Forget* returns it to the current settings.
@@ -63,6 +63,10 @@ the table at the end.
    Space plays and pauses, the left and right arrows move by passage. Click *Next passage*
    with the mouse, then press Space: it plays (it doesn't skip again). With the speed or sleep
    sheet open, the keys do nothing to playback.
+2. **Make the audiobook** (Contents, top; was *Prepare the whole book*). The button fits on one
+   line in the computer's sidebar; while it works it says *Making the audiobook*, then
+   *Audiobook made with...* with *Make it again* and *Forget*. Settings says *AllTalk's
+   default*, *Voice conversion (RVC)* and *Stop preparing audio*.
 
 ## Lock screen and background
 

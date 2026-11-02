@@ -225,6 +225,13 @@ Original order of work (done; there is no presentation, the project is open sour
   empty and error pages are in. Jargon pass: "Stop generating audio" now says what it does and
   confirms; repetition penalty is labelled in plain words like temperature. RVC keeps AllTalk's
   name behind Advanced.
+  *Copy pass (2026-11-02):* "Engine default" now says "AllTalk's default"; RVC is "Voice
+  conversion (RVC)" (AllTalk's term in brackets, like temperature); "Stop generating audio" is
+  "Stop preparing audio", the word used everywhere else; import errors no longer say "OPF" or
+  "archive" ("This EPUB is incomplete (its list of contents is missing)...", "This file unpacks
+  to more than a book should..."). Kept on purpose: `ALLTALK_URL` in the can't-reach message
+  (whoever set Readhouse up needs it), "Low VRAM mode" and "DeepSpeed" (AllTalk's own names,
+  each with a plain hint).
 - [ ] **Accessibility.** WCAG AA contrast in every theme, focus-visible styles, labelled
   controls, screen-reader announcements for playback state, respects system font size.
   *Type sizes raised (2026-10-31, user asked for accessible font sizes):* EB Garamond has a
@@ -316,6 +323,9 @@ Original order of work (done; there is no presentation, the project is open sour
   settings, Forget. Restarts leave it paused. Unit tests (whole book pinned, plays with AllTalk
   closed, snapshot survives settings change, model switch pauses, pins survive a 1-byte budget,
   queue order) and e2e. Export/import file not needed for now (user).
+  *Renamed (user's pick D, 2026-11-02, from https://claude.ai/artifact/R3mSgoJHpa4JgE1oQDqpsc):*
+  "Make the audiobook" (the old label wrapped in the desktop sidebar); "Making the audiobook",
+  "Audiobook made with...", "Make it again", "Forget". The code keeps the name "prepare".
   Correction recorded: before this, cached audio could NOT play with AllTalk off (the cache key
   asked AllTalk for its model); only prepared books can.
 - [x] **AllTalk listening controls in Settings (user, 2026-11-01).** Model switch (`/api/reload`;
@@ -338,6 +348,14 @@ Original order of work (done; there is no presentation, the project is open sour
   result, reloads the model and explains. **Engine switching left out:** AllTalk restarts itself
   with the new engine and lists engines that aren't installed (piper on this Mac), so a wrong
   pick can leave it down; revisit with a check that the engine is installed.
+  *Investigated (2026-11-02), still out:* AllTalk can't say which engines are installed.
+  `currentsettings.engines_available` comes from its `tts_engines.json`, which lists every
+  bundled engine (parler, piper, vits, xtts, f5tts here) whether or not its packages or models
+  are present. `/api/enginereload` checks only that list, **saves** the pick and restarts the
+  process; at start-up AllTalk imports the engine and raises if it can't, so a wrong pick leaves
+  it crashing on every start until someone edits its config by hand. Readhouse can't check
+  installation itself (AllTalk may be on another machine). Revisit if AllTalk gains an
+  installed-engines check or a start-up fallback.
 
 - [ ] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
   whether the local `atsetup.sh` / `confignew.json` edits are kept or discarded. Record the tested AllTalk version in the docs and show a warning
@@ -686,3 +704,10 @@ One line per work session: date, what was done, what's next.
   The user validated the full device checklist on real phones, Tailscale https included. No
   presentation or deadline: Readhouse is an open-source project. Next: development and polish
   (desktop keyboard shortcuts, fresh screenshots and video, phone performance numbers, engine switching).
+- 2026-11-02: Reader keys fixed after a mouse click (arrows ignored, Space re-clicked the
+  button), e2e-tested. Whole-book preparation renamed "Make the audiobook" (user's pick D; the old
+  label wrapped in the sidebar). Copy pass over Settings and import errors. Engine switching
+  investigated and still out (AllTalk can't tell installed engines; a bad pick crashes it on every
+  start). Flaky e2e hunt: the whole suite four times over (784 runs, `--repeat-each=4`) passed
+  without a failure, so the one pre-push failure is not reproducible yet; if it recurs, keep the
+  trace from `test-results/`. Next: README screenshots and demo video, phone performance numbers.

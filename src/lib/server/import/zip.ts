@@ -44,7 +44,9 @@ export function readZip(
 	const unzip = new Unzip((file: UnzipFile) => {
 		if (failure) return;
 		if (++count > limits.maxEntries) {
-			failure = new ZipLimitError(`More than ${limits.maxEntries} files in the archive`);
+			failure = new ZipLimitError(
+				`This file holds more than ${limits.maxEntries.toLocaleString('en')} files, more than a book should.`
+			);
 			return;
 		}
 		if (!wanted(file.name)) return;
@@ -60,7 +62,9 @@ export function readZip(
 			size += chunk.length;
 			total += chunk.length;
 			if (size > limits.maxEntryBytes || total > limits.maxTotalBytes) {
-				failure = new ZipLimitError('The archive unpacks to more data than allowed');
+				failure = new ZipLimitError(
+					'This file unpacks to more than a book should, so it was not opened.'
+				);
 				file.terminate();
 				return;
 			}

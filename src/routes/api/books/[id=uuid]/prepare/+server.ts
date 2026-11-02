@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 			preparer.start(params.id, settings.voice(), { engine: engine.engine, model: engine.model });
 		} catch (cause) {
 			if (cause instanceof AllTalkError) {
-				error(503, 'AllTalk isn’t answering, so the book can’t be prepared now.');
+				error(503, 'AllTalk isn\u2019t answering, so the audiobook can\u2019t be made now.');
 			}
 			throw cause;
 		}

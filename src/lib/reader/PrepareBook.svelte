@@ -37,7 +37,7 @@
 			status = await api.preparation(bookId).catch(() => status);
 			loaded = true;
 			if (was === 'preparing' && status?.state === 'ready') {
-				toasts.show('The whole book is prepared: it plays even with AllTalk off.');
+				toasts.show('The audiobook is made: it plays even with AllTalk off.');
 			}
 			if (status?.state === 'preparing') timer = setTimeout(poll, POLL_MS);
 		};
@@ -80,24 +80,24 @@
 			: 'AllTalk’s default voice';
 </script>
 
-<section class={['whole', loaded && 'loaded']} aria-label="Whole book" bind:this={root}>
+<section class={['whole', loaded && 'loaded']} aria-label="Audiobook" bind:this={root}>
 	{#if loaded}
 		{#if !status}
 			<p class="note">
-				Make every passage now with today&rsquo;s voice settings and keep them, so the book plays
-				even with AllTalk off.
+				Record the whole book now with today&rsquo;s voice settings, so it plays even with AllTalk
+				off.
 			</p>
 			<Button variant="outline" icon="save" disabled={busy} onclick={() => act('start')}>
-				Prepare the whole book
+				Make the audiobook
 			</Button>
 		{:else if status.state === 'preparing'}
 			<p class="note" role="status">
-				Preparing the whole book: {status.done.toLocaleString()} of {status.total
+				Making the audiobook: {status.done.toLocaleString()} of {status.total
 					? status.total.toLocaleString()
 					: '…'}
 				passages
 			</p>
-			<Progress value={status.done} max={status.total} label="Preparing the whole book" />
+			<Progress value={status.done} max={status.total} label="Making the audiobook" />
 			<Button variant="text" disabled={busy} onclick={() => act('stop')}>Stop</Button>
 		{:else}
 			{#if status.state === 'paused'}
@@ -107,7 +107,8 @@
 				</p>
 			{:else}
 				<p class="note">
-					Prepared with {voiceName(status.voice)}{status.model ? `, ${status.model}` : ''}, up to {status.passageChars}
+					Audiobook made with {voiceName(status.voice)}{status.model ? `, ${status.model}` : ''}, up
+					to {status.passageChars}
 					characters a passage. Plays even with AllTalk off.
 				</p>
 			{/if}
@@ -116,9 +117,7 @@
 					<Button variant="outline" disabled={busy} onclick={() => act('continue')}>Continue</Button
 					>
 				{:else}
-					<Button variant="text" disabled={busy} onclick={() => act('start')}>
-						Prepare again with current settings
-					</Button>
+					<Button variant="text" disabled={busy} onclick={() => act('start')}>Make it again</Button>
 				{/if}
 				<Button variant="text" disabled={busy} onclick={() => act('forget')}>Forget</Button>
 			</div>
