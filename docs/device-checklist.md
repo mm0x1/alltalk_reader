@@ -43,9 +43,18 @@ the table at the end.
    speaker on the first tap. *iPhone: if nothing plays, that is a bug.* The book pauses.
 6. **Model** (Settings > AllTalk). Switch to *apitts* and back: the flower shows while AllTalk
    loads it (about 15 s on the laptop), then a notice; reading works with each.
-7. **Reading text** (Settings > On this device): *Larger* makes the book text bigger, with the
-   drop cap; nothing runs off the screen.
-8. **Removing a book** asks in a sheet from below; *Keep it* is the safe answer. **Saving a
+7. **Text size** (Settings > On this device): Tiny to Extra large resizes everything, the book
+   text and drop cap included; nothing runs off the screen at Extra large.
+8. **Prepare the whole book** (Contents, top). Progress shows while the computer works; you can
+   close the phone meanwhile. When done it says what it was prepared with. Then switch AllTalk
+   off (or change its model or the voice in Settings): the book still plays, in the voice it was
+   prepared with. *Forget* returns it to the current settings.
+9. **Covers.** A book without a cover shows an engraved one on the shelf: the title on paper,
+    dithered ink at the foot, readable in all three themes.
+10. **Player and frame.** No numeral over the chapter; the band fades downward. The player says
+    "Ch. 2 of 20"; the play button clears the frame; the speed opens a sheet from 0.5x to 2x.
+    On a long page the frame runs the full length.
+11. **Removing a book** asks in a sheet from below; *Keep it* is the safe answer. **Saving a
    chapter** for offline shows a rule filling under its row, then a dark notice when done.
 
 ## Lock screen and background
