@@ -53,6 +53,8 @@
 	let saved = $state<ReadonlySet<number>>(new Set());
 	let saving = $state<{ index: number; done: number; total: number } | null>(null);
 	let saveController: AbortController | null = null;
+	/** The button or link last focused by a click, which doesn't get to keep Space. */
+	let clicked: Element | null = null;
 
 	onMount(() => {
 		canSave = offlineAvailable();
@@ -129,13 +131,23 @@
 		void player.seek({ chapter: chapter.position, passage }, true);
 	}
 
-	/** Space plays and pauses, arrows move by passage; never while typing or in a dialog. */
+	/**
+	 * Space plays and pauses, arrows move by passage; never while typing or in a dialog. A button
+	 * or link focused from the keyboard keeps Space for itself; one focused by a click doesn't,
+	 * so Space after clicking Next still means play.
+	 */
 	function shortcut(event: KeyboardEvent) {
-		if (!player || event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
+		if (!player || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+		if (event.defaultPrevented) return;
 		const target = event.target as HTMLElement;
-		if (target.closest('input, textarea, select, button, a, [contenteditable], dialog')) return;
+		if (target.closest('input, textarea, select, [contenteditable], dialog')) return;
 		if (event.key === ' ') {
+			const control = target.closest<HTMLElement>('button, a, summary');
+			if (control && control !== clicked) return;
 			event.preventDefault();
+			if (event.repeat) return;
+			// Blurred so the key's release doesn't also click the button.
+			control?.blur();
 			player.toggle();
 		} else if (event.key === 'ArrowRight') {
 			event.preventDefault();
@@ -154,7 +166,15 @@
 	}
 </script>
 
-<svelte:window onwheel={stopFollowing} ontouchmove={stopFollowing} onkeydown={shortcut} />
+<svelte:window
+	onwheel={stopFollowing}
+	ontouchmove={stopFollowing}
+	onkeydown={shortcut}
+	onpointerdown={(event) => (clicked = (event.target as Element).closest('button, a, summary'))}
+	onfocusin={(event) => {
+		if (event.target !== clicked) clicked = null;
+	}}
+/>
 <svelte:document
 	onvisibilitychange={() => {
 		if (document.visibilityState === 'hidden') player?.saveNow();

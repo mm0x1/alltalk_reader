@@ -576,6 +576,39 @@ test('keyboard: space plays and pauses, arrows move between passages', async ({
 	);
 });
 
+test('keyboard: after clicking a player button, space still plays and arrows still move', async ({
+	page,
+	isMobile
+}, testInfo) => {
+	test.skip(isMobile, 'Keyboard shortcuts are for desktop');
+	await addPastedBook(page, `Clicked keys ${testInfo.project.name}`);
+	const current = page.locator('article.page [aria-current="true"]');
+	await page.getByRole('button', { name: 'Next passage' }).click();
+	await expect(current).toContainText('A second paragraph');
+	// Focus is still on Next: arrows move, and Space means play, not a second click on Next.
+	await page.keyboard.press('ArrowLeft');
+	await expect(current).toContainText('The lamp was lit');
+	await page.keyboard.press(' ');
+	await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+	await page.keyboard.press(' ');
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+});
+
+test('keyboard: shortcuts never fire inside a sheet', async ({ page, isMobile }, testInfo) => {
+	test.skip(isMobile, 'Keyboard shortcuts are for desktop');
+	await addPastedBook(page, `Sheet keys ${testInfo.project.name}`);
+	const current = page.locator('article.page [aria-current="true"]');
+	await page.getByRole('button', { name: /^Reading speed/ }).click();
+	const sheet = page.getByRole('dialog', { name: 'Reading speed' });
+	await expect(sheet).toBeVisible();
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('Escape');
+	await expect(sheet).toBeHidden();
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	await expect(current).toContainText('The lamp was lit');
+});
+
 test('the reader stays within its script budget', async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== 'desktop', 'Same bundle on every device: measure once');
 	await addPastedBook(page, `Budget ${testInfo.project.name}`);

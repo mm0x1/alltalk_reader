@@ -57,6 +57,13 @@ the table at the end.
 11. **Removing a book** asks in a sheet from below; *Keep it* is the safe answer. **Saving a
    chapter** for offline shows a rule filling under its row, then a dark notice when done.
 
+## New since 2026-11-02
+
+1. **Keyboard on a computer** (Safari and Chrome, or a tablet with a keyboard). In a book,
+   Space plays and pauses, the left and right arrows move by passage. Click *Next passage*
+   with the mouse, then press Space: it plays (it doesn't skip again). With the speed or sleep
+   sheet open, the keys do nothing to playback.
+
 ## Lock screen and background
 
 1. While playing, lock the phone. Playback continues across passages for at least two minutes.

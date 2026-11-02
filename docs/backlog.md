@@ -209,8 +209,10 @@ Original order of work (done; there is no presentation, the project is open sour
   The library is layout **C, Printed index** (user's pick from
   https://claude.ai/artifact/LBYFHjcubQh5NempCXNpTc, without the roman numerals, Settings
   keeps its label): from 64rem one centred column, the continue plate as a ruled band, each
-  book a title over author with dot leaders to its place. Still to do: `/`
-  to search once there is search. A layout that uses the width (library/chapter sidebar + reading
+  book a title over author with dot leaders to its place. Keyboard (2026-11-02): Space plays and
+  pauses, arrows move by passage, never in a field or a sheet; after a click on a player
+  button the arrows still work and Space still plays (a button focused from the keyboard keeps
+  Space); e2e-tested. Still to do: `/` to search once there is search. A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
 - [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
