@@ -124,3 +124,4 @@ the table at the end.
 | Date | Commit | Device and OS | Browser / installed | Failed steps and notes |
 | ---- | ------ | ------------- | ------------------- | ---------------------- |
 | 2026-11-02 | 4bce17e | Phone (not recorded), laptop AllTalk on APITTS, plain http | Browser | New since 2026-10-31, item 8 (Prepare the whole book): all passed by hand, including playback with AllTalk off, settings kept after changes, the model-switch pause and every control. |
+| 2026-11-02 | 4bce17e | Phone (not recorded), laptop AllTalk on APITTS, plain http | Browser | New since 2026-10-31, items 1–7 and 9–11 (big EPUB upload, fanfic dialogue, passage length, buffer, voice preview, model switch, text size, covers, player and frame, remove-book sheet and saved notice): all verified by hand, no failures. |
