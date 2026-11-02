@@ -3,8 +3,9 @@
 The upgrade from "AllTalk Reader" to **Readhouse**, a Motherhouse app. Nothing here is started
 unless marked.
 
-**Deadline:** AO3 is down until about **2026-11-13**. The app is presented when it comes back,
-so the [demo-critical path](#demo-critical-path) comes first; everything else can follow.
+**Status (2026-11-02):** an open-source project with no deadline. The original
+[demo-critical path](#demo-critical-path) is done and every section of the device checklist has
+passed on real phones (including https over Tailscale). Work now is development and polish.
 
 **How the app is used:** it runs on a computer (next to the AllTalk server) and is opened on a
 phone over the LAN or Tailscale. Mobile is the primary target, desktop has to be good too, and
@@ -103,7 +104,7 @@ every decision below assumes the page is served from another machine, often over
 
 ## Demo-critical path
 
-Order of work for the 2026-11-13 presentation:
+Original order of work (done; there is no presentation, the project is open source):
 
 1. Scaffold the SvelteKit app (tooling, check gate, SQLite, AllTalk proxy).
 2. Design system foundation (tokens + core components).
@@ -181,7 +182,8 @@ Order of work for the 2026-11-13 presentation:
   "jump back to current" button.
   *(in progress)* Measure, line height, theme, sentence highlight, follow-along with "Back to
   the voice" done. *Reading text size* (2026-10-31): Standard, Large, Larger (20, 23, 26 px)
-  per device in Settings, applied before first paint, drop cap scales with it; e2e and visual
+  per device in Settings (since 2026-11-01: Text size, Tiny to Extra large, scales the whole
+  app), applied before first paint, drop cap scales with it; e2e and visual
   tested. Font face and line spacing choices left out: EB Garamond is the identity, and the
   size covers the accessibility need.
 - [x] **Rework layout and placement of controls.** Today settings, server config, batch,
@@ -268,7 +270,7 @@ Order of work for the 2026-11-13 presentation:
   Secure-cookie bug below. Not on iOS (no share target).
 - [ ] **AO3 still first-class.** Keep the AO3 parser (paste/HTML download) and give AO3 works
   the same chapter UI as EPUB; AO3's own EPUB downloads should import cleanly. Test with AO3
-  downloads before 2026-11-13.
+  downloads.
   *(in progress, 2026-11-01)* Tested with the user's AO3 EPUB (a Calibre-converted download,
   4 sections, 12,000 words) and a commercial EPUB (Dune, 64 sections): both import with the
   right titles, authors and chapters. Fixed what listening would have exposed: new books open
@@ -404,11 +406,12 @@ Order of work for the 2026-11-13 presentation:
   `mise run visual:update` after reviewing. Add the reference page once it exists. It caught
   two real bugs at once: the library overflowed the frame on phones (grid track sized by an
   unwrapped detail line) and the author separator lost its space.
-- [ ] **Manual device checklist.** *(in progress)* Written: `docs/device-checklist.md` (first
+- [x] **Manual device checklist.** *Done (2026-11-02):* every section validated by the user on
+  real phones with the real AllTalk, including offline and the installed app over Tailscale
+  https. Re-run the affected sections before each release. Written: `docs/device-checklist.md` (first
   run, lock screen and background, audio routes, offline, installed app and share target,
   accessibility with large text and screen readers, AO3, passcode, plain http, a results
-  table). Still to do: run it on a real iPhone and Android phone with the real AllTalk
-  before 2026-11-13. Include: playback continues across passages with the screen
+  table). Covers: playback continues across passages with the screen
   locked; headphones unplugged pauses; lock-screen next/previous; offline chapter after toggling
   airplane mode; first real AllTalk run on a phone (verified on desktop WebKit, 2026-10-31).
   Originally: A short script to run on a real iPhone (Safari autoplay,
@@ -677,3 +680,7 @@ One line per work session: date, what was done, what's next.
   all three themes: hints and values upright (Garamond italic is too thin small), --text-xs
   15 px, --text-s 17 px, regular weight 450; aligned legends. Text size (Tiny to Extra large)
   replaces Reading text and scales the whole app. Home dithering: variants on the canvas.
+- 2026-11-02: whole-book preparation (pinned audio, plays with AllTalk off) and dithered covers.
+  The user validated the full device checklist on real phones, Tailscale https included. No
+  presentation or deadline: Readhouse is an open-source project. Next: development and polish
+  (desktop keyboard shortcuts, fresh screenshots and video, phone performance numbers, engine switching).
