@@ -49,7 +49,7 @@ description = "Refresh the visual regression baselines (review the new screensho
 run = "pnpm exec playwright test --project='visual-*' --update-snapshots"
 
 [tasks.demo]
-description = "Record the presentation video into docs/media (review it before committing)"
+description = "Record the README demo video into docs/media (review it before committing)"
 env = { DEMO = "1" }
 run = "pnpm exec playwright test --project=demo"
 

@@ -1,5 +1,5 @@
 /**
- * The presentation recording: about half a minute on a phone, in `docs/media/`. Not a test:
+ * The README demo video: about half a minute on a phone, in `docs/media/`. Not a test:
  * run `mise run demo` and watch the result before committing it. Uses its own server and a fake
  * AllTalk that speaks at a natural pace (silently: browser recordings have no sound).
  */
@@ -14,7 +14,7 @@ const OUT = 'docs/media';
 /** Lets a moment register on screen before the next step. */
 const beat = (page: Page, ms = 1200) => page.waitForTimeout(ms);
 
-test('presentation recording', async ({ page }) => {
+test('demo video', async ({ page }) => {
 	await emptyLibrary(page);
 	await addBook(page, 'Moby-Dick', 'Herman Melville', MOBY);
 	await addBook(page, 'A Christmas Carol', 'Charles Dickens', CAROL);

@@ -63,7 +63,8 @@ Readhouse, not from your phone. AllTalk's API uses port 7851 unless you changed 
 
 To check it, open **Settings** in Readhouse: it says **Connected**, followed by AllTalk's engine
 and model. If it says it can't reach AllTalk, check that AllTalk is running and that the address
-and port match. Tested with AllTalk v2 (`alltalkbeta`) and the XTTS v2 engine.
+and port match. Tested with AllTalk v2 (`alltalkbeta` at commit `f16117e`, 2026-01-09) with the XTTS v2 and
+APITTS models.
 
 ## Listening on your phone
 

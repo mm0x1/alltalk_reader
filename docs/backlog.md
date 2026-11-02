@@ -163,6 +163,9 @@ Original order of work (done; there is no presentation, the project is open sour
   Contents, Remove a book).
 - [ ] **Share with the suite.** If a suite-wide house style is adopted, publish the tokens (and,
   with a shared framework, the components) as a package Ditherhouse can use too.
+  *Open on purpose (2026-11-02):* waits on the user's call whether dithering and the Engraved
+  tokens become the suite's house style. Ditherhouse's UI is Svelte 5 too (Tauri, Vite), so
+  both the tokens and the `src/lib/ui/` components could be shared as one package.
 
 ## UI rework
 
@@ -357,10 +360,13 @@ Original order of work (done; there is no presentation, the project is open sour
   installation itself (AllTalk may be on another machine). Revisit if AllTalk gains an
   installed-engines check or a start-up fallback.
 
-- [ ] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
+- [x] **Pin the AllTalk version.** Keep `../alltalk_tts` on the latest `alltalkbeta`; decide
   whether the local `atsetup.sh` / `confignew.json` edits are kept or discarded. Record the tested AllTalk version in the docs and show a warning
   in the app when the server reports something older.
   *(in progress)* Built and tested against `alltalkbeta` at f16117e (2026-01-09). AllTalk has no version endpoint, so no in-app warning. Local edits in `../alltalk_tts` kept (see Decisions).
+  *Closed (2026-11-02):* upstream `alltalkbeta` is still at f16117e; the README names it as the
+  tested version. No in-app warning is possible without a version endpoint; re-test and update
+  the README when `alltalkbeta` moves.
   *Verified live (2026-10-31)* against f16117e with XTTS `xttsv2_2.0.3` on CPU (Python 3.11.9,
   torch 2.2.1, coqui-tts 0.24.3, gradio 6.3.0 with huggingface-hub < 1.0; the installer's
   unpinned `gradio>=4.50` pulls a huggingface-hub that breaks transformers 4.46). Readhouse
@@ -459,7 +465,7 @@ Original order of work (done; there is no presentation, the project is open sour
   (`cheerio`, `lowdb`, `redaxios`, `@tanstack/react-query`, `body-parser`) and TanStack
   starter remnants. Every dependency in the new app is justified.
   *Done:* Runtime deps are valibot, htmlparser2, fflate. Drizzle dropped (stable has no node:sqlite driver).
-- [ ] **Rewrite `README.md` and `CLAUDE.md` for Readhouse.** Both describe AllTalk Reader's
+- [x] **Rewrite `README.md` and `CLAUDE.md` for Readhouse.** Both describe AllTalk Reader's
   React/Express app. README: what Readhouse is, screenshots (phone and desktop), setup with
   AllTalk `alltalkbeta`, running it on a computer and opening it from a phone over LAN or
   Tailscale (`tailscale serve` for HTTPS), importing EPUB/TXT/AO3. `CLAUDE.md`: the
@@ -470,7 +476,9 @@ Original order of work (done; there is no presentation, the project is open sour
   *(in progress)* README rewritten (setup, Tailscale, config, running as a service, security). CLAUDE.md rewritten and committed; design-system rules added (2026-10-31).
   README screenshots (phone light and dark reader, phone library, desktop reader; plus desktop
   library and sepia Contents in `docs/screenshots/`) are made by `mise run screenshots` from
-  `tests/e2e/readme.spec.ts`, at 2x, with public-domain books. README now has "Connecting to
+  `tests/e2e/readme.spec.ts`, at 2x, with public-domain books. *Closed (2026-11-02):* `docs/presentation.md`
+  removed (there is no presentation; the demo video stays in the README); `docs/` is now the
+  AllTalk API reference, this backlog, the device checklist, screenshots and media. README now has "Connecting to
   AllTalk": only what to put in `ALLTALK_URL` and how to check it in Settings.
   *Refreshed (2026-11-02)* after the dithered covers, the new player bar, text size and "Make
   the audiobook": `mise run screenshots` and `mise run demo` retaken and reviewed.
