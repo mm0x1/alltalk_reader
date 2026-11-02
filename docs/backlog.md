@@ -553,6 +553,11 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   context opens a book and the gzipped size of every script it fetches must stay at or under
   100 KB; today 54.8 KB in 25 files (2026-10-31). LCP, INP and scrolling a 1,000-paragraph
   chapter still need measuring on a real mid-range phone.
+  *Measured in Chromium with 4x CPU throttling (2026-11-02):* a 1,000-paragraph chapter
+  (42,000 words) scrolls at a steady 60 fps (every frame 16.7 to 16.8 ms while scrolling 120
+  steps); the slowest input event (play, next, pause, tap a paragraph to read from there) took
+  40 ms, under the 100 ms INP budget; the page is ready (last paragraph in the DOM) 350 ms after
+  a reload. A real mid-range phone remains the final word (device checklist).
 - [x] **Rendering.** Long chapters render with `content-visibility: auto` (and
   `contain-intrinsic-size`) instead of a JS virtualizer; highlight changes touch two
   elements, not the list; no layout reads in scroll handlers.
@@ -562,7 +567,14 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   assets; compression (brotli/gzip) for text; HTTP keep-alive to AllTalk; prefetch only a
   few paragraphs ahead (backpressure; no retry storms: retries with jittered backoff).
   *(in progress)* Content-hash audio cache, immutable caching, ranges and ETags done; compression pending.
-  *(in progress)* Compression of text responses: adapter-node does not compress; JSON is small and audio is already compressed (AAC), so left as is unless measurements say otherwise.
+  *Compression (2026-11-02):* measured first: the same 42,000-word chapter's page was 628 KB
+  uncompressed (about 3x the text: rendered plus its data), sent as is because adapter-node
+  compresses only its prebuilt assets. Now `src/lib/server/compress.ts`, called from the server
+  hook, compresses pages, page data and JSON (brotli at quality 4, else gzip; flushed per chunk
+  so streamed pages aren't held back; `Vary: Accept-Encoding`; weak ETags). Never audio, ranges,
+  HEAD, bodies under 1 KB or `no-transform`. Unit and API tested. Security: BREACH needs a secret
+  repeated across many responses alongside attacker-reflected text; pages carry no CSRF token or
+  session secret, and the CSP nonce changes with every response.
 - [ ] **Server.** Prepared statements, indexes for every lookup, no N+1 queries when
   listing a library, streaming uploads and audio (never whole files in memory), graceful
   shutdown.

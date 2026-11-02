@@ -2,6 +2,7 @@ import { json, redirect } from '@sveltejs/kit';
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { app } from '#lib/server/app.js';
 import { SESSION_COOKIE } from '#lib/server/access.js';
+import { compress } from '#lib/server/compress.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Reachable without the passcode: the unlock page and its endpoint, and static build files. */
@@ -68,7 +69,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (isApi && !response.headers.has('cache-control')) {
 		response.headers.set('cache-control', 'no-store');
 	}
-	return response;
+	return compress(request, response);
 };
 
 /** A client that hangs up mid-request (a cancelled prefetch, a closed tab) is normal here. */

@@ -215,6 +215,29 @@ test('speaks a passage and serves the audio with ranges and caching', async ({ r
 	expect(notModified.status()).toBe(304);
 });
 
+test('compresses pages and JSON, never audio', async ({ request }) => {
+	const page = await request.get(`/book/${bookId}`, { headers: { 'accept-encoding': 'gzip, br' } });
+	expect(page.headers()['content-encoding']).toBe('br');
+	expect(page.headers()['vary']).toContain('Accept-Encoding');
+	expect(await page.text()).toContain('<!doctype html>');
+
+	const long = await request.post('/api/books/paste', {
+		data: { text: 'The rain kept on all evening. '.repeat(200) }
+	});
+	const chapter = await request.get(`/api/books/${(await long.json()).id}/chapters/0?chars=125`, {
+		headers: { 'accept-encoding': 'gzip' }
+	});
+	expect(chapter.headers()['content-encoding']).toBe('gzip');
+	expect((await chapter.json()).passages.length).toBeGreaterThan(10);
+
+	const speech = await request.post('/api/speech', {
+		data: { bookId, chapter: 0, passage: 0, chars: 80, priority: 'now' }
+	});
+	const { audio } = await speech.json();
+	const sound = await request.get(audio, { headers: { 'accept-encoding': 'gzip, br' } });
+	expect(sound.headers()['content-encoding']).toBeUndefined();
+});
+
 test('refuses to speak what is not there', async ({ request }) => {
 	const speak = (data: object) => request.post('/api/speech', { data });
 	const base = { bookId, chapter: 0, passage: 0, chars: 80, priority: 'soon' };
