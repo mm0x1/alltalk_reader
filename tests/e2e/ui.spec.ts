@@ -281,6 +281,29 @@ test('tapping a paragraph reads from there', async ({ page }, testInfo) => {
 	if (await pause.isVisible()) await pause.click();
 });
 
+test('following the voice scrolls without gliding when motion is reduced', async ({
+	page
+}, testInfo) => {
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await page.addInitScript(() => {
+		const behaviours: string[] = [];
+		(window as unknown as { behaviours: string[] }).behaviours = behaviours;
+		const scroll = Element.prototype.scrollIntoView;
+		Element.prototype.scrollIntoView = function (options?: boolean | ScrollIntoViewOptions) {
+			if (typeof options === 'object') behaviours.push(options.behavior ?? 'auto');
+			return scroll.call(this, options);
+		};
+	});
+	await addPastedBook(page, `Still ${testInfo.project.name}`);
+	await page.getByText('A second paragraph follows').click();
+	const behaviours = () =>
+		page.evaluate(() => (window as unknown as { behaviours: string[] }).behaviours);
+	await expect.poll(behaviours).toContain('instant');
+	expect(await behaviours()).not.toContain('smooth');
+	const pause = page.getByRole('button', { name: 'Pause' });
+	if (await pause.isVisible()) await pause.click();
+});
+
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
 	await page.goto('/settings');
 	await page.getByLabel('Sepia').check();

@@ -74,6 +74,8 @@ the table at the end.
    Cmd+F5 in Safari) or TalkBack, open a book and use the landmarks rotor / "main" navigation:
    it lands on the chapter text (the reader had no main region before). Then step through the
    player: every button says its name, and Play / Pause is announced.
+5. **Reduce Motion while listening.** Turn on Reduce Motion, play a book and let it read on:
+   the page jumps to each new passage instead of gliding.
 
 ## Lock screen and background
 

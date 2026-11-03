@@ -96,11 +96,13 @@
 	/** The passage being read, on the page. */
 	const speaking = () => document.querySelector('article.page .speaking');
 
-	// Keep the passage being read in view, unless the reader has scrolled away.
+	// Keep the passage being read in view, unless the reader has scrolled away. Smoothly, unless
+	// the device asks for reduced motion (an explicit `smooth` would override the CSS rule).
 	$effect(() => {
 		void reading;
 		if (!follow || !player?.active || !showingCurrent) return;
-		speaking()?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+		const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+		speaking()?.scrollIntoView({ block: 'center', behavior: still ? 'instant' : 'smooth' });
 	});
 
 	// In the desktop sidebar, keep the chapter being read in view.

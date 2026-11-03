@@ -73,6 +73,11 @@
 	--border-thin: 1px;
 	--border-double: 3px;
 	--border-leader: 2px;
+	/* The keyboard focus ring, the same on every control. */
+	--focus-width: 2px;
+	--focus-offset: 2px;
+	/* A control that can't be used now. */
+	--opacity-disabled: 0.45;
 	--shadow-raised: 0 1px 0 rgb(34 53 90 / 0.12);
 	--shadow-overlay: 0 12px 48px rgb(14 22 38 / 0.28);
 	/* Paper outside the frame and between its two rules. */

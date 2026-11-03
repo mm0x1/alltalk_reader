@@ -61,7 +61,7 @@
 	}
 
 	select:disabled {
-		opacity: 0.45;
+		opacity: var(--opacity-disabled);
 		cursor: default;
 	}
 </style>

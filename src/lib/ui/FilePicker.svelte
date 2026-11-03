@@ -38,12 +38,12 @@
 	}
 
 	.file:focus-within {
-		outline: 2px solid var(--color-focus);
-		outline-offset: 2px;
+		outline: var(--focus-width) solid var(--color-focus);
+		outline-offset: var(--focus-offset);
 	}
 
 	.file:has(input:disabled) {
-		opacity: 0.45;
+		opacity: var(--opacity-disabled);
 		cursor: default;
 	}
 

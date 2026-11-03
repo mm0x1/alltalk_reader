@@ -122,6 +122,13 @@ Original order of work (done; there is no presentation, the project is open sour
   whole app. Today there's a start (`src/design-system/`: Button, Icon, Loading, Modal,
   Progress) but only 12 imports of it, while the code has ~200 raw palette classes
   (`bg-gray-*`, `text-blue-*`, …) and arbitrary values.
+  *Stragglers (2026-11-02):* a sweep for values stylelint lets through (it allows 1px and 2px
+  and doesn't read opacity) found the focus ring's width and offset written out twice and the
+  disabled opacity (0.45) in four components; now `--focus-width`, `--focus-offset` and
+  `--opacity-disabled`. Left on purpose: `theme-color` meta tags (HTML, can't read CSS
+  variables; they repeat the paper colours), the frame's inner rule at half opacity (one use),
+  `style:` bindings for progress widths and the reference sheet's swatches (values, not
+  styling). No raw controls or one-off components left.
 - [x] **Token layer.** CSS custom properties as the single source (light/dark/sepia themes
   switch by swapping values), mapped into Tailwind (or the chosen styling) so only tokens are
   expressible. Remove Tailwind's default palette from the config so raw colors don't compile.
@@ -239,6 +246,9 @@ Original order of work (done; there is no presentation, the project is open sour
 - [ ] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
   loading and error states, empty states that say what to do next, helpful copy, no
   developer jargon in the UI ("buffered mode", "session server").
+  *Reduced motion (2026-11-02):* CSS motion was already off under reduced motion, but
+  following the voice called `scrollIntoView({ behavior: 'smooth' })`, which overrides the CSS
+  rule, so the page still glided with Reduce Motion on; it now jumps (e2e-tested).
   *(in progress, 2026-10-31)* Loading (printer's flower), problems and notices (toasts),
   empty and error pages are in. Jargon pass: "Stop generating audio" now says what it does and
   confirms; repetition penalty is labelled in plain words like temperature. RVC keeps AllTalk's
@@ -604,6 +614,8 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   context opens a book and the gzipped size of every script it fetches must stay at or under
   100 KB; today 54.8 KB in 25 files (2026-10-31). LCP, INP and scrolling a 1,000-paragraph
   chapter still need measuring on a real mid-range phone.
+  *Re-measured (2026-11-02):* 55.6 KB gzipped in 23 scripts, so nothing to trim. LCP and INP on
+  a real mid-range phone are the user's to run (device checklist).
   *Measured in Chromium with 4x CPU throttling (2026-11-02):* a 1,000-paragraph chapter
   (42,000 words) scrolls at a steady 60 fps (every frame 16.7 to 16.8 ms while scrolling 120
   steps); the slowest input event (play, next, pause, tap a paragraph to read from there) took
