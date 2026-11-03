@@ -56,6 +56,15 @@ async function openContents(page: Page) {
 	};
 }
 
+/**
+ * Settings, once it is live. Its AllTalk check starts only after hydration; a control used
+ * before then can be reset by hydration (a radio ticked on WebKit came back unticked).
+ */
+async function openSettings(page: Page) {
+	await page.goto('/settings');
+	await expect(page.getByText('Checking AllTalk')).toHaveCount(0);
+}
+
 /** The way back to the library: the header's back button, or the sidebar's on desktop. */
 const libraryLink = (page: Page) => page.getByRole('link', { name: /^(Library|The shelf)$/ });
 
@@ -216,7 +225,7 @@ test.describe(() => {
 		expect(new Set(chars)).toEqual(new Set([125]));
 
 		// A shorter length, saved for the library, is what the reader asks for next time.
-		await page.goto('/settings');
+		await openSettings(page);
 		await page.getByLabel('Passage length').fill('60');
 		await page.getByRole('button', { name: 'Save voice' }).click();
 		await expect(page.getByText('Saved.')).toBeVisible();
@@ -229,7 +238,7 @@ test.describe(() => {
 		await page.getByRole('button', { name: 'Pause' }).click();
 
 		// Back to the default for the other tests.
-		await page.goto('/settings');
+		await openSettings(page);
 		await page.getByLabel('Passage length').fill('125');
 		await page.getByRole('button', { name: 'Save voice' }).click();
 		await expect(page.getByText('Saved.')).toBeVisible();
@@ -255,13 +264,13 @@ test.describe(() => {
 		};
 
 		// One passage ahead, started at once: the passage itself, then one prepared behind it.
-		await page.goto('/settings');
+		await openSettings(page);
 		await page.getByLabel('Prepare ahead').fill('1');
 		await expect(page.getByText(/1 passage, about \d+ s/)).toBeVisible();
 		expect(await listen()).toEqual(['now', 'soon']);
 
 		// Two ahead, both ready before playing: the wait asks for them first.
-		await page.goto('/settings');
+		await openSettings(page);
 		await page.getByLabel('Prepare ahead').fill('2');
 		await page.getByLabel('Before playing, have ready').fill('2');
 		await expect(page.getByText('2 more passages')).toBeVisible();
@@ -338,7 +347,7 @@ test('the desktop sidebar shows the chapter being read in the middle', async ({
 });
 
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
-	await page.goto('/settings');
+	await openSettings(page);
 	await page.getByLabel('Sepia').check();
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'sepia');
 	await page.reload();
@@ -348,7 +357,7 @@ test('theme choice applies immediately and survives a reload', async ({ page }) 
 });
 
 test('settings show AllTalk voices and save the voice', async ({ page }) => {
-	await page.goto('/settings');
+	await openSettings(page);
 	await expect(page.getByText(/^Connected/)).toBeVisible();
 	await page.getByRole('combobox', { name: 'Voice', exact: true }).selectOption('male_01.wav');
 	await page.getByRole('button', { name: 'Save voice' }).click();
@@ -367,7 +376,7 @@ test('settings show AllTalk voices and save the voice', async ({ page }) => {
 });
 
 test('AllTalk\u2019s model, low VRAM mode and voice previews from Settings', async ({ page }) => {
-	await page.goto('/settings');
+	await openSettings(page);
 	const model = page.getByRole('combobox', { name: 'Model' });
 	// The fake AllTalk is shared by every test: start from XTTS whatever ran before.
 	await expect(model).toBeEnabled();
@@ -450,7 +459,7 @@ test('text can be made larger or smaller on this device', async ({ page }, testI
 			.evaluate((p) => getComputedStyle(p).fontSize);
 	expect(await size()).toBe('20px');
 
-	await page.goto('/settings');
+	await openSettings(page);
 	await page.getByRole('radio', { name: 'Extra large' }).check();
 	await page.goto(reader);
 	expect(await size()).toBe('25px');

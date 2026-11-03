@@ -251,7 +251,13 @@ Original order of work (done; there is no presentation, the project is open sour
   the last line, as in a printed contents, and one-line rows are now truly centred (they sat
   2 px high). The desktop sidebar scrolled the current chapter to its bottom edge before the
   book face loaded, so it showed half cut off; it's now centred once fonts are ready, scrolling
-  only the list (e2e-tested). The drop cap went on the first paragraph whatever it was, so an AO3
+  only the list (e2e-tested). *Flaky test found (2026-11-02):* a pre-push run failed once
+  in "theme choice applies immediately" on WebKit: the Sepia radio was clicked before Settings
+  hydrated and hydration put the stored choice back ("Clicking the checkbox did not change its
+  state"). Likely the earlier unreproducible failure too. Every Settings test now waits for the
+  page to be live (the AllTalk check, which only runs after hydration); 90 repeated WebKit runs
+  clean. A real tap in that window is a few milliseconds on a cold load, not worth app code.
+  The drop cap went on the first paragraph whatever it was, so an AO3
   chapter opening "1. At a meeting" got a giant "1." beside three words; it now goes on the first
   of the opening three paragraphs that starts with a letter (quotes allowed) and runs at least
   two phone lines, else none (`src/lib/reader/drop-cap.ts`, unit-tested). On the desktop shelf a
