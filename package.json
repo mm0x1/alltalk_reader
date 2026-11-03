@@ -2,7 +2,7 @@
 	"name": "readhouse",
 	"license": "MIT",
 	"private": true,
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Readhouse: a reading room that reads your books aloud with AllTalk. By Motherhouse.",
 	"type": "module",
 	"engines": {

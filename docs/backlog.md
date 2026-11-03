@@ -51,6 +51,7 @@ every decision below assumes the page is served from another machine, often over
   wordmark, `package.json` name (still `tanstack-start-example-basic-react-query`), page
   titles, PWA manifest, README, docs, GitHub repo (`alltalk_reader` → `readhouse`). Check
   domain/handle availability.
+  *Repo renamed (2026-11-03):* https://github.com/mm0x1/readhouse; the old address redirects.
 - [x] **Stack: SvelteKit full-stack (Svelte 5, TypeScript).** Chosen from scratch as the best
   fit for this app on its own: one language, one project, one test toolchain, types shared
   between UI and server without codegen, and the strongest library ecosystem for EPUB/HTML
@@ -881,3 +882,4 @@ One line per work session: date, what was done, what's next.
   walk-through video re-recorded with a search, and fixed: it had always shown the page in a
   quarter of the frame (the recorder draws the page at CSS size; now cropped and scaled).
   `readhouse` fast-forwarded onto `main`.
+- 2026-11-03: GitHub repo renamed to `readhouse` (old links redirect); first release, v1.0.0.

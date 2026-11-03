@@ -48,7 +48,7 @@ A Motherhouse app, alongside Ditherhouse.
 ## Install and run
 
 ```bash
-git clone https://github.com/mm0x1/alltalk_reader.git readhouse && cd readhouse
+git clone https://github.com/mm0x1/readhouse.git && cd readhouse
 mise trust                              # allow this folder's mise.toml
 mise install                            # Node.js and pnpm
 mise x -- pnpm install --frozen-lockfile
