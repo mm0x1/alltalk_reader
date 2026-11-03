@@ -251,7 +251,14 @@ Original order of work (done; there is no presentation, the project is open sour
   the last line, as in a printed contents, and one-line rows are now truly centred (they sat
   2 px high). The desktop sidebar scrolled the current chapter to its bottom edge before the
   book face loaded, so it showed half cut off; it's now centred once fonts are ready, scrolling
-  only the list (e2e-tested).
+  only the list (e2e-tested). The drop cap went on the first paragraph whatever it was, so an AO3
+  chapter opening "1. At a meeting" got a giant "1." beside three words; it now goes on the first
+  of the opening three paragraphs that starts with a letter (quotes allowed) and runs at least
+  two phone lines, else none (`src/lib/reader/drop-cap.ts`, unit-tested). On the desktop shelf a
+  wrapping title pushed the author's leader far right; the leader now starts after the author.
+  House rule enforced: seven `.ts` files had typographic quotes, dashes and a U+FFFF written
+  literally (the rule says `\uXXXX`); fixed, and ESLint now fails on any non-ASCII string,
+  regex or template literal in TypeScript.
   *Reduced motion (2026-11-02):* CSS motion was already off under reduced motion, but
   following the voice called `scrollIntoView({ behavior: 'smooth' })`, which overrides the CSS
   rule, so the page still glided with Reduce Motion on; it now jumps (e2e-tested).

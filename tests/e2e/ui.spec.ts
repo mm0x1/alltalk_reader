@@ -373,16 +373,16 @@ test('AllTalk\u2019s model, low VRAM mode and voice previews from Settings', asy
 	await expect(model).toBeEnabled();
 	if ((await model.inputValue()) !== 'xtts - xttsv2_2.0.3') {
 		await model.selectOption('xtts - xttsv2_2.0.3');
-		await expect(page.getByText(/Connected.*· xtts - xttsv2_2\.0\.3/)).toBeVisible();
+		await expect(page.getByText(/Connected.*\u00b7 xtts - xttsv2_2\.0\.3/)).toBeVisible();
 	}
 
 	await model.selectOption('apitts - xttsv2_2.0.3');
 	await expect(page.getByRole('list', { name: 'Notices' })).toContainText(
 		'AllTalk is using apitts - xttsv2_2.0.3.'
 	);
-	await expect(page.getByText(/Connected.*· apitts - xttsv2_2\.0\.3/)).toBeVisible();
+	await expect(page.getByText(/Connected.*\u00b7 apitts - xttsv2_2\.0\.3/)).toBeVisible();
 	await model.selectOption('xtts - xttsv2_2.0.3');
-	await expect(page.getByText(/Connected.*· xtts - xttsv2_2\.0\.3/)).toBeVisible();
+	await expect(page.getByText(/Connected.*\u00b7 xtts - xttsv2_2\.0\.3/)).toBeVisible();
 
 	// Low VRAM applies at once and is what AllTalk then reports.
 	await page.locator('section').filter({ hasText: 'Low VRAM' }).getByText('Advanced').click();

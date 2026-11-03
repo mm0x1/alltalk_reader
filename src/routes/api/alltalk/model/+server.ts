@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const { alltalk, forgetEngine } = app();
 	try {
 		const engine = await alltalk.engine();
-		if (!engine.models.includes(model)) error(422, 'AllTalk doesn’t offer that model.');
+		if (!engine.models.includes(model)) error(422, 'AllTalk doesn\u2019t offer that model.');
 		await alltalk.loadModel(model);
 		forgetEngine();
 		return json(await alltalk.engine());

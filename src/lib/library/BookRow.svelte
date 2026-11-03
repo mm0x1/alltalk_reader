@@ -128,6 +128,15 @@
 			grid-column: 1;
 		}
 
+		/*
+		 * Over an author the title also spans the leader's column, so the author alone sizes the
+		 * first one and the leader starts right after it, however the title wraps.
+		 */
+		.has-author .title {
+			grid-column: 1 / 3;
+			max-width: var(--measure);
+		}
+
 		.author {
 			grid-row: 2;
 			grid-column: 1;

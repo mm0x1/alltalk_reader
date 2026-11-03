@@ -202,7 +202,7 @@ function reason(error: unknown): string {
 	if (error instanceof ModelChanged) return error.message;
 	if (error instanceof SpeechCancelled) return 'AllTalk was told to stop. Continue to finish.';
 	if (error instanceof AllTalkError && error.kind === 'unreachable') {
-		return 'AllTalk isn’t answering. Continue once it’s running.';
+		return 'AllTalk isn\u2019t answering. Continue once it\u2019s running.';
 	}
 	return error instanceof Error ? `${error.message.slice(0, 200)}` : 'Something went wrong.';
 }

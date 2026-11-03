@@ -13,6 +13,7 @@
 	import PrepareBook from './PrepareBook.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { passageForBlock } from '#lib/text/passages.js';
+	import { dropCapBlock } from './drop-cap.js';
 	import type { Position } from './position.js';
 	import { session } from './session.svelte.js';
 
@@ -45,8 +46,8 @@
 		return ranges;
 	});
 
-	/** The first paragraph of the chapter opens with a drop cap. */
-	const openingBlock = $derived(chapter.blocks.findIndex((block) => block.type === 'text'));
+	/** The paragraph that opens the chapter with a drop cap (see drop-cap.ts). */
+	const openingBlock = $derived(dropCapBlock(chapter.blocks));
 	let contentsOpen = $state(false);
 	let follow = $state(true);
 	let canSave = $state(false);

@@ -34,6 +34,19 @@ export default defineConfig(
 		}
 	},
 	{
+		// Non-ASCII characters in TypeScript are written as \uXXXX escapes, so typographic quotes
+		// and dashes can't be mistaken for (or silently replaced by) their ASCII look-alikes.
+		files: ['**/*.ts'],
+		rules: {
+			'no-restricted-syntax': [
+				'error',
+				...['Literal[raw=/[^\\x00-\\x7f]/]', 'TemplateElement[value.raw=/[^\\x00-\\x7f]/]'].map(
+					(selector) => ({ selector, message: 'Write non-ASCII characters as \\uXXXX escapes.' })
+				)
+			]
+		}
+	},
+	{
 		// The design system, enforced: form controls come from src/lib/ui/ (Button, Select,
 		// TextField, Checkbox, Radio, Slider, FilePicker, ListRow), never raw elements.
 		files: ['src/**/*.svelte'],

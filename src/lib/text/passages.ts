@@ -94,7 +94,7 @@ function packRanges(text: string, ranges: [number, number][], max: number): [num
 
 /** A sentence longer than `max`: cut at clause punctuation, then at spaces, then anywhere. */
 function splitLong(text: string, start: number, end: number, max: number): [number, number][] {
-	const pieces = cut(text, start, end, /[,;:–—]\s+/).flatMap(([s, e]) => {
+	const pieces = cut(text, start, end, /[,;:\u2013\u2014]\s+/).flatMap(([s, e]) => {
 		if (spoken(text, s, e) <= max) return [[s, e] as [number, number]];
 		return cut(text, s, e, /\s+/).flatMap(([ws, we]) => {
 			const parts: [number, number][] = [];

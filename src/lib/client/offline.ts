@@ -58,7 +58,7 @@ async function store(name: string, mode: IDBTransactionMode): Promise<IDBObjectS
 /** Passages depend on the passage length, so it is part of every key. */
 const speechKey = (bookId: string, p: Position, chars: number) =>
 	`${bookId}/${p.chapter}/${p.passage}@${chars}`;
-const bookRange = (bookId: string) => IDBKeyRange.bound(`${bookId}/`, `${bookId}/￿`);
+const bookRange = (bookId: string) => IDBKeyRange.bound(`${bookId}/`, `${bookId}/\uffff`);
 
 /** Records which audio plays this passage. Best effort: failures are ignored. */
 export async function rememberSpeech(

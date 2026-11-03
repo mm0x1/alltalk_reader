@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 		if (modes.deepSpeed !== undefined) {
 			if (!engine.deepSpeed.capable || !engine.deepSpeed.available) {
-				error(422, 'DeepSpeed isn’t available with this engine or on this machine.');
+				error(422, 'DeepSpeed isn\u2019t available with this engine or on this machine.');
 			}
 			await alltalk.setDeepSpeed(modes.deepSpeed);
 		}

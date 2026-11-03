@@ -79,6 +79,11 @@ the table at the end.
 6. **Long chapter names in Contents.** Open Dune's Contents on the phone and on the computer:
    a name that wraps (*Praise for The Dune Chronicles*) has its word count and dots on its last
    line. On the computer, the chapter being read sits in the middle of the sidebar, whole.
+7. **Drop caps that fit.** In the AO3 download, the chapter that starts "1. At a meeting" has no
+   drop cap on the "1."; the first real paragraph after it has it. Books that open normally
+   (Pride and Prejudice, Dune's chapters) look as before.
+8. **Shelf on the computer.** A long title that wraps over two lines still has its dotted leader
+   running straight on from the author.
 
 ## Lock screen and background
 

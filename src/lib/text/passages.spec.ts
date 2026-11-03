@@ -9,13 +9,13 @@ const texts = (blocks: Block[], max: number) =>
 describe('buildPassages', () => {
 	it('joins a run of short dialogue lines into one passage', () => {
 		const blocks = [
-			text('“You came back.”'),
-			text('“I said I would.”'),
-			text('“You say a lot of things.”'),
-			text('She laughed. “Fair.”')
+			text('\u201cYou came back.\u201d'),
+			text('\u201cI said I would.\u201d'),
+			text('\u201cYou say a lot of things.\u201d'),
+			text('She laughed. \u201cFair.\u201d')
 		];
 		expect(texts(blocks, 200)).toEqual([
-			'“You came back.” “I said I would.” “You say a lot of things.” She laughed. “Fair.”'
+			'\u201cYou came back.\u201d \u201cI said I would.\u201d \u201cYou say a lot of things.\u201d She laughed. \u201cFair.\u201d'
 		]);
 	});
 
