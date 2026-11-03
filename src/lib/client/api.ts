@@ -5,7 +5,13 @@
  * checks compare full origins, which breaks behind an HTTPS proxy like `tailscale serve`.
  */
 
-import type { BookDetail, BookSummary, ChapterContent, Preparation } from '#lib/library.js';
+import type {
+	BookDetail,
+	BookSummary,
+	ChapterContent,
+	Preparation,
+	SearchResults
+} from '#lib/library.js';
 import type { VoiceSettings } from '#lib/settings.js';
 import type { SpeechResult } from '#lib/speech.js';
 import type { EngineSummary, ServerStatus } from '#lib/status.js';
@@ -65,6 +71,13 @@ export const api = {
 	/** `chars` is part of the URL, so a cached chapter always carries matching passages. */
 	chapter: (id: string, position: number, chars: number) =>
 		send<ChapterContent>('GET', `/api/books/${id}/chapters/${position}?chars=${chars}`),
+	search: (id: string, query: string, signal?: AbortSignal) =>
+		send<SearchResults>(
+			'GET',
+			`/api/books/${id}/search?q=${encodeURIComponent(query)}`,
+			undefined,
+			{ signal }
+		),
 	paste: (text: string, title: string | null) =>
 		send<{ id: string }>('POST', '/api/books/paste', { text, title }),
 	rename: (id: string, title: string, author: string | null) =>

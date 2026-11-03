@@ -84,6 +84,14 @@ the table at the end.
    (Pride and Prejudice, Dune's chapters) look as before.
 8. **Shelf on the computer.** A long title that wraps over two lines still has its dotted leader
    running straight on from the author.
+9. **Find in the book.** In Dune, tap the magnifier (phone) or press `/` (computer) and type
+   *spice*: the keyboard is up at once, places show with *spice* underlined and the count above.
+   Tap one: the sheet closes, the book opens at that paragraph, paused, with the word marked and
+   "Your place is now here". Play reads from there. Open it again: the words and places are
+   still there. While listening, find something and tap it: the voice stops at the new place.
+   With VoiceOver/TalkBack, the count is read out as it changes.
+10. **Extra large text and the player.** At *Extra large* on the phone, "of 64" at the right of
+    the player is whole, not cut by the frame.
 
 ## Lock screen and background
 

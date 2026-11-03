@@ -222,14 +222,27 @@ Original order of work (done; there is no presentation, the project is open sour
   book a title over author with dot leaders to its place. Keyboard (2026-11-02): Space plays and
   pauses, arrows move by passage, never in a field or a sheet; after a click on a player
   button the arrows still work and Space still plays (a button focused from the keyboard keeps
-  Space); e2e-tested. Still to do: `/` to search once there is search. A layout that uses the width (library/chapter sidebar + reading
+  Space); e2e-tested. `/` opens Find in the book (2026-11-02). A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
 - [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
   controls, title/chapter, artwork) so playback can be controlled with the screen off.
   *Done:* Manifest, interim icons, Media Session (lock screen, next/previous), offline service worker.
-- [ ] **In-book search (2026-11-02).** Find a passage and read or play from there; `/` on
-  desktop. *(in progress)* Server done: SQLite FTS5 (`block_search`, unicode61 with accents
+- [x] **In-book search (2026-11-02).** Find a passage and read or play from there; `/` on
+  desktop. *Built (user's picks B, R2, T1 from the canvas):* a magnifier in the reader header
+  (phone) and *Find* in the sidebar (desktop), or `/`, open **Find in the book**, a sheet (a
+  centred plate on desktop) with the field focused. Results ask 200 ms after typing stops,
+  older answers are dropped; each place is a `SnippetRow` (new in `src/lib/ui/`, on
+  `/reference`): the chapter in spaced capitals over a few words with the match bold and
+  underlined (not tinted: a tint is the passage being read), drawn from plain parts. "41
+  places in 23 chapters", "Nothing found for ...", a line when only the first 50 are shown, and
+  a plain message when the computer can't be reached; the count is a live region. Tapping a
+  place pauses the voice if it was reading, moves the place to that paragraph (Play reads from
+  there), scrolls it to the middle and marks the words with a CSS highlight (the page's text
+  isn't touched; the mark goes when reading starts), with a notice "Your place is now here".
+  The sheet keeps its words and places after going to one. E2e on all three devices, axe in
+  every theme, visual baselines. Shelf search (canvas L) not built: not picked.
+  Server: SQLite FTS5 (`block_search`, unicode61 with accents
   folded) holds every paragraph and heading, filled on import and by a migration for books
   already in the library (`json_each` over the stored blocks), emptied with the book by a
   trigger. `GET /api/books/:id/search?q=` (at most 200 characters, 50 hits, `no-store`, never
@@ -251,7 +264,10 @@ Original order of work (done; there is no presentation, the project is open sour
   the last line, as in a printed contents, and one-line rows are now truly centred (they sat
   2 px high). The desktop sidebar scrolled the current chapter to its bottom edge before the
   book face loaded, so it showed half cut off; it's now centred once fonts are ready, scrolling
-  only the list (e2e-tested). *Flaky test found (2026-11-02):* a pre-push run failed once
+  only the list (e2e-tested). At Extra large text the player's five controls needed more room
+  than a phone has, so the bar grew and "of 3" slid under the page frame (it was in the
+  baseline, unnoticed); the speed and sleep buttons now give way down to the usual tap size
+  (e2e-tested). *Flaky test found (2026-11-02):* a pre-push run failed once
   in "theme choice applies immediately" on WebKit: the Sepia radio was clicked before Settings
   hydrated and hydration put the stored choice back ("Clicking the checkbox did not change its
   state"). Likely the earlier unreproducible failure too. Every Settings test now waits for the
@@ -827,4 +843,6 @@ One line per work session: date, what was done, what's next.
   AO3 fic: wrapped chapter names in Contents, the sidebar's current chapter, drop caps on
   numbered lines, shelf leaders, follow-along under reduced motion, focus and disabled tokens.
   The non-ASCII rule is now linted (seven files had slipped). Found the WebKit Settings flake (a
-  click before hydration). Next: build search once picked; AO3 pastes when AO3 is back.
+  click before hydration). Then search built from the user's picks (B, R2, T1), and the player
+  fixed at Extra large text. Typography details (canvas row 5) left as they are: the user saw no
+  difference. Next: AO3 pastes when AO3 is back; phone passes for the new items.

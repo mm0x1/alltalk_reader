@@ -20,7 +20,7 @@ import {
 } from '#lib/client/offline.js';
 import type { BookDetail, ChapterContent } from '#lib/library.js';
 import { readBuffer } from './buffer.js';
-import { firstBlock } from '#lib/text/passages.js';
+import { firstBlock, passageForBlock } from '#lib/text/passages.js';
 import { chapterPositions, nextInChapter, previousInChapter, type Position } from './position.js';
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
@@ -145,6 +145,15 @@ export class Player {
 		const generation = this.#generation;
 		const chapter = await this.#chapter(position.chapter).catch(() => null);
 		if (chapter && generation === this.#generation) this.chapter = chapter;
+	}
+
+	/** Moves to the passage holding a paragraph (a search hit), paused unless asked to play. */
+	async seekBlock(chapterIndex: number, block: number, autoplay = false): Promise<void> {
+		const chapter = await this.#chapter(chapterIndex);
+		await this.seek(
+			{ chapter: chapterIndex, passage: passageForBlock(chapter.passages, block) ?? 0 },
+			autoplay
+		);
 	}
 
 	async next(): Promise<void> {

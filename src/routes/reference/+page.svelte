@@ -7,6 +7,7 @@
 	import FilePicker from '#lib/ui/FilePicker.svelte';
 	import Icon, { type IconName } from '#lib/ui/Icon.svelte';
 	import ListRow from '#lib/ui/ListRow.svelte';
+	import SnippetRow from '#lib/ui/SnippetRow.svelte';
 	import Progress from '#lib/ui/Progress.svelte';
 	import Radio from '#lib/ui/Radio.svelte';
 	import Select from '#lib/ui/Select.svelte';
@@ -174,6 +175,18 @@
 				<ListRow
 					title="A chapter title long enough to wrap onto a second line on a phone"
 					meta="3 of 23"
+				/>
+			</li>
+		</ol>
+		<ol class="list">
+			<li>
+				<SnippetRow
+					label="Chapter 1"
+					parts={[
+						{ text: '\u2026have you heard that ', match: false },
+						{ text: 'Netherfield', match: true },
+						{ text: ' Park is let at last?', match: false }
+					]}
 				/>
 			</li>
 		</ol>

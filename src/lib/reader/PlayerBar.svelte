@@ -144,6 +144,8 @@
 		inset: auto 0 0 var(--reader-side, 0);
 		z-index: var(--layer-player);
 		display: grid;
+		/* Never wider than the screen, whatever the text size (Extra large on a phone). */
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-2);
 		/* Clear of the page frame's rules below, so the play button's ring never touches them. */
 		padding: var(--space-3) var(--space-6)
@@ -195,9 +197,11 @@
 		outline-offset: var(--space-1);
 	}
 
+	/* Wider for an easy reach, down to the usual tap size when the text is large. */
 	.controls :global(.rate),
 	.controls :global(.sleep) {
-		width: calc(var(--tap-min) * 1.4);
+		flex: 0 1 calc(var(--tap-min) * 1.4);
+		min-width: var(--tap-min);
 		font-variant-caps: normal;
 		font-style: italic;
 		font-variant-numeric: tabular-nums;

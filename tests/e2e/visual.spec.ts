@@ -131,6 +131,19 @@ for (const theme of THEMES) {
 			await expect(page).toHaveScreenshot(`${theme}-contents.png`);
 		});
 
+		test('find in the book', async ({ page }) => {
+			const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
+			await page.goto(`/book/${id}`);
+			const button = page.getByRole('button', { name: 'Find in the book' });
+			if (await button.isVisible()) await button.click();
+			else await page.keyboard.press('/');
+			const sheet = page.getByRole('dialog', { name: 'Find in the book' });
+			await sheet.getByRole('searchbox').fill('Mr. Bennet');
+			await expect(sheet.getByRole('status')).toHaveText('4 places in 2 chapters');
+			await settle(page);
+			await expect(page).toHaveScreenshot(`${theme}-find.png`);
+		});
+
 		test('remove a book', async ({ page }) => {
 			await addBook(page, LONG_TITLE, 'an_extremely_long_pseudonym_without_spaces', CAROL);
 			await page.goto('/');

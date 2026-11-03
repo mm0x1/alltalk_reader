@@ -66,6 +66,14 @@ for (const theme of THEMES) {
 			await page.getByRole('button', { name: 'Pause' }).click();
 			await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 			await expectNoViolations(page);
+			const find = page.getByRole('button', { name: 'Find in the book' });
+			if (await find.isVisible()) await find.click();
+			else await page.keyboard.press('/');
+			const sheet = page.getByRole('dialog', { name: 'Find in the book' });
+			await sheet.getByRole('searchbox').fill('Bennet');
+			await expect(sheet.getByRole('button', { name: /^Chapter 1/ }).first()).toBeVisible();
+			await expectNoViolations(page);
+			await page.keyboard.press('Escape');
 			const contents = page.getByRole('button', { name: 'Contents' });
 			if (await contents.isVisible()) {
 				await contents.click();

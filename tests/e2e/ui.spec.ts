@@ -346,6 +346,52 @@ test('the desktop sidebar shows the chapter being read in the middle', async ({
 	expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
+test('finding words in the book goes there, paused, and Play reads from there', async ({
+	page
+}, testInfo) => {
+	await addPastedBook(page, `Find ${testInfo.project.name}`);
+	// The phone has a button in the header; the desktop has / (and a button in the sidebar).
+	const button = page.getByRole('button', { name: 'Find in the book' });
+	if (await button.isVisible()) await button.click();
+	else await page.keyboard.press('/');
+	const sheet = page.getByRole('dialog', { name: 'Find in the book' });
+	const field = sheet.getByRole('searchbox', { name: 'Words to find' });
+	await expect(field).toBeFocused();
+
+	await field.fill('zebra');
+	await expect(sheet.getByRole('status')).toHaveText('Nothing found for \u201czebra\u201d.');
+	await field.fill('GREY and');
+	await expect(sheet.getByRole('status')).toHaveText('1 place in 1 chapter');
+	const hit = sheet.getByRole('button', { name: /^Chapter 2/ });
+	await expect(hit.locator('mark')).toHaveText('grey and');
+	await hit.click();
+
+	await expect(sheet).toBeHidden();
+	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 2' })).toBeVisible();
+	await expect(page.locator('article.page .speaking')).toHaveText('Morning came grey and quiet.');
+	await expect(page.getByText('Your place is now here. Play reads from it.')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	expect(await page.evaluate(() => CSS.highlights.get('found')?.size)).toBe(1);
+
+	const seen = await recordPassages(page);
+	await page.getByRole('button', { name: 'Play' }).click();
+	await expect
+		.poll(seen)
+		.toEqual(expect.arrayContaining([expect.stringMatching(/^Chapter 2: Morning came grey/)]));
+	expect(await page.evaluate(() => CSS.highlights.has('found'))).toBe(false);
+
+	// The words and places are still there; picked after reading, paused at the new place.
+	if (await button.isVisible()) await button.click();
+	else await page.keyboard.press('/');
+	await expect(field).toHaveValue('GREY and');
+	await expect(field).toBeFocused();
+	await field.fill('lamp');
+	await sheet.getByRole('button', { name: /^Chapter 1/ }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 1' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	await expect(page.locator('article.page .speaking')).toContainText('The lamp was lit');
+});
+
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
 	await openSettings(page);
 	await page.getByLabel('Sepia').check();
@@ -469,6 +515,14 @@ test('text can be made larger or smaller on this device', async ({ page }, testI
 		() => document.documentElement.scrollWidth - document.documentElement.clientWidth
 	);
 	expect(overflow).toBeLessThanOrEqual(0);
+	// The player's controls fit inside its margins, so nothing slips under the page frame.
+	const player = page.locator('[data-player]');
+	const [bar, count] = await Promise.all([
+		player.boundingBox(),
+		player.getByText(/^of \d+$/).boundingBox()
+	]);
+	const margin = await player.evaluate((el) => parseFloat(getComputedStyle(el).paddingRight));
+	expect(count!.x + count!.width).toBeLessThanOrEqual(bar!.x + bar!.width - margin + 1);
 });
 
 test('pages fit the screen without sideways scrolling', async ({ page }, testInfo) => {
