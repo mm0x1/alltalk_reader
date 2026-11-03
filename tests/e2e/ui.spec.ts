@@ -429,6 +429,32 @@ test('a place found deep in a long chapter is on screen after the jump', async (
 		.toBe(true);
 });
 
+test('the player says how far into the book, unless this device turns it off', async ({
+	page
+}, testInfo) => {
+	await addPastedBook(page, `Progress ${testInfo.project.name}`);
+	const reader = page.url();
+	const player = page.locator('[data-player]');
+	await expect(player.getByText('0%', { exact: true })).toBeVisible();
+	await expect(player.getByText('of the book')).toBeVisible();
+
+	await openSettings(page);
+	const show = page.getByRole('checkbox', { name: 'Show how far into the book I am' });
+	await expect(show).toBeChecked();
+	await show.uncheck();
+	await page.goto(reader);
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	await expect(player.getByText('of the book')).toHaveCount(0);
+	await page.reload();
+	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+	await expect(player.getByText('of the book')).toHaveCount(0);
+
+	await openSettings(page);
+	await show.check();
+	await page.goto(reader);
+	await expect(player.getByText('of the book')).toBeVisible();
+});
+
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
 	await openSettings(page);
 	await page.getByLabel('Sepia').check();
@@ -556,7 +582,7 @@ test('text can be made larger or smaller on this device', async ({ page }, testI
 	const player = page.locator('[data-player]');
 	const [bar, count] = await Promise.all([
 		player.boundingBox(),
-		player.getByText(/^of \d+$/).boundingBox()
+		player.getByText('of the book').boundingBox()
 	]);
 	const margin = await player.evaluate((el) => parseFloat(getComputedStyle(el).paddingRight));
 	expect(count!.x + count!.width).toBeLessThanOrEqual(bar!.x + bar!.width - margin + 1);

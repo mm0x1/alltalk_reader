@@ -25,6 +25,7 @@
 		writeBuffer,
 		type BufferSettings
 	} from '#lib/reader/buffer.js';
+	import { readShowProgress, writeShowProgress } from '#lib/reader/progress.js';
 	import { LANGUAGES, NARRATOR_AVAILABLE, type VoiceSettings } from '#lib/settings.js';
 	import { PASSAGE_MAX_CHARS, PASSAGE_MIN_CHARS, speechSeconds } from '#lib/text/passages.js';
 	import type { EngineSummary, ServerStatus } from '#lib/status.js';
@@ -53,6 +54,7 @@
 	let theme = $state<Theme>('system');
 	let textSize = $state<TextSize>('medium');
 	let buffer = $state<BufferSettings>(DEFAULT_BUFFER);
+	let showProgress = $state(true);
 	let canSave = $state(false);
 	let storage = $state<StorageUse | null>(null);
 	let clearOpen = $state(false);
@@ -132,6 +134,7 @@
 		theme = readTheme();
 		textSize = readTextSize();
 		buffer = readBuffer();
+		showProgress = readShowProgress();
 		canSave = offlineAvailable();
 		if (canSave) void refreshStorage();
 		const controller = new AbortController();
@@ -453,6 +456,12 @@
 			{/each}
 			<p class="sample" aria-hidden="true">It is a truth universally acknowledged&hellip;</p>
 		</fieldset>
+		<Checkbox
+			id="show-progress"
+			label="Show how far into the book I am"
+			hint="The percentage and the line above the player. Off, nothing says how much is left."
+			bind:checked={() => showProgress, (show) => writeShowProgress((showProgress = show))}
+		/>
 		<div class="buffer">
 			<h3>Preparing audio</h3>
 			<p class="note">

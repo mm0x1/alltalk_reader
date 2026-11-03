@@ -3,6 +3,7 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import Spinner from '#lib/ui/Spinner.svelte';
 	import { RATES, type Player } from './player.svelte.js';
+	import { bookProgress, readShowProgress } from './progress.js';
 
 	let { player }: { player: Player } = $props();
 
@@ -30,11 +31,14 @@
 		sleepOpen = false;
 	}
 
-	/** How far through the chapter, by passage. */
+	/** Hidden on this device if the reader chose not to know (Settings). */
+	const showProgress = readShowProgress();
+
+	/** How far through the book, by words (see progress.ts). */
 	const progress = $derived.by(() => {
-		const chapter = player.chapter;
-		if (!chapter || chapter.position !== player.position.chapter) return 0;
-		return Math.round((player.position.passage / Math.max(1, chapter.passages.length - 1)) * 100);
+		const { chapter, position, book } = player;
+		const passages = chapter?.position === position.chapter ? chapter.passages.length : 0;
+		return bookProgress(book.chapters, position.chapter, position.passage, passages);
 	});
 
 	/**
@@ -57,13 +61,15 @@
 	{:else if player.status === 'loading'}
 		<p class="message quiet" role="status"><Spinner /> Preparing the next passage</p>
 	{/if}
-	<div class="progress">
-		<span>Ch. {player.position.chapter + 1}</span>
-		<span class="rule" aria-hidden="true"
-			><span class="filled" style:width={`${progress}%`}></span></span
-		>
-		<span>of {player.book.chapterCount}</span>
-	</div>
+	{#if showProgress}
+		<div class="progress">
+			<span>{progress}%</span>
+			<span class="rule" aria-hidden="true"
+				><span class="filled" style:width={`${progress}%`}></span></span
+			>
+			<span>of the book</span>
+		</div>
+	{/if}
 	<div class="controls">
 		<Button
 			class="rate"

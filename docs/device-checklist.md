@@ -93,6 +93,13 @@ the table at the end.
 10. **Extra large text and the player.** At *Extra large* on the phone, "of 64" at the right of
     the player is whole, not cut by the frame.
 
+## New since 2026-11-03
+
+1. **Book progress.** In Dune at Chapter 1 the player says "0%" or "1%" and "of the book", not
+   "Ch. 7 of 64"; it grows as you listen. Settings > On this device > *Show how far into the
+   book I am* off: the line above the player disappears (after going back to the book), and
+   stays gone after a reload. On again: it's back.
+
 ## Lock screen and background
 
 1. While playing, lock the phone. Playback continues across passages for at least two minutes.

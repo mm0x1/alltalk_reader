@@ -116,7 +116,7 @@ Original order of work (done; there is no presentation, the project is open sour
 
 ## Design system
 
-- [ ] **One design system, always used.** Every color, font, size, spacing step, radius,
+- [x] **One design system, always used.** Every color, font, size, spacing step, radius,
   shadow, duration and z-index is a token; every UI element is a design-system component. No
   ad-hoc components, values or one-off Tailwind classes, so a change in one place reaches the
   whole app. Today there's a start (`src/design-system/`: Button, Icon, Loading, Modal,
@@ -129,6 +129,7 @@ Original order of work (done; there is no presentation, the project is open sour
   variables; they repeat the paper colours), the frame's inner rule at half opacity (one use),
   `style:` bindings for progress widths and the reference sheet's swatches (values, not
   styling). No raw controls or one-off components left.
+  *Closed (2026-11-03):* every value is a token (stylelint), every control a component (ESLint), the straggler sweep found nothing left but the deliberate exceptions above.
 - [x] **Token layer.** CSS custom properties as the single source (light/dark/sepia themes
   switch by swapping values), mapped into Tailwind (or the chosen styling) so only tokens are
   expressible. Remove Tailwind's default palette from the config so raw colors don't compile.
@@ -186,7 +187,7 @@ Original order of work (done; there is no presentation, the project is open sour
   and evokes books: paper and ink palette, a proper reading serif for body text (e.g.
   Literata, Source Serif, Newsreader) with a contrasting UI face, restrained ornament,
   page-like surfaces. Light, dark and sepia themes. Readhouse wordmark.
-- [ ] **Made for reading.** Comfortable measure (~60–75 characters), generous line height,
+- [x] **Made for reading.** Comfortable measure (~60–75 characters), generous line height,
   adjustable font size/face/line spacing/theme, the currently spoken paragraph highlighted
   without jumping, auto-scroll that follows playback but stops while the user scrolls, and a
   "jump back to current" button.
@@ -196,6 +197,7 @@ Original order of work (done; there is no presentation, the project is open sour
   app), applied before first paint, drop cap scales with it; e2e and visual
   tested. Font face and line spacing choices left out: EB Garamond is the identity, and the
   size covers the accessibility need.
+  *Closed (2026-11-03):* measure, line height, theme, text size, highlight and follow-along done; font face and line-spacing choices left out on purpose (EB Garamond is the identity; text size covers the need). Extra typographic details were shown on a canvas and not wanted.
 - [x] **Rework layout and placement of controls.** Today settings, server config, batch,
   export, cache status and playback all compete on one page (`reader.tsx`, 800+ lines). New
   structure:
@@ -212,7 +214,7 @@ Original order of work (done; there is no presentation, the project is open sour
   *Done:* Sheets from below, safe-area insets, `dvh`, no hover-only controls; e2e on WebKit
   iPhone and Chromium Android, including a no-sideways-scroll check on every page. Real phones:
   device checklist.
-- [ ] **Good on desktop.** *(in progress)* Layout **A, Folio** picked from
+- [x] **Good on desktop.** *(in progress)* Layout **A, Folio** picked from
   https://claude.ai/artifact/CRE9N4gB9Wv3iH78j427no and built for the reader: from 64rem a
   ruled sidebar (book, contents with save buttons, back to the shelf) and the player docked
   under the text column; CSS-only switch, so the server-rendered page is right on first load.
@@ -225,9 +227,16 @@ Original order of work (done; there is no presentation, the project is open sour
   Space); e2e-tested. `/` opens Find in the book (2026-11-02). A layout that uses the width (library/chapter sidebar + reading
   column + player), keyboard shortcuts (space, arrows, `/` to search), not just a stretched
   phone UI.
+  *Closed (2026-11-03):* Folio reader, printed-index library, keyboard (Space, arrows, `/` for Find in the book).
 - [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
   controls, title/chapter, artwork) so playback can be controlled with the screen off.
   *Done:* Manifest, interim icons, Media Session (lock screen, next/previous), offline service worker.
+- [x] **Book progress in the player (user, 2026-11-03).** "Ch. 7 of 64" counted the EPUB's
+  sections, so Dune's Chapter 1 showed as 7 (praise, copyright and part-title pages count).
+  Picked from https://claude.ai/artifact/75J7V1gPpMhYuL7QfL8dw5 (A): "12%" and "of the book",
+  the rule filled to match, by words read (`src/lib/reader/progress.ts`, unit-tested), 100% only
+  at the last passage. Settings > On this device > "Show how far into the book I am" (on by
+  default, per device) hides the whole line: some readers would rather not know. E2e-tested.
 - [x] **In-book search (2026-11-02).** Find a passage and read or play from there; `/` on
   desktop. *Built (user's picks B, R2, T1 from the canvas):* a magnifier in the reader header
   (phone) and *Find* in the sidebar (desktop), or `/`, open **Find in the book**, a sheet (a
@@ -260,7 +269,7 @@ Original order of work (done; there is no presentation, the project is open sour
   index and can't find words under three letters. UI variants on
   https://claude.ai/artifact/2izQajy9AjuiZhQsiNSVUv (where it lives, how results show, what a
   tap does, optional shelf search); waiting on the user's pick.
-- [ ] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
+- [x] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
   loading and error states, empty states that say what to do next, helpful copy, no
   developer jargon in the UI ("buffered mode", "session server").
   *From use with Dune (2026-11-02):* a chapter name that wraps in Contents had its word count
@@ -299,6 +308,7 @@ Original order of work (done; there is no presentation, the project is open sour
   to more than a book should..."). Kept on purpose: `ALLTALK_URL` in the can't-reach message
   (whoever set Readhouse up needs it), "Low VRAM mode" and "DeepSpeed" (AllTalk's own names,
   each with a plain hint).
+  *Closed (2026-11-03):* loading, empty, error and offline states, plain copy, toasts, reduced motion (CSS and the follow-along scroll).
 - [ ] **Accessibility.** WCAG AA contrast in every theme, focus-visible styles, labelled
   controls, screen-reader announcements for playback state, respects system font size.
   *Type sizes raised (2026-10-31, user asked for accessible font sizes):* EB Garamond has a
@@ -598,7 +608,7 @@ The app is reachable from other devices by design, so treat the network as untru
   *Checked (2026-10-31):* tracked files hold no addresses or hostnames (examples use TEST-NET
   and `example`); `data/`, `.env*` and `.e2e/` are ignored; gitleaks runs in the gate; the
   client bundle gets no private env (only `$app/env/private`, server side).
-- [ ] **Security checklist, applied to every change.** The items from the wider industry
+- [x] **Security checklist, applied to every change.** The items from the wider industry
   list that apply to a self-hosted, single-user app with SQLite:
   - *Injection:* parameterized SQL only (no string-built queries); no shell calls with user
     input; path traversal (uploaded and stored file names never become paths; files are
@@ -642,6 +652,7 @@ The app is reachable from other devices by design, so treat the network as untru
   `readhouse.db` alone lists its books, and audio missing from `audio/` is made again on
   request. README says what to copy (`secret.key` keeps devices unlocked).
 
+  *Closed as an item (2026-11-03):* audit of every endpoint recorded above; applying it to each change stays part of How we work.
 ## Performance
 
 A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the gate.
@@ -664,7 +675,7 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   `contain-intrinsic-size`) instead of a JS virtualizer; highlight changes touch two
   elements, not the list; no layout reads in scroll handlers.
   *Done:* `content-visibility: auto` with intrinsic size on every block; highlight is an attribute flip.
-- [ ] **Network.** Audio cached by content hash (same text + voice + settings → same file)
+- [x] **Network.** Audio cached by content hash (same text + voice + settings → same file)
   so nothing is generated twice; `Cache-Control`/`ETag` on audio and immutable hashed
   assets; compression (brotli/gzip) for text; HTTP keep-alive to AllTalk; prefetch only a
   few paragraphs ahead (backpressure; no retry storms: retries with jittered backoff).
@@ -677,7 +688,8 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   HEAD, bodies under 1 KB or `no-transform`. Unit and API tested. Security: BREACH needs a secret
   repeated across many responses alongside attacker-reflected text; pages carry no CSRF token or
   session secret, and the CSP nonce changes with every response.
-- [ ] **Server.** Prepared statements, indexes for every lookup, no N+1 queries when
+  *Closed (2026-11-03):* content-hash audio cache, immutable caching, ranges, ETags, br/gzip for pages and JSON, prefetch bounded by the buffer settings.
+- [x] **Server.** Prepared statements, indexes for every lookup, no N+1 queries when
   listing a library, streaming uploads and audio (never whole files in memory), graceful
   shutdown.
   *(in progress)* Prepared statements, indexes, no N+1 in the library list, streaming audio, chapter LRU.
@@ -690,6 +702,7 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   *Graceful shutdown (2026-10-31):* adapter-node drains requests on SIGTERM/SIGINT and emits
   `sveltekit:shutdown`; the database now closes then (checked on the build: the WAL is folded in
   and the process exits).
+  *Closed (2026-11-03):* query plans checked for every statement, no N+1, streaming audio, graceful shutdown.
 - [x] **Battery and memory.** No polling loops (event-driven status), audio elements reused,
   object URLs revoked, wake lock only while playing.
   *Checked (2026-10-31):* one audio element for the whole session; no object URLs; no wake lock
