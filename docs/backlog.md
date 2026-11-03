@@ -240,7 +240,11 @@ Original order of work (done; there is no presentation, the project is open sour
   place pauses the voice if it was reading, moves the place to that paragraph (Play reads from
   there), scrolls it to the middle and marks the words with a CSS highlight (the page's text
   isn't touched; the mark goes when reading starts), with a notice "Your place is now here".
-  The sheet keeps its words and places after going to one. E2e on all three devices, axe in
+  The sheet keeps its words and places after going to one. Caught with Dune: a jump deep into a
+  long chapter landed short and drifted, because off-screen paragraphs sit at an estimated
+  height (`content-visibility`) that changes as they render; the chapter is now laid out once,
+  for one frame, before the jump, after which each paragraph keeps its real height (e2e-tested
+  with a 400-paragraph chapter). E2e on all three devices, axe in
   every theme, visual baselines. Shelf search (canvas L) not built: not picked.
   Server: SQLite FTS5 (`block_search`, unicode61 with accents
   folded) holds every paragraph and heading, filled on import and by a migration for books

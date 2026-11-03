@@ -392,6 +392,43 @@ test('finding words in the book goes there, paused, and Play reads from there', 
 	await expect(page.locator('article.page .speaking')).toContainText('The lamp was lit');
 });
 
+test('a place found deep in a long chapter is on screen after the jump', async ({
+	page
+}, testInfo) => {
+	const paragraphs = Array.from(
+		{ length: 400 },
+		(_, i) => `Paragraph ${i + 1} goes on for a while, long enough to wrap onto a few lines.`
+	);
+	paragraphs[379] = 'Here, near the end, a quokka smiles at the reader.';
+	const added = await page.request.post('/api/books/paste', {
+		data: {
+			title: `Deep ${testInfo.project.name}`,
+			text: ['Chapter 1', ...paragraphs].join('\n\n')
+		},
+		headers: { 'content-type': 'application/json' }
+	});
+	const { id } = (await added.json()) as { id: string };
+	await page.goto(`/book/${id}`);
+	const button = page.getByRole('button', { name: 'Find in the book' });
+	if (await button.isVisible()) await button.click();
+	else await page.keyboard.press('/');
+	const sheet = page.getByRole('dialog', { name: 'Find in the book' });
+	await sheet.getByRole('searchbox').fill('quokka');
+	await sheet.getByRole('button', { name: /quokka/ }).click();
+	await expect(page.locator('article.page').getByText('a quokka smiles')).toBeInViewport({
+		ratio: 1
+	});
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const range = [...(CSS.highlights.get('found') ?? [])][0] as Range | undefined;
+				const top = range?.getBoundingClientRect().top ?? -1;
+				return top > 0 && top < innerHeight;
+			})
+		)
+		.toBe(true);
+});
+
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
 	await openSettings(page);
 	await page.getByLabel('Sepia').check();

@@ -196,12 +196,31 @@
 		await tick();
 		const block = document.getElementById(`block-${hit.block}`);
 		if (!block) return;
-		const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-		block.scrollIntoView({ block: 'center', behavior: still ? 'instant' : 'smooth' });
+		await centre(block);
 		const found = hit.parts.find((part) => part.match)?.text;
 		const range = found ? textRange(block, found) : null;
 		if (range && 'highlights' in CSS) CSS.highlights.set('found', new Highlight(range));
 		toasts.show('Your place is now here. Play reads from it.');
+	}
+
+	/** For one frame before a jump, every paragraph laid out (see `centre`). */
+	let layingOut = $state(false);
+
+	/**
+	 * Jumps to a paragraph anywhere in a long chapter. Paragraphs off screen are laid out at an
+	 * estimated height (`content-visibility`) that changes as they render, so a plain jump lands
+	 * short and keeps drifting. The whole chapter is laid out once; each paragraph then keeps its
+	 * real height (`contain-intrinsic-block-size: auto`), and the jump lands where it should.
+	 */
+	async function centre(block: HTMLElement) {
+		const frame = () => new Promise((done) => requestAnimationFrame(done));
+		layingOut = true;
+		await tick();
+		await frame();
+		await frame();
+		layingOut = false;
+		await tick();
+		block.scrollIntoView({ block: 'center' });
 	}
 
 	// The words found stay marked until reading starts or the chapter changes.
@@ -276,7 +295,7 @@
 		<!-- Keyboard and screen-reader users start reading with the player controls and Contents. -->
 		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 		<article
-			class={['page', player?.active && 'playing']}
+			class={['page', player?.active && 'playing', layingOut && 'laying-out']}
 			lang={book.language ?? undefined}
 			onclick={readFrom}
 		>
@@ -539,6 +558,11 @@
 
 	.page p {
 		white-space: pre-line;
+	}
+
+	.laying-out p,
+	.laying-out h2 {
+		content-visibility: visible;
 	}
 
 	.page h2 {
