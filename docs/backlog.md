@@ -819,3 +819,12 @@ One line per work session: date, what was done, what's next.
   version item closed (README names `alltalkbeta` f16117e as tested); `docs/presentation.md`
   dropped. Next: in-book search, then the open polish items (accessibility, security audit,
   query plans, budgets).
+- 2026-11-02: In-book search, server side (FTS5 index with a backfill migration, a validated
+  endpoint, measured on Dune); its UI and a typography row are on a canvas waiting for the
+  user's picks. Axe in every theme is now in the gate (it had been skipping every contrast check
+  under the page frame) and the reader gained its missing `main` landmark. Query plans checked,
+  every endpoint audited, script budget re-measured (55.6 KB). Polish from reading Dune and the
+  AO3 fic: wrapped chapter names in Contents, the sidebar's current chapter, drop caps on
+  numbered lines, shelf leaders, follow-along under reduced motion, focus and disabled tokens.
+  The non-ASCII rule is now linted (seven files had slipped). Found the WebKit Settings flake (a
+  click before hydration). Next: build search once picked; AO3 pastes when AO3 is back.
