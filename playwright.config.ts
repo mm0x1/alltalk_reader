@@ -40,9 +40,14 @@ export default defineConfig({
 	},
 	projects: [
 		{ name: 'api', testMatch: /api\.spec\.ts/ },
-		{ name: 'iphone', testMatch: /ui\.spec\.ts/, use: { ...devices['iPhone 15'] } },
+		// Accessibility checks on one phone and the desktop: Android shows the same pages.
+		{ name: 'iphone', testMatch: /(ui|a11y)\.spec\.ts/, use: { ...devices['iPhone 15'] } },
 		{ name: 'android', testMatch: /ui\.spec\.ts/, use: { ...devices['Pixel 7'] } },
-		{ name: 'desktop', testMatch: /ui\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+		{
+			name: 'desktop',
+			testMatch: /(ui|a11y)\.spec\.ts/,
+			use: { ...devices['Desktop Chrome'] }
+		},
 		...(visual
 			? [
 					{

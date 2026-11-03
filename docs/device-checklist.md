@@ -70,6 +70,10 @@ the table at the end.
 3. **Long chapters over mobile data.** With Wi-Fi off, open Readhouse over Tailscale and go to
    a long chapter (Dune's *Book One* sections, or any chapter of 10,000+ words). It opens
    within a second or two and scrolls smoothly; pages and data are now sent compressed.
+4. **Screen readers find the book text.** With VoiceOver (iPhone, and on the Mac with
+   Cmd+F5 in Safari) or TalkBack, open a book and use the landmarks rotor / "main" navigation:
+   it lands on the chapter text (the reader had no main region before). Then step through the
+   player: every button says its name, and Play / Pause is announced.
 
 ## Lock screen and background
 

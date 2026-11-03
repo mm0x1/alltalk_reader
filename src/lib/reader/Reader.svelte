@@ -194,7 +194,7 @@
 		<Button href={resolve('/')} icon="back">The shelf</Button>
 	</aside>
 
-	<div class="main">
+	<main class="main">
 		<header class="top">
 			<Button class="phone-only" href={resolve('/')} icon="back" aria-label="Library" />
 			<div class="titles">
@@ -253,7 +253,7 @@
 				{/if}
 			</nav>
 		</article>
-	</div>
+	</main>
 
 	{#if !follow && player?.active}
 		<div class="follow">

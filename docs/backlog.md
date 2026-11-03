@@ -262,6 +262,16 @@ Original order of work (done; there is no presentation, the project is open sour
   from the lock screen or sleep timer), never each passage; problems and notices were already
   announced (player message, toasts). Book text size is a Settings choice (see Made for
   reading). Still to do: a pass with VoiceOver and TalkBack on real phones (device checklist).
+  *Automated pass (2026-11-02):* `tests/e2e/a11y.spec.ts` runs axe (WCAG 2.2 A and AA plus axe's
+  best practices) on the library, Add a book, the reader paused and playing, Contents, Settings
+  and the error page, in all three themes, on iPhone and desktop; part of the gate. Two catches
+  on the way: the ruled page frame lies over the whole page, so axe had silently skipped every
+  contrast check (the test now hides it and fails on any contrast it can't finish); and the
+  reader had no `main` landmark, so the book text was outside every landmark and "skip to main"
+  went nowhere (fixed). Known limit: beside the opening drop cap axe can't place the marked
+  sentence's background, so that state is checked on the next paragraph (same tokens). A
+  desktop VoiceOver pass isn't something I can do from here (it needs a person listening);
+  it's on the device checklist with the phone passes.
 
 ## Books: EPUB and TXT
 
