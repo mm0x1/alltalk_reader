@@ -574,7 +574,7 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   so nothing is generated twice; `Cache-Control`/`ETag` on audio and immutable hashed
   assets; compression (brotli/gzip) for text; HTTP keep-alive to AllTalk; prefetch only a
   few paragraphs ahead (backpressure; no retry storms: retries with jittered backoff).
-  *(in progress)* Content-hash audio cache, immutable caching, ranges and ETags done; compression pending.
+  *(in progress)* Content-hash audio cache, immutable caching, ranges and ETags done; compression done (below).
   *Compression (2026-11-02):* measured first: the same 42,000-word chapter's page was 628 KB
   uncompressed (about 3x the text: rendered plus its data), sent as is because adapter-node
   compresses only its prebuilt assets. Now `src/lib/server/compress.ts`, called from the server
@@ -733,3 +733,9 @@ One line per work session: date, what was done, what's next.
   start). Flaky e2e hunt: the whole suite four times over (784 runs, `--repeat-each=4`) passed
   without a failure, so the one pre-push failure is not reproducible yet; if it recurs, keep the
   trace from `test-results/`. Next: README screenshots and demo video, phone performance numbers.
+- 2026-11-02: README screenshots and demo video retaken. Pages, page data and JSON now compressed
+  (br/gzip, `src/lib/server/compress.ts`); measured on a 1,000-paragraph chapter at 4x CPU
+  throttle: steady 60 fps scrolling, worst INP 40 ms, the page 628 KB before compression. AllTalk
+  version item closed (README names `alltalkbeta` f16117e as tested); `docs/presentation.md`
+  dropped. Next: in-book search, then the open polish items (accessibility, security audit,
+  query plans, budgets).

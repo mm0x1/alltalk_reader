@@ -67,6 +67,9 @@ the table at the end.
    line in the computer's sidebar; while it works it says *Making the audiobook*, then
    *Audiobook made with...* with *Make it again* and *Forget*. Settings says *AllTalk's
    default*, *Voice conversion (RVC)* and *Stop preparing audio*.
+3. **Long chapters over mobile data.** With Wi-Fi off, open Readhouse over Tailscale and go to
+   a long chapter (Dune's *Book One* sections, or any chapter of 10,000+ words). It opens
+   within a second or two and scrolls smoothly; pages and data are now sent compressed.
 
 ## Lock screen and background
 
