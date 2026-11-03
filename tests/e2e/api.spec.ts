@@ -177,6 +177,36 @@ test('validates every input', async ({ request }) => {
 	expect(voice.status()).toBe(400);
 });
 
+test('finds words in a book, and only in that book', async ({ request }) => {
+	const search = (q: string, id = bookId) =>
+		request.get(`/api/books/${id}/search?q=${encodeURIComponent(q)}`);
+	const response = await search('after the BRE');
+	expect(response.ok()).toBe(true);
+	expect(response.headers()['cache-control']).toBe('no-store');
+	expect(await response.json()).toEqual({
+		hits: [
+			{
+				chapter: 0,
+				block: 2,
+				parts: [
+					{ text: 'After the break', match: true },
+					{ text: '.', match: false }
+				]
+			}
+		],
+		total: 1,
+		chapters: 1
+	});
+	expect(await (await search('"; DROP TABLE books; --')).json()).toMatchObject({ total: 0 });
+	expect(await (await search('')).json()).toEqual({ hits: [], total: 0, chapters: 0 });
+	expect((await search('x'.repeat(201))).status()).toBe(400);
+	expect((await search('after', '00000000-0000-4000-8000-000000000000')).status()).toBe(404);
+	const other = (await (await request.get('/api/books')).json()).find(
+		(b: { id: string }) => b.id !== bookId
+	);
+	expect(await (await search('after the break', other.id)).json()).toMatchObject({ total: 0 });
+});
+
 test('speaks a passage and serves the audio with ranges and caching', async ({ request }) => {
 	const speech = await request.post('/api/speech', {
 		data: { bookId, chapter: 0, passage: 0, chars: 80, priority: 'now' }

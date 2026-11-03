@@ -221,6 +221,21 @@ Original order of work (done; there is no presentation, the project is open sour
 - [x] **Installable PWA.** Manifest, icons, home-screen install, Media Session API (lock-screen
   controls, title/chapter, artwork) so playback can be controlled with the screen off.
   *Done:* Manifest, interim icons, Media Session (lock screen, next/previous), offline service worker.
+- [ ] **In-book search (2026-11-02).** Find a passage and read or play from there; `/` on
+  desktop. *(in progress)* Server done: SQLite FTS5 (`block_search`, unicode61 with accents
+  folded) holds every paragraph and heading, filled on import and by a migration for books
+  already in the library (`json_each` over the stored blocks), emptied with the book by a
+  trigger. `GET /api/books/:id/search?q=` (at most 200 characters, 50 hits, `no-store`, never
+  cached by the service worker) treats the words as one phrase whose last word may be unfinished
+  (from 3 letters: a one-letter prefix walks most of the book, 125 ms against 15 ms whole), in
+  reading order, with a total and chapter count. Hits come back as plain-text parts with the
+  match flagged, never HTML. Measured with five copies of Dune in the library: 2 ms for "spice"
+  (199 places), under 1 ms for a phrase, 42 ms for "the" (6,158 places); import 95 to 130 ms
+  slower for Dune; about 2.5 MB of index per Dune. Words match from their start (a search for
+  "field" doesn't find "Netherfield"); a trigram index would match inside words but triples the
+  index and can't find words under three letters. UI variants on
+  https://claude.ai/artifact/2izQajy9AjuiZhQsiNSVUv (where it lives, how results show, what a
+  tap does, optional shelf search); waiting on the user's pick.
 - [ ] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
   loading and error states, empty states that say what to do next, helpful copy, no
   developer jargon in the UI ("buffered mode", "session server").
@@ -546,6 +561,24 @@ The app is reachable from other devices by design, so treat the network as untru
   - *Data:* SQLite transactions, foreign keys on, unique constraints, migrations (forward
     and tested), backups of the data dir documented and restore tested once.
   *(in progress)* Applied so far to the server; CSP and headers in place.
+  *Audit of every endpoint (2026-11-02):* 20 endpoints and page loads. Injection: every query is
+  a prepared statement (the only SQL built from strings are constants and the migration counter);
+  ffmpeg is spawned with an argument list on paths Readhouse chose; ids and audio hashes are
+  matched by route matchers (`uuid`, `hash`, `position`) before any handler runs, and upload
+  names never become paths. Search input is reduced to letters and digits before it reaches FTS5,
+  so its query syntax can't be used. Browser: no `{@html}` anywhere; CSP with `default-src
+  'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`, plus `nosniff`,
+  `no-referrer`, a closed Permissions-Policy, COOP/CORP, HSTS only over https; cross-site
+  writes refused (Sec-Fetch-Site or Origin against Host). Server: every body read through
+  `readJson`/`readBytes` with a cap (256 bytes to the upload limit), strict schemas (unknown
+  fields refused, so no mass assignment), GET parameters range-checked (`chars`, `q` at most 200
+  characters, 50 hits), the AllTalk proxy only reaches the configured origin on fixed paths (the
+  audio file name AllTalk returns is reduced to its last segment and encoded), the passcode is
+  compared in constant time with a global attempt limit. Writes and AllTalk calls have no rate
+  limit of their own on purpose: the app is single-user behind the passcode, and the speech
+  queue runs one generation at a time and drops abandoned requests, so a busy client can't pile
+  work onto AllTalk. Data: transactions, foreign keys, unique keys, forward migrations tested
+  (the search backfill has its own test), backups documented and restore tested.
   *Backup and restore tested (2026-10-31)* on the build: a library restored from
   `readhouse.db` alone lists its books, and audio missing from `audio/` is made again on
   request. README says what to copy (`secret.key` keeps devices unlocked).
@@ -587,6 +620,12 @@ A phone on Wi-Fi or Tailscale is the target device; budgets are checked in the g
   listing a library, streaming uploads and audio (never whole files in memory), graceful
   shutdown.
   *(in progress)* Prepared statements, indexes, no N+1 in the library list, streaming audio, chapter LRU.
+  *Query plans (2026-11-02):* `EXPLAIN QUERY PLAN` on every statement in `src/lib/server/`: each
+  lookup by id, hash, book or chapter uses a primary key or index, and the library list is one
+  indexed scan with its cover and progress joined by index (no N+1). The scans left are on
+  purpose: the whole shelf (the list itself), prepared books at start-up (one row per prepared
+  book), the audio cache's total (an aggregate by nature, a few thousand rows) and removing a
+  book's search rows (FTS5 can't index an unindexed column; 59 ms for five copies of Dune).
   *Graceful shutdown (2026-10-31):* adapter-node drains requests on SIGTERM/SIGINT and emits
   `sveltekit:shutdown`; the database now closes then (checked on the build: the WAL is folded in
   and the process exits).

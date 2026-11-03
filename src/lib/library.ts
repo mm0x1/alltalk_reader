@@ -56,3 +56,23 @@ export interface Preparation {
 	passageChars: number;
 	finishedAt: number | null;
 }
+
+/** A piece of a search hit's text; `match` marks the words that were asked for. */
+export interface SearchPart {
+	text: string;
+	match: boolean;
+}
+
+/** A place in the book where the words were found: the paragraph or heading, and its text. */
+export interface SearchHit {
+	chapter: number;
+	block: number;
+	parts: SearchPart[];
+}
+
+export interface SearchResults {
+	hits: SearchHit[];
+	/** Every place found, though only the first `hits` are returned. */
+	total: number;
+	chapters: number;
+}

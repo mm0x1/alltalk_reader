@@ -7,7 +7,7 @@
 
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
 
-const MIGRATIONS: readonly string[] = [
+export const MIGRATIONS: readonly string[] = [
 	`
 	CREATE TABLE books (
 		id            TEXT PRIMARY KEY,
@@ -86,6 +86,23 @@ const MIGRATIONS: readonly string[] = [
 	) STRICT, WITHOUT ROWID;
 
 	CREATE INDEX pinned_audio_by_hash ON pinned_audio (hash);
+	`,
+	// Every spoken block, for finding a passage (see search.ts). Words match from their start,
+	// whatever their case or accents. Filled for books already in the library; emptied with them.
+	`
+	CREATE VIRTUAL TABLE block_search USING fts5(
+		text, book_id UNINDEXED, chapter UNINDEXED, block UNINDEXED,
+		tokenize = 'unicode61 remove_diacritics 2'
+	);
+
+	INSERT INTO block_search (text, book_id, chapter, block)
+		SELECT b.value ->> 'text', c.book_id, c.position, b.key
+		FROM chapters c, json_each(c.blocks) b
+		WHERE b.value ->> 'type' IN ('text', 'heading');
+
+	CREATE TRIGGER books_search_delete AFTER DELETE ON books BEGIN
+		DELETE FROM block_search WHERE book_id = old.id;
+	END;
 	`
 ];
 

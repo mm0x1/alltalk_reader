@@ -3,8 +3,15 @@
 import * as v from 'valibot';
 import { buildPassages } from '#lib/text/passages.js';
 import { countWords, type Block, type BookSource, type ParsedBook } from '#lib/book.js';
-import type { BookSummary, BookDetail, ChapterContent, Progress } from '#lib/library.js';
+import type {
+	BookSummary,
+	BookDetail,
+	ChapterContent,
+	Progress,
+	SearchResults
+} from '#lib/library.js';
 import type { Database } from './db';
+import { MATCH_END, MATCH_START, searchPhrase, snippetParts } from './search';
 
 const BlocksSchema = v.array(
 	v.variant('type', [
@@ -62,6 +69,9 @@ function toSummary(row: BookRow): BookSummary {
 /** Parsed chapters kept in memory: playback asks for the same chapter once per segment. */
 const CHAPTER_CACHE_SIZE = 16;
 
+/** Words of context around a search hit (FTS5 allows up to 64). */
+const SNIPPET_WORDS = 20;
+
 export class Library {
 	readonly #chapters = new Map<string, ChapterContent>();
 
@@ -116,6 +126,39 @@ export class Library {
 		return chapter;
 	}
 
+	/**
+	 * The places in a book where `query`'s words appear together, in reading order; null when
+	 * there is no such book.
+	 */
+	search(id: string, query: string, limit: number): SearchResults | null {
+		if (!this.db.statement(`SELECT 1 FROM books WHERE id = ?`).get(id)) return null;
+		const phrase = searchPhrase(query);
+		if (!phrase) return { hits: [], total: 0, chapters: 0 };
+		const { total, chapters } = this.db
+			.statement(
+				`SELECT count(*) AS total, count(DISTINCT chapter) AS chapters FROM block_search
+				 WHERE block_search MATCH ? AND book_id = ?`
+			)
+			.get(phrase, id) as { total: number; chapters: number };
+		const rows = this.db
+			.statement(
+				`SELECT chapter, block, snippet(block_search, 0, ?, ?, ?, ${SNIPPET_WORDS}) AS snippet
+				 FROM block_search WHERE block_search MATCH ? AND book_id = ?
+				 ORDER BY chapter, block LIMIT ?`
+			)
+			.all(MATCH_START, MATCH_END, '\u2026', phrase, id, limit) as unknown as {
+			chapter: number;
+			block: number;
+			snippet: string;
+		}[];
+		const hits = rows.map((row) => ({
+			chapter: row.chapter,
+			block: row.block,
+			parts: snippetParts(row.snippet)
+		}));
+		return { hits, total, chapters };
+	}
+
 	cover(id: string): { mime: string; bytes: Uint8Array } | null {
 		const row = this.db.statement(`SELECT mime, bytes FROM covers WHERE book_id = ?`).get(id) as
 			{ mime: string; bytes: Uint8Array } | undefined;
@@ -152,6 +195,9 @@ export class Library {
 				`INSERT INTO chapters (book_id, position, title, blocks, block_count, word_count)
 				 VALUES (?, ?, ?, ?, ?, ?)`
 			);
+			const insertSearch = this.db.statement(
+				`INSERT INTO block_search (text, book_id, chapter, block) VALUES (?, ?, ?, ?)`
+			);
 			book.chapters.forEach((chapter, position) => {
 				insertChapter.run(
 					id,
@@ -161,6 +207,9 @@ export class Library {
 					chapter.blocks.length,
 					chapterWords[position]
 				);
+				chapter.blocks.forEach((block, index) => {
+					if (block.type !== 'break') insertSearch.run(block.text, id, position, index);
+				});
 			});
 			if (book.cover) {
 				this.db

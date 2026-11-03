@@ -10,6 +10,9 @@ import { createServices, type Services } from './app.js';
 import { AllTalk } from './alltalk.js';
 import { SpeechCancelled } from './speech.js';
 import { execFileSync } from 'node:child_process';
+import { DatabaseSync } from 'node:sqlite';
+import { Database, MIGRATIONS } from './db.js';
+import { Library } from './library.js';
 
 const hasFfmpeg = (() => {
 	try {
@@ -112,6 +115,91 @@ describe('Library', () => {
 			.get() as { n: number };
 		expect(orphans.n).toBe(0);
 		expect(services.library.remove(id)).toBe(false);
+	});
+
+	it('finds the places where words appear, in reading order, whatever the case or accents', () => {
+		const id = services.library.add({
+			...book,
+			chapters: [
+				{ title: 'One', blocks: [{ type: 'heading', text: 'At Netherfield' }, { type: 'break' }] },
+				{
+					title: 'Two',
+					blocks: [
+						{ type: 'text', text: 'Nobody here.' },
+						{ type: 'text', text: 'A note came from NETHERFIELD; the servant waited.' },
+						{ type: 'text', text: 'The caf\u00e9 was closed. Netherfield again.' }
+					]
+				}
+			]
+		});
+		const other = services.library.add(book);
+		const results = services.library.search(id, 'netherf', 50);
+		expect(results).toMatchObject({ total: 3, chapters: 2 });
+		expect(results?.hits.map((hit) => [hit.chapter, hit.block])).toEqual([
+			[0, 0],
+			[1, 1],
+			[1, 2]
+		]);
+		expect(results?.hits[1].parts).toEqual([
+			{ text: 'A note came from ', match: false },
+			{ text: 'NETHERFIELD', match: true },
+			{ text: '; the servant waited.', match: false }
+		]);
+		expect(services.library.search(id, 'Cafe', 50)?.total).toBe(1);
+		expect(services.library.search(id, 'servant waited', 50)?.total).toBe(1);
+		expect(services.library.search(id, 'waited servant', 50)?.total).toBe(0);
+		expect(services.library.search(id, 'netherfield', 1)).toMatchObject({ total: 3 });
+		expect(services.library.search(id, 'netherfield', 1)?.hits).toHaveLength(1);
+		expect(services.library.search(other, 'netherfield', 50)?.total).toBe(0);
+		expect(services.library.search(id, '" OR *', 50)).toEqual({ hits: [], total: 0, chapters: 0 });
+		expect(services.library.search('nope', 'netherfield', 50)).toBeNull();
+	});
+
+	it('forgets a book\u2019s text for search when the book is removed', () => {
+		const id = services.library.add(book);
+		services.library.remove(id);
+		const left = services.db.statement(`SELECT count(*) AS n FROM block_search`).get() as {
+			n: number;
+		};
+		expect(left.n).toBe(0);
+	});
+
+	it('makes books imported before search findable', () => {
+		const path = join(dir, 'old.db');
+		const old = new DatabaseSync(path);
+		for (const sql of MIGRATIONS.slice(0, 3)) old.exec(sql);
+		old.exec(`PRAGMA user_version = 3`);
+		old.exec(
+			`INSERT INTO books (id, title, source, chapter_count, word_count, created_at)
+			 VALUES ('b', 'Old', 'txt', 1, 3, 0)`
+		);
+		old
+			.prepare(
+				`INSERT INTO chapters (book_id, position, title, blocks, block_count, word_count)
+				 VALUES ('b', 0, 'One', ?, 3, 3)`
+			)
+			.run(
+				JSON.stringify([
+					{ type: 'heading', text: 'Opening' },
+					{ type: 'break' },
+					{ type: 'text', text: 'An old book.' }
+				])
+			);
+		old.close();
+		const db = new Database(path);
+		const library = new Library(db);
+		expect(library.search('b', 'old book', 50)?.hits).toEqual([
+			{
+				chapter: 0,
+				block: 2,
+				parts: [
+					{ text: 'An ', match: false },
+					{ text: 'old book', match: true },
+					{ text: '.', match: false }
+				]
+			}
+		]);
+		db.close();
 	});
 
 	it('rolls back a failed import completely', () => {
