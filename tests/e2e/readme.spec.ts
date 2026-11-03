@@ -111,6 +111,17 @@ test.describe('phone', () => {
 		await expect(page.getByRole('dialog', { name: 'Contents' })).toBeVisible();
 		await shoot(page, 'phone-contents-sepia');
 	});
+
+	test('find in the book', async ({ page }) => {
+		await useTheme(page, 'light');
+		await page.goto(`/book/${await shelf(page)}`);
+		await page.getByRole('button', { name: 'Contents' }).click();
+		const contents = page.getByRole('dialog', { name: 'Contents' });
+		await contents.getByRole('searchbox', { name: 'Find in the book' }).fill('Mr. Bennet');
+		await expect(contents.getByRole('status')).toContainText('places');
+		await contents.getByRole('searchbox').blur();
+		await shoot(page, 'phone-find');
+	});
 });
 
 test.describe('desktop', () => {

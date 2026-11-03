@@ -62,6 +62,23 @@ test('demo video', async ({ page }) => {
 	await expect(page.getByRole('list', { name: 'Notices' })).toContainText('saved');
 	await page.waitForTimeout(4000);
 
+	// Find a passage from Contents, and go there.
+	await page.getByRole('button', { name: 'Contents' }).click();
+	const field = contents.getByRole('searchbox', { name: 'Find in the book' });
+	await beat(page, 600);
+	await field.click();
+	await page.keyboard.type('Netherfield', { delay: 120 });
+	await expect(contents.getByRole('status')).toContainText('place');
+	await beat(page, 1500);
+	await contents
+		.getByRole('button', { name: /^Chapter 1/ })
+		.first()
+		.click();
+	await expect(page.getByText('Your place is now here')).toBeVisible();
+	await page.waitForTimeout(2500);
+	await page.getByRole('button', { name: 'Play' }).click();
+	await page.waitForTimeout(3000);
+
 	// Night reading: the same page in the dark theme.
 	await page.getByRole('button', { name: 'Pause' }).click();
 	await page.getByRole('link', { name: 'Library' }).click();
@@ -79,6 +96,7 @@ test('demo video', async ({ page }) => {
 	await page.waitForTimeout(3500);
 
 	const video = page.video()!;
+	const { width, height } = page.viewportSize()!;
 	await page.close();
 	mkdirSync(OUT, { recursive: true });
 	const webm = `${OUT}/readhouse-phone.webm`;
@@ -90,6 +108,10 @@ test('demo video', async ({ page }) => {
 		'error',
 		'-i',
 		webm,
+		// The recorder draws the page at its CSS size in the corner of the larger frame: cut it
+		// out and scale it up to the frame, so the page fills the video.
+		'-vf',
+		`crop=${width}:${height}:0:0,scale=${width * 2}:${height * 2}:flags=lanczos`,
 		'-c:v',
 		'libx264',
 		'-pix_fmt',

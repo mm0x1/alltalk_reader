@@ -9,28 +9,37 @@ A Motherhouse app, alongside Ditherhouse.
 <p>
   <img src="docs/screenshots/phone-library.png" width="260" alt="The library on a phone: the book to continue, then the shelf">
   <img src="docs/screenshots/phone-reader.png" width="260" alt="Reading Pride and Prejudice on a phone, the sentence being read aloud in reverse ink">
-  <img src="docs/screenshots/phone-reader-dark.png" width="260" alt="The same page in the dark theme">
+  <img src="docs/screenshots/phone-find.png" width="260" alt="Contents on a phone, with the places where Mr. Bennet appears and the words underlined">
 </p>
 
-▶ **[Watch a 30-second walk-through](docs/media/readhouse-phone.mp4)** (phone, no sound).
+▶ **[Watch a 40-second walk-through](docs/media/readhouse-phone.mp4)** (phone, no sound).
 
 <p>
   <img src="docs/screenshots/desktop-reader.png" alt="The reader on a desktop: contents in a sidebar, the text column with the player under it">
 </p>
 
 - **Bring any book.** EPUB (including AO3 downloads), plain text (Project Gutenberg files are
-  cleaned up automatically), or paste a chapter straight from an AO3 page.
+  cleaned up automatically), or paste a chapter straight from an AO3 page. New books open where
+  the story starts, past the praise and copyright pages.
 - **Chapters, not walls of text.** Readhouse finds the chapters and gives you a table of
-  contents; it remembers where you stopped in every book.
-- **Listen and read along.** The passage being read is highlighted and followed on screen. Tap
-  any paragraph to start from there. Speed control, lock-screen controls.
-- **Offline chapters.** Save chapters to your phone and keep listening without a connection.
+  contents; it remembers where you stopped in every book, on every device.
+- **Listen and read along.** The sentence being read is highlighted and followed on screen. Tap
+  any paragraph to start from there. Speed, sleep timer, lock-screen controls.
+- **Find a passage.** Search the whole book from Contents and pick up from any place you find.
+- **Your voices.** Pick AllTalk's model and voice in Settings, hear a voice before choosing it,
+  and set how long each spoken passage is.
+- **Make the audiobook.** Record a whole book ahead of time; it then plays even with AllTalk
+  switched off. Or save single chapters to your phone for listening offline.
+- **Easy on the eyes.** Light, dark and sepia themes, text sizes from tiny to extra large, and
+  how far into the book you are (or not, if you'd rather not know). Keyboard shortcuts on a
+  computer.
 - **Private by design.** Everything stays on your machine. Optional passcode for other devices.
 
 ## What you need
 
 - A computer that runs [AllTalk v2](https://github.com/erew123/alltalk_tts/tree/alltalkbeta)
-  (the `alltalkbeta` branch). XTTS v2 is the recommended engine.
+  (the `alltalkbeta` branch). XTTS v2 is the recommended engine. A GPU makes it quick; on a CPU
+  it works, but each passage takes a few seconds to make, so the first one after Play is slower.
 - [mise](https://mise.jdx.dev) (installs the right Node.js and pnpm for you).
 - Optional: [ffmpeg](https://ffmpeg.org) on the same computer. Readhouse then compresses audio to
   AAC, about eight times smaller than AllTalk's WAV files, which helps phones on mobile data and
@@ -39,15 +48,17 @@ A Motherhouse app, alongside Ditherhouse.
 ## Install and run
 
 ```bash
-git clone <this repo> readhouse && cd readhouse
-mise install            # Node.js and pnpm
-mise run setup          # dependencies, test browsers, pre-push hook
-cp .env.example .env    # then point ALLTALK_URL at AllTalk
+git clone https://github.com/mm0x1/alltalk_reader.git readhouse && cd readhouse
+mise trust                              # allow this folder's mise.toml
+mise install                            # Node.js and pnpm
+mise x -- pnpm install --frozen-lockfile
+cp .env.example .env                    # then point ALLTALK_URL at AllTalk
 mise run build
-mise run start          # http://localhost:3000
+mise run start                          # http://localhost:3000
 ```
 
-Start AllTalk first.
+Start AllTalk first. To update later: `git pull`, then the `pnpm install`, `build` and `start`
+lines again; your library in `DATA_DIR` is kept, and the database upgrades itself.
 
 ## Connecting to AllTalk
 
@@ -165,11 +176,13 @@ Readhouse is meant for you and your devices. It still treats the network as host
 ## Development
 
 ```bash
+mise run setup          # dependencies, test browsers and the pre-push hook
 mise run fake-alltalk   # a stand-in AllTalk on :7851, no GPU needed
 mise run dev            # dev server with hot reload
 mise run check          # the full gate: types, lint, unit, audit, secrets, end-to-end
 mise run visual:update  # accept reviewed visual changes (new screenshot baselines)
 mise run screenshots    # retake the README screenshots in docs/screenshots
+mise run demo           # re-record the walk-through video in docs/media
 ```
 
 The gate includes screenshot comparisons of every key screen in every theme. They run on your

@@ -869,3 +869,10 @@ One line per work session: date, what was done, what's next.
   click before hydration). Then search built from the user's picks (B, R2, T1), and the player
   fixed at Extra large text. Typography details (canvas row 5) left as they are: the user saw no
   difference. Next: AO3 pastes when AO3 is back; phone passes for the new items.
+- 2026-11-03: Player shows book progress by words (setting to hide it); find in the book moved
+  into Contents (user's picks from canvases); seven finished backlog items ticked. For the
+  release: README brought up to date (features, an install path without test browsers, `mise
+  trust`, updating), checked from a fresh clone; screenshots retaken with a find shot; the
+  walk-through video re-recorded with a search, and fixed: it had always shown the page in a
+  quarter of the frame (the recorder draws the page at CSS size; now cropped and scaled).
+  `readhouse` fast-forwarded onto `main`.
