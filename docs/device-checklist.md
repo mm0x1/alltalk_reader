@@ -99,6 +99,11 @@ the table at the end.
    "Ch. 7 of 64"; it grows as you listen. Settings > On this device > *Show how far into the
    book I am* off: the line above the player disappears (after going back to the book), and
    stays gone after a reload. On again: it's back.
+2. **Find in the book, now in Contents.** The reader header has only Back and Contents. Open
+   Contents: the keyboard stays down and the chapters show, with *Find in the book* at the top.
+   Type *spice* (Dune): the places replace the chapters; tap one and the book opens there,
+   paused, the word marked. Open Contents again: chapters, the field empty. On the computer the
+   field heads the sidebar and `/` puts the cursor in it.
 
 ## Lock screen and background
 

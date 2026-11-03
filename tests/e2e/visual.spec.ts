@@ -134,12 +134,14 @@ for (const theme of THEMES) {
 		test('find in the book', async ({ page }) => {
 			const id = await addBook(page, 'Pride and Prejudice', 'Jane Austen', PRIDE);
 			await page.goto(`/book/${id}`);
-			const button = page.getByRole('button', { name: 'Find in the book' });
+			const button = page.getByRole('button', { name: 'Contents' });
 			if (await button.isVisible()) await button.click();
-			else await page.keyboard.press('/');
-			const sheet = page.getByRole('dialog', { name: 'Find in the book' });
-			await sheet.getByRole('searchbox').fill('Mr. Bennet');
-			await expect(sheet.getByRole('status')).toHaveText('4 places in 2 chapters');
+			const field = page
+				.getByRole('searchbox', { name: 'Find in the book' })
+				.locator('visible=true');
+			await field.fill('Mr. Bennet');
+			await expect(page.getByText('4 places in 2 chapters')).toBeVisible();
+			await field.blur();
 			await settle(page);
 			await expect(page).toHaveScreenshot(`${theme}-find.png`);
 		});

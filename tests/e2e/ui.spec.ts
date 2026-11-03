@@ -346,27 +346,30 @@ test('the desktop sidebar shows the chapter being read in the middle', async ({
 	expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test('finding words in the book goes there, paused, and Play reads from there', async ({
+test('finding words from Contents goes there, paused, and Play reads from there', async ({
 	page
 }, testInfo) => {
 	await addPastedBook(page, `Find ${testInfo.project.name}`);
-	// The phone has a button in the header; the desktop has / (and a button in the sidebar).
-	const button = page.getByRole('button', { name: 'Find in the book' });
-	if (await button.isVisible()) await button.click();
-	else await page.keyboard.press('/');
-	const sheet = page.getByRole('dialog', { name: 'Find in the book' });
-	const field = sheet.getByRole('searchbox', { name: 'Words to find' });
-	await expect(field).toBeFocused();
+	// Contents opens with its chapters and the keyboard down; the field is at its top.
+	const contents = await openContents(page);
+	const field = contents.list.getByRole('searchbox', { name: 'Find in the book' });
+	await expect(field).not.toBeFocused();
+	await expect(contents.list.getByRole('button', { name: /^Chapter 2/ })).toBeVisible();
 
 	await field.fill('zebra');
-	await expect(sheet.getByRole('status')).toHaveText('Nothing found for \u201czebra\u201d.');
+	await expect(contents.list.getByRole('status')).toHaveText(
+		'Nothing found for \u201czebra\u201d.'
+	);
 	await field.fill('GREY and');
-	await expect(sheet.getByRole('status')).toHaveText('1 place in 1 chapter');
-	const hit = sheet.getByRole('button', { name: /^Chapter 2/ });
+	await expect(contents.list.getByRole('status')).toHaveText('1 place in 1 chapter');
+	// The places replace the chapters (and Make the audiobook).
+	await expect(contents.list.getByRole('button', { name: /Make the audiobook/i })).toHaveCount(0);
+	const hit = contents.list.getByRole('button', { name: /^Chapter 2/ });
+	await expect(hit).toHaveCount(1);
 	await expect(hit.locator('mark')).toHaveText('grey and');
 	await hit.click();
 
-	await expect(sheet).toBeHidden();
+	if (contents.sheet) await expect(page.getByRole('dialog', { name: 'Contents' })).toBeHidden();
 	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 2' })).toBeVisible();
 	await expect(page.locator('article.page .speaking')).toHaveText('Morning came grey and quiet.');
 	await expect(page.getByText('Your place is now here. Play reads from it.')).toBeVisible();
@@ -380,16 +383,26 @@ test('finding words in the book goes there, paused, and Play reads from there', 
 		.toEqual(expect.arrayContaining([expect.stringMatching(/^Chapter 2: Morning came grey/)]));
 	expect(await page.evaluate(() => CSS.highlights.has('found'))).toBe(false);
 
-	// The words and places are still there; picked after reading, paused at the new place.
-	if (await button.isVisible()) await button.click();
-	else await page.keyboard.press('/');
-	await expect(field).toHaveValue('GREY and');
-	await expect(field).toBeFocused();
-	await field.fill('lamp');
-	await sheet.getByRole('button', { name: /^Chapter 1/ }).click();
+	// Contents shows its chapters again, the field empty; picked after reading, paused there.
+	const again = await openContents(page);
+	const field2 = again.list.getByRole('searchbox', { name: 'Find in the book' });
+	await expect(field2).toHaveValue('');
+	await expect(again.list.getByRole('button', { name: /^Chapter 3/ })).toBeVisible();
+	await field2.fill('lamp');
+	await again.list.getByRole('button', { name: /^Chapter 1/ }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Chapter 1' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
 	await expect(page.locator('article.page .speaking')).toContainText('The lamp was lit');
+});
+
+test('/ goes to the find field', async ({ page }, testInfo) => {
+	await addPastedBook(page, `Slash ${testInfo.project.name}`);
+	await page.keyboard.press('/');
+	const field = page.getByRole('searchbox', { name: 'Find in the book' }).locator('visible=true');
+	await expect(field).toBeFocused();
+	// Typing a / in the field is just a character.
+	await page.keyboard.type('a/b');
+	await expect(field).toHaveValue('a/b');
 });
 
 test('a place found deep in a long chapter is on screen after the jump', async ({
@@ -409,12 +422,9 @@ test('a place found deep in a long chapter is on screen after the jump', async (
 	});
 	const { id } = (await added.json()) as { id: string };
 	await page.goto(`/book/${id}`);
-	const button = page.getByRole('button', { name: 'Find in the book' });
-	if (await button.isVisible()) await button.click();
-	else await page.keyboard.press('/');
-	const sheet = page.getByRole('dialog', { name: 'Find in the book' });
-	await sheet.getByRole('searchbox').fill('quokka');
-	await sheet.getByRole('button', { name: /quokka/ }).click();
+	const contents = await openContents(page);
+	await contents.list.getByRole('searchbox', { name: 'Find in the book' }).fill('quokka');
+	await contents.list.getByRole('button', { name: /quokka/ }).click();
 	await expect(page.locator('article.page').getByText('a quokka smiles')).toBeInViewport({
 		ratio: 1
 	});

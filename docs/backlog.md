@@ -249,7 +249,13 @@ Original order of work (done; there is no presentation, the project is open sour
   place pauses the voice if it was reading, moves the place to that paragraph (Play reads from
   there), scrolls it to the middle and marks the words with a CSS highlight (the page's text
   isn't touched; the mark goes when reading starts), with a notice "Your place is now here".
-  The sheet keeps its words and places after going to one. Caught with Dune: a jump deep into a
+  *Moved into Contents (user, 2026-11-03, from https://claude.ai/artifact/FdMBt9N8pLqVPKnuuauRhy):*
+  the header's magnifier and the separate sheet are gone; a "Find in the book" field heads
+  Contents (phone sheet and desktop sidebar, widened to 20rem). It isn't focused when Contents
+  opens, so the keyboard stays down for a chapter tap; while it has words the places replace
+  Make the audiobook and the chapters, and clearing it brings them back. Going to a place
+  clears it, so Contents opens as contents next time. `/` goes to the field (on a phone with a
+  keyboard it opens Contents first). Caught with Dune: a jump deep into a
   long chapter landed short and drifted, because off-screen paragraphs sit at an estimated
   height (`content-visibility`) that changes as they render; the chapter is now laid out once,
   for one frame, before the jump, after which each paragraph keeps its real height (e2e-tested

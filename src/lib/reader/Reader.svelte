@@ -51,7 +51,6 @@
 	/** The paragraph that opens the chapter with a drop cap (see drop-cap.ts). */
 	const openingBlock = $derived(dropCapBlock(chapter.blocks));
 	let contentsOpen = $state(false);
-	let findOpen = $state(false);
 	let follow = $state(true);
 	let canSave = $state(false);
 	let saved = $state<ReadonlySet<number>>(new Set());
@@ -155,7 +154,7 @@
 		// `/` finds in the book (Shift is how some keyboards type it).
 		if (event.key === '/') {
 			event.preventDefault();
-			findOpen = true;
+			void focusFind();
 			return;
 		}
 		if (event.shiftKey) return;
@@ -176,6 +175,15 @@
 		}
 	}
 
+	/** The find field at the top of Contents: the sidebar's on desktop, else the sheet's. */
+	async function focusFind() {
+		const side = document.getElementById('find-side');
+		if (side?.getClientRects().length) return side.focus();
+		contentsOpen = true;
+		await tick();
+		document.getElementById('find-sheet')?.focus();
+	}
+
 	/**
 	 * A search result: the place moves to its paragraph, paused (Play reads from there), and the
 	 * words found are marked until reading starts. The mark is a CSS highlight, so the page's text
@@ -183,7 +191,7 @@
 	 */
 	async function goTo(hit: SearchHit) {
 		if (!player) return;
-		findOpen = false;
+		contentsOpen = false;
 		follow = true;
 		try {
 			await player.seekBlock(hit.chapter, hit.block);
@@ -264,10 +272,7 @@
 			<span class="side-title">{book.title}</span>
 			{#if book.author}<span class="side-author">{book.author}</span>{/if}
 		</div>
-		<Button variant="outline" icon="search" onclick={() => (findOpen = true)}>
-			Find <kbd>/</kbd>
-		</Button>
-		<nav class="side-contents" aria-label="Contents">{@render contentsList()}</nav>
+		<nav class="side-contents" aria-label="Contents">{@render contentsList('find-side')}</nav>
 		<Button href={resolve('/')} icon="back">The shelf</Button>
 	</aside>
 
@@ -278,12 +283,6 @@
 				<p class="book-title">{book.title}</p>
 				<h1 class="chapter-title">{chapter.title}</h1>
 			</div>
-			<Button
-				class="phone-only"
-				icon="search"
-				aria-label="Find in the book"
-				onclick={() => (findOpen = true)}
-			/>
 			<Button
 				class="phone-only"
 				icon="contents"
@@ -356,7 +355,13 @@
 		>{text.slice(range[1])}{:else}{text}{/if}
 {/snippet}
 
-{#snippet contentsList()}
+{#snippet contentsList(findId: string)}
+	<FindInBook id={findId} bookId={book.id} chapters={book.chapters} onpick={goTo}>
+		{@render chapterList()}
+	</FindInBook>
+{/snippet}
+
+{#snippet chapterList()}
 	<PrepareBook bookId={book.id} onchange={() => invalidateAll()} />
 	<ol class="contents">
 		{#each book.chapters as entry, index (index)}
@@ -404,12 +409,7 @@
 {/snippet}
 
 <Sheet bind:open={contentsOpen} title="Contents">
-	{#if contentsOpen}{@render contentsList()}{/if}
-</Sheet>
-
-<!-- Kept while closed, so the words and places are still there after going to one. -->
-<Sheet bind:open={findOpen} title="Find in the book">
-	<FindInBook bookId={book.id} chapters={book.chapters} onpick={goTo} />
+	{#if contentsOpen}{@render contentsList('find-sheet')}{/if}
 </Sheet>
 
 <style>
@@ -429,7 +429,7 @@
 			position: sticky;
 			top: 0;
 			display: grid;
-			grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+			grid-template-rows: auto auto minmax(0, 1fr) auto;
 			gap: var(--space-4);
 			height: 100dvh;
 			padding: calc(var(--space-6) + var(--safe-top)) var(--space-4)
