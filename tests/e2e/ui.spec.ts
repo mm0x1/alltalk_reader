@@ -304,6 +304,39 @@ test('following the voice scrolls without gliding when motion is reduced', async
 	if (await pause.isVisible()) await pause.click();
 });
 
+test('the desktop sidebar shows the chapter being read in the middle', async ({
+	page
+}, testInfo) => {
+	test.skip(testInfo.project.name !== 'desktop', 'The sidebar is the desktop layout');
+	const chapters = Array.from(
+		{ length: 40 },
+		(_, i) => `Chapter ${i + 1}\n\nThe ${i + 1}th chapter, with a title long enough to wrap.`
+	);
+	const added = await page.request.post('/api/books/paste', {
+		data: { title: `Sidebar ${testInfo.project.name}`, text: chapters.join('\n\n') },
+		headers: { 'content-type': 'application/json' }
+	});
+	const { id } = (await added.json()) as { id: string };
+	const placed = await page.request.put(`/api/books/${id}/progress`, {
+		data: { chapter: 30, block: 0 },
+		headers: { 'content-type': 'application/json' }
+	});
+	expect(placed.status()).toBe(204);
+	await page.goto(`/book/${id}`);
+	const list = page.getByRole('navigation', { name: 'Contents' });
+	const current = list.locator('[aria-current="true"]');
+	await expect(current).toHaveText(/Chapter 31/);
+	await expect
+		.poll(async () => {
+			const [box, row] = await Promise.all([list.boundingBox(), current.boundingBox()]);
+			if (!box || !row) return Infinity;
+			// Centred: chapters before and after it show too.
+			return Math.abs(row.y + row.height / 2 - (box.y + box.height / 2)) / row.height;
+		})
+		.toBeLessThan(1);
+	expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
 	await page.goto('/settings');
 	await page.getByLabel('Sepia').check();

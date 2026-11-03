@@ -246,6 +246,12 @@ Original order of work (done; there is no presentation, the project is open sour
 - [ ] **Pleasant details.** Calm transitions (respecting `prefers-reduced-motion`), clear
   loading and error states, empty states that say what to do next, helpful copy, no
   developer jargon in the UI ("buffered mode", "session server").
+  *From use with Dune (2026-11-02):* a chapter name that wraps in Contents had its word count
+  beside its first line and one stray leader dot on the next; figures and leaders now sit on
+  the last line, as in a printed contents, and one-line rows are now truly centred (they sat
+  2 px high). The desktop sidebar scrolled the current chapter to its bottom edge before the
+  book face loaded, so it showed half cut off; it's now centred once fonts are ready, scrolling
+  only the list (e2e-tested).
   *Reduced motion (2026-11-02):* CSS motion was already off under reduced motion, but
   following the voice called `scrollIntoView({ behavior: 'smooth' })`, which overrides the CSS
   rule, so the page still glided with Reduce Motion on; it now jumps (e2e-tested).

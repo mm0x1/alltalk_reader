@@ -105,12 +105,18 @@
 		speaking()?.scrollIntoView({ block: 'center', behavior: still ? 'instant' : 'smooth' });
 	});
 
-	// In the desktop sidebar, keep the chapter being read in view.
+	// In the desktop sidebar, keep the chapter being read in the middle of the list, once the
+	// book face has loaded (rows change height with it). Only the list scrolls, never the page.
 	$effect(() => {
 		void position.chapter;
-		document
-			.querySelector('.side-contents [aria-current="true"]')
-			?.scrollIntoView({ block: 'nearest' });
+		const list = document.querySelector<HTMLElement>('.side-contents');
+		if (!list?.clientHeight) return;
+		void document.fonts.ready.then(() => {
+			const row = list.querySelector('[aria-current="true"]');
+			if (!row) return;
+			const offset = row.getBoundingClientRect().top - list.getBoundingClientRect().top;
+			list.scrollTop += offset - (list.clientHeight - row.clientHeight) / 2;
+		});
 	});
 
 	function stopFollowing() {

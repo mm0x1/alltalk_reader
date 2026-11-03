@@ -76,6 +76,9 @@ the table at the end.
    player: every button says its name, and Play / Pause is announced.
 5. **Reduce Motion while listening.** Turn on Reduce Motion, play a book and let it read on:
    the page jumps to each new passage instead of gliding.
+6. **Long chapter names in Contents.** Open Dune's Contents on the phone and on the computer:
+   a name that wraps (*Praise for The Dune Chronicles*) has its word count and dots on its last
+   line. On the computer, the chapter being read sits in the middle of the sidebar, whole.
 
 ## Lock screen and background
 

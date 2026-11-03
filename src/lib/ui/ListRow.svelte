@@ -28,12 +28,15 @@
 <style>
 	.row {
 		display: flex;
+		/* A title that wraps keeps its figure and leaders on its last line, as in print. */
 		align-items: baseline;
+		align-items: last baseline;
 		gap: var(--space-2);
 		width: 100%;
 		min-width: 0;
 		min-height: var(--tap-min);
-		padding: var(--space-2) var(--space-2);
+		/* Padding, not spare height, makes up the tap size, so a one-line row stays centred. */
+		padding: max(var(--space-2), (var(--tap-min) - 1lh) / 2) var(--space-2);
 		border: none;
 		border-radius: 0;
 		background: none;
