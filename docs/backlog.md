@@ -499,6 +499,11 @@ Original order of work (done; there is no presentation, the project is open sour
   `check` command (types, lint incl. design-system rules, unit, e2e) run by a pre-push hook
   and CI (GitHub Actions), like Ditherhouse's `mise run check`.
   *Done:* `mise run check` (types, prettier, eslint, stylelint, vitest, prod audit, gitleaks, Playwright on iPhone/Android/desktop), pre-push hook, GitHub Actions.
+  *CI split (2026-11-03):* about 5 minutes a push, almost all of it the end-to-end tests in one
+  queue. Now a static job (types, lint, unit, audit, secrets) beside one job per Playwright
+  project, each installing only its browser; a newer push cancels the older run; pushes that
+  only touch docs, Markdown or screenshot baselines don't run it. `mise run check` (local and
+  pre-push) is unchanged.
 - [x] **Fake AllTalk server.** A test double that serves the API with short fixed WAVs, slow
   responses and errors on demand, so tests are fast and deterministic without a GPU.
   *Done:* `tests/fake-alltalk.ts`, also runnable standalone for UI work.
