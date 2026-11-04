@@ -180,7 +180,6 @@ mise run dev            # dev server with hot reload
 mise run check          # the full gate: types, lint, unit, audit, secrets, end-to-end
 mise run visual:update  # accept reviewed visual changes (new screenshot baselines)
 mise run screenshots    # retake the README screenshots in docs/screenshots
-mise run demo           # re-record the walk-through video in docs/media
 ```
 
 The gate includes screenshot comparisons of every key screen in every theme. They run on your

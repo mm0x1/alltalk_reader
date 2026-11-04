@@ -1,7 +1,5 @@
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 
-const DEMO_ALLTALK_PORT = 7996;
-const DEMO_PORT = 4176;
 const shared = {
 	// As `mise run start` does: Readhouse enforces its own limits.
 	BODY_SIZE_LIMIT: 'Infinity',
@@ -16,8 +14,6 @@ const shared = {
 const visual = !process.env.CI;
 /** README screenshots (`mise run screenshots`): only when asked for, never in the gate. */
 const shots = visual && !!process.env.SHOTS;
-/** The presentation recording (`mise run demo`): passages at speaking pace, only when asked for. */
-const demo = visual && !!process.env.DEMO;
 /**
  * Locally every project gets servers of its own (a fake AllTalk, an open and a locked
  * Readhouse, each with its own library), so projects run side by side: tests change settings
@@ -82,20 +78,6 @@ const projects = [
 				...on(name),
 				use: { ...device, ...on(name).use }
 			}))
-		: []),
-	...(demo
-		? [
-				{
-					name: 'demo',
-					testMatch: /demo\.spec\.ts/,
-					timeout: 180_000,
-					use: {
-						...devices['iPhone 15'],
-						baseURL: `http://127.0.0.1:${DEMO_PORT}`,
-						video: { mode: 'on' as const, size: { width: 786, height: 1318 } }
-					}
-				}
-			]
 		: []),
 	// The README shots use the visual servers.
 	...(shots
@@ -179,29 +161,5 @@ export default defineConfig({
 		toHaveScreenshot: { animations: 'disabled', caret: 'hide', scale: 'css' }
 	},
 	projects,
-	webServer: [
-		...servers,
-		...(demo
-			? [
-					{
-						command: `node tests/fake-alltalk.ts ${DEMO_ALLTALK_PORT}`,
-						url: `http://127.0.0.1:${DEMO_ALLTALK_PORT}/api/ready`,
-						env: { FAKE_DELAY_MS: '700', FAKE_SECONDS_PER_CHAR: '0.05' },
-						reuseExistingServer: false
-					},
-					{
-						command: 'node build',
-						url: `http://127.0.0.1:${DEMO_PORT}/api/status`,
-						env: {
-							ALLTALK_URL: `http://127.0.0.1:${DEMO_ALLTALK_PORT}`,
-							PORT: String(DEMO_PORT),
-							HOST: '127.0.0.1',
-							DATA_DIR: '.e2e/demo',
-							BODY_SIZE_LIMIT: 'Infinity'
-						},
-						reuseExistingServer: false
-					}
-				]
-			: [])
-	]
+	webServer: servers
 });

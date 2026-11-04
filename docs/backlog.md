@@ -887,3 +887,4 @@ One line per work session: date, what was done, what's next.
   its own fake AllTalk, open and locked server and library, so projects run on parallel workers
   (half the cores; more barely helped). CI still uses one set of servers, one project per job.
   README: walk-through video link removed (too low quality).
+- 2026-11-03: Walk-through video, its recording spec and `mise run demo` removed.
