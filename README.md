@@ -12,8 +12,6 @@ A Motherhouse app, alongside Ditherhouse.
   <img src="docs/screenshots/phone-find.png" width="260" alt="Contents on a phone, with the places where Mr. Bennet appears and the words underlined">
 </p>
 
-▶ **[Watch a 40-second walk-through](docs/media/readhouse-phone.mp4)** (phone, no sound).
-
 <p>
   <img src="docs/screenshots/desktop-reader.png" alt="The reader on a desktop: contents in a sidebar, the text column with the player under it">
 </p>

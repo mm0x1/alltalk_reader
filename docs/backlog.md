@@ -883,3 +883,7 @@ One line per work session: date, what was done, what's next.
   quarter of the frame (the recorder draws the page at CSS size; now cropped and scaled).
   `readhouse` fast-forwarded onto `main`.
 - 2026-11-03: GitHub repo renamed to `readhouse` (old links redirect); first release, v1.0.0.
+- 2026-11-03: Pre-push gate from about 4 min to about 66 s. Locally every Playwright project has
+  its own fake AllTalk, open and locked server and library, so projects run on parallel workers
+  (half the cores; more barely helped). CI still uses one set of servers, one project per job.
+  README: walk-through video link removed (too low quality).
