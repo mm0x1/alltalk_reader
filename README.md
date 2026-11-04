@@ -1,10 +1,16 @@
 # Readhouse
 
-**Your books, read aloud.** Readhouse turns EPUBs, text files and AO3 chapters into a quiet
-reading room that reads to you, in voices you choose, with [AllTalk](https://github.com/erew123/alltalk_tts/tree/alltalkbeta)
-doing the speaking. It runs on your computer and you listen on your phone.
+**Your books, read aloud.** Readhouse is a self-hosted ebook reader that reads EPUBs, text
+files and AO3 fanfiction aloud using [AllTalk](https://github.com/erew123/alltalk_tts/tree/alltalkbeta)
+text-to-speech (XTTS and other engines), and highlights each sentence as it goes. It runs on
+your computer; you read and listen on your phone.
 
-A Motherhouse app, alongside Ditherhouse.
+- **You don't convert the book first.** Press Play and the first passage arrives in seconds.
+  Readhouse makes the audio a little ahead of where you are, so there's no hours-long conversion
+  and you can jump anywhere.
+- **It's free and private.** No account or subscription, and your books never leave your
+  machine. The voices are whatever AllTalk has, including any you've cloned in AllTalk
+  from your own recordings.
 
 <p>
   <img src="docs/screenshots/phone-library.png" width="260" alt="The library on a phone: the book to continue, then the shelf">
@@ -16,22 +22,34 @@ A Motherhouse app, alongside Ditherhouse.
   <img src="docs/screenshots/desktop-reader.png" alt="The reader on a desktop: contents in a sidebar, the text column with the player under it">
 </p>
 
-- **Bring any book.** EPUB (including AO3 downloads), plain text (Project Gutenberg files are
+## How it works
+
+1. Add a book from any device: upload a file, paste a chapter, or (on Android) share a file to
+   Readhouse from another app.
+2. Press Play. Readhouse sends the text to AllTalk a passage at a time and plays the audio on
+   your phone while the page follows along.
+3. Stop whenever you like. Your place is saved in every book, on every device.
+
+## Features
+
+- **EPUB, text and AO3.** EPUB (including AO3 downloads), plain text (Project Gutenberg files are
   cleaned up automatically), or paste a chapter straight from an AO3 page. New books open where
-  the story starts, past the praise and copyright pages.
+  the story starts, past the praise and copyright pages. PDF, Kindle formats and DRM-protected
+  books aren't supported; [Calibre](https://calibre-ebook.com) can convert DRM-free ones to EPUB.
 - **Chapters, not walls of text.** Readhouse finds the chapters and gives you a table of
-  contents; it remembers where you stopped in every book, on every device.
+  contents.
 - **Listen and read along.** The sentence being read is highlighted and followed on screen. Tap
-  any paragraph to start from there. Speed, sleep timer, lock-screen controls.
+  any paragraph to start from there. Speed, sleep timer, and lock-screen controls; playback keeps
+  going with the screen off.
 - **Find a passage.** Search the whole book from Contents and pick up from any place you find.
-- **Your voices.** Pick AllTalk's model and voice in Settings, hear a voice before choosing it,
-  and set how long each spoken passage is.
+- **Your voices.** Pick AllTalk's model, voice and language in Settings, hear a voice before
+  choosing it, and set how long each spoken passage is.
 - **Make the audiobook.** Record a whole book ahead of time; it then plays even with AllTalk
   switched off. Or save single chapters to your phone for listening offline.
 - **Easy on the eyes.** Light, dark and sepia themes, text sizes from tiny to extra large, and
   how far into the book you are (or not, if you'd rather not know). Keyboard shortcuts on a
   computer.
-- **Private by design.** Everything stays on your machine. Optional passcode for other devices.
+- **A passcode if you want one**, for other devices on your network.
 
 ## What you need
 
@@ -39,6 +57,7 @@ A Motherhouse app, alongside Ditherhouse.
   (the `alltalkbeta` branch). XTTS v2 is the recommended engine. A GPU makes it quick; on a CPU
   it works, but each passage takes a few seconds to make, so the first one after Play is slower.
 - [mise](https://mise.jdx.dev) (installs the right Node.js and pnpm for you).
+- macOS or Linux. Windows should work through mise but hasn't been tried yet; reports welcome.
 - Optional: [ffmpeg](https://ffmpeg.org) on the same computer. Readhouse then compresses audio to
   AAC, about eight times smaller than AllTalk's WAV files, which helps phones on mobile data and
   makes offline chapters small.
@@ -171,6 +190,15 @@ Readhouse is meant for you and your devices. It still treats the network as host
 - AllTalk is only ever called by the server, at the address you configured; the browser never
   talks to it.
 
+## Troubleshooting
+
+- **The first passage takes a while.** AllTalk is making it. On a CPU each passage takes a few
+  seconds; after that, Readhouse makes the next ones while you listen. A GPU makes it quick.
+- **Settings says it can't reach AllTalk.** Check that AllTalk is running and that
+  `ALLTALK_URL` is the address the computer running Readhouse uses to reach it (see above).
+- **No offline chapters or install button.** Browsers only allow those over HTTPS. Use
+  Tailscale (above) or another HTTPS proxy.
+
 ## Development
 
 ```bash
@@ -195,3 +223,5 @@ Built with SvelteKit, Svelte 5, TypeScript and SQLite (Node's built-in driver).
 
 [MIT](LICENSE). AllTalk is a separate project with its own license; Readhouse talks to it over
 HTTP and doesn't include any of its code.
+
+A Motherhouse app, alongside Ditherhouse.

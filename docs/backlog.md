@@ -888,3 +888,4 @@ One line per work session: date, what was done, what's next.
   (half the cores; more barely helped). CI still uses one set of servers, one project per job.
   README: walk-through video link removed (too low quality).
 - 2026-11-03: Walk-through video, its recording spec and `mise run demo` removed.
+- 2026-11-03: README rewritten for people finding it cold: why it differs from converting a whole book or a cloud app, how it works, what formats it does not take, languages, Android share, platforms, troubleshooting.
