@@ -5,8 +5,7 @@
 
 import { expect, test, type APIRequestContext } from '@playwright/test';
 import { strToU8, zipSync } from 'fflate';
-
-const LOCKED = 'http://127.0.0.1:4174';
+import { lockedURL } from './books.js';
 
 function epub(): Buffer {
 	const xhtml = (body: string) =>
@@ -295,9 +294,9 @@ test('deletes a book completely', async ({ request }) => {
 	);
 });
 
-test('accepts same-host requests through an HTTPS proxy', async ({ request }) => {
+test('accepts same-host requests through an HTTPS proxy', async ({ request, baseURL }) => {
 	const response = await request.post('/api/speech/stop', {
-		headers: { ...JSON_HEADERS, origin: 'https://127.0.0.1:4173' }
+		headers: { ...JSON_HEADERS, origin: baseURL!.replace('http:', 'https:') }
 	});
 	expect(response.status()).toBe(204);
 });
@@ -320,7 +319,7 @@ test('prepare checks the book and the action', async ({ request }) => {
 
 test.describe('with a passcode', () => {
 	test('locks the API and pages until unlocked', async ({ playwright }) => {
-		const request = await playwright.request.newContext({ baseURL: LOCKED });
+		const request = await playwright.request.newContext({ baseURL: lockedURL() });
 		expect((await request.get('/api/books')).status()).toBe(401);
 		const page = await request.get('/', { maxRedirects: 0 });
 		expect(page.status()).toBe(303);
@@ -330,7 +329,7 @@ test.describe('with a passcode', () => {
 		expect(wrong.status()).toBe(401);
 		const right = await request.post('/api/unlock', {
 			data: { passcode: 'correct horse' },
-			headers: { origin: LOCKED }
+			headers: { origin: lockedURL() }
 		});
 		expect(right.status()).toBe(204);
 		const cookie = right.headers()['set-cookie'];
@@ -340,14 +339,14 @@ test.describe('with a passcode', () => {
 		expect(cookie).not.toContain('Secure');
 		expect((await request.get('/api/books')).status()).toBe(200);
 
-		await request.post('/api/lock', { headers: { ...JSON_HEADERS, origin: LOCKED } });
+		await request.post('/api/lock', { headers: { ...JSON_HEADERS, origin: lockedURL() } });
 		expect((await request.get('/api/books')).status()).toBe(401);
 		await request.dispose();
 	});
 
 	test('rejects forged and expired session cookies', async ({ playwright }) => {
 		const forged = await playwright.request.newContext({
-			baseURL: LOCKED,
+			baseURL: lockedURL(),
 			extraHTTPHeaders: { cookie: `readhouse_session=${Date.now()}.AAAA` }
 		});
 		expect((await forged.get('/api/books')).status()).toBe(401);

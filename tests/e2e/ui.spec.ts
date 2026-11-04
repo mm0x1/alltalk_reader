@@ -5,6 +5,7 @@
 
 import { gzipSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
+import { lockedURL } from './books.js';
 
 const STORY = [
 	'Chapter 1',
@@ -690,7 +691,7 @@ test('a file or link shared from another app arrives in the library', async ({
 });
 
 test('a share to a locked device waits through unlocking', async ({ page }, testInfo) => {
-	const locked = 'http://127.0.0.1:4174';
+	const locked = lockedURL();
 	await page.goto(`${locked}/unlock`);
 	await page.evaluate(async () => {
 		await navigator.serviceWorker.ready;

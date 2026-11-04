@@ -3,7 +3,7 @@
  * texts are public domain.
  */
 
-import { expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 export type Theme = 'light' | 'dark' | 'sepia';
 
@@ -94,3 +94,6 @@ export async function useTheme(page: Page, theme: Theme) {
 		localStorage.setItem('readhouse:theme', theme);
 	}, theme);
 }
+
+/** The locked server (passcode "correct horse") that belongs with this project's servers. */
+export const lockedURL = () => test.info().project.metadata.locked as string;

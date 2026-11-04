@@ -13,13 +13,13 @@ import {
 	CAROL,
 	emptyLibrary,
 	JSON_HEADERS,
+	lockedURL,
 	MOBY,
 	PRIDE,
 	settle,
 	useTheme
 } from './books.js';
 
-const LOCKED = 'http://127.0.0.1:4174';
 const THEMES = ['light', 'dark', 'sepia'] as const;
 const LONG_TITLE =
 	'The Entirely Unplanned Consequences of Borrowing a Library Book in the Middle of a Thunderstorm';
@@ -239,7 +239,7 @@ for (const theme of THEMES) {
 		});
 
 		test('unlock', async ({ page }) => {
-			await page.goto(`${LOCKED}/unlock`);
+			await page.goto(`${lockedURL()}/unlock`);
 			await settle(page);
 			await expect(page).toHaveScreenshot(`${theme}-unlock.png`);
 		});
